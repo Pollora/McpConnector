@@ -144,6 +144,12 @@ jobs:
   # ---------------------------------------------------------------------------
   # Pattern-based scanning for the things a linter does not model: injection
   # sinks, dangerous deserialisation, hard-coded secrets.
+  #
+  # Scoped to what actually reaches a site. vendor/ is a generated autoloader,
+  # tests/ never runs inside WordPress, and .wordpress-org/ holds the scripts
+  # that draw the directory listing's images — authoring tools, export-ignored,
+  # and the reason this job first went red: a rule about dynamic URLs firing on
+  # a loopback address with a port number in it.
   # ---------------------------------------------------------------------------
   semgrep:
     name: Semgrep
@@ -163,6 +169,7 @@ jobs:
           --skip-unknown-extensions
           --exclude=vendor
           --exclude=tests
+          --exclude=.wordpress-org
 
   # ---------------------------------------------------------------------------
   # Third-party actions are code running with access to the repository. Pinning
