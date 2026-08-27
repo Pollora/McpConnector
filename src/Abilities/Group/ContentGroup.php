@@ -14,8 +14,6 @@ use Pollora\McpConnector\Formatting\PostFormatter;
 use Pollora\McpConnector\Formatting\PostMeta;
 use Pollora\McpConnector\Support\Failure;
 use Pollora\McpConnector\Support\PostTypes;
-use WP_Error;
-use WP_Post;
 use WP_Query;
 
 defined('ABSPATH') || exit;
@@ -62,7 +60,7 @@ final class ContentGroup implements AbilityGroup
     {
         return __(
             'List, read, create, update and delete posts, pages and custom post types, and assign their terms.',
-            'amphibee-mcp-connector'
+            'amphibee-mcp-connector',
         );
     }
 
@@ -108,7 +106,7 @@ final class ContentGroup implements AbilityGroup
                 'terms_match_all' => Schema::boolean('Require every listed term rather than any of them.', false),
                 'author' => Schema::integer('User ID of the author to filter by.'),
             ]),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $postType = $input->string('post_type', 'post');
 
                 if (! PostTypes::isAddressable($postType)) {
@@ -151,7 +149,7 @@ final class ContentGroup implements AbilityGroup
                     $args['author'] = $input->id('author');
                 }
 
-                $query = new WP_Query($args);
+                $query = new \WP_Query($args);
 
                 return [
                     'posts' => array_map(PostFormatter::summary(...), $query->posts),
@@ -180,12 +178,12 @@ final class ContentGroup implements AbilityGroup
             category: AbilityCategory::Content,
             inputSchema: Schema::object(
                 ['id' => Schema::integer('ID of the post, page or custom post type item to read.', minimum: 1)],
-                ['id']
+                ['id'],
             ),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $post = get_post($input->id('id'));
 
-                return $post instanceof WP_Post
+                return $post instanceof \WP_Post
                     ? PostFormatter::full($post)
                     : Failure::notFound('post', $input->id('id'));
             },
@@ -227,7 +225,7 @@ final class ContentGroup implements AbilityGroup
                     $args['post_parent'] = $input->id('parent');
                 }
 
-                $query = new WP_Query($args);
+                $query = new \WP_Query($args);
 
                 return [
                     'pages' => array_map(PostFormatter::summary(...), $query->posts),
@@ -268,7 +266,7 @@ final class ContentGroup implements AbilityGroup
                 'tags' => Schema::listOf('Tag names to assign. Tags that do not exist are created.', Schema::string('Tag name.')),
                 'meta' => Schema::map('Custom fields to set, as a name/value map. Only fields the post type declares are accepted — get-post-types lists them. Fields managed by Meta Box are set with its own tools instead.'),
             ], ['title']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $postType = $input->string('post_type', 'post');
 
                 if (! PostTypes::isAddressable($postType)) {
@@ -307,13 +305,13 @@ final class ContentGroup implements AbilityGroup
 
                 $failed = self::applySideEffects($postId, $input);
 
-                if ($failed instanceof WP_Error) {
+                if ($failed instanceof \WP_Error) {
                     return $failed;
                 }
 
                 $post = get_post($postId);
 
-                return $post instanceof WP_Post
+                return $post instanceof \WP_Post
                     ? PostFormatter::full($post)
                     : Failure::notFound('post', $postId);
             },
@@ -351,10 +349,10 @@ final class ContentGroup implements AbilityGroup
                 'tags' => Schema::listOf('Tag names, replacing the current ones.', Schema::string('Tag name.')),
                 'meta' => Schema::map('Custom fields to set, as a name/value map. Only fields the post type declares are accepted.'),
             ], ['id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('id');
 
-                if (! get_post($postId) instanceof WP_Post) {
+                if (! get_post($postId) instanceof \WP_Post) {
                     return Failure::notFound('post', $postId);
                 }
 
@@ -395,13 +393,13 @@ final class ContentGroup implements AbilityGroup
 
                 $failed = self::applySideEffects($postId, $input);
 
-                if ($failed instanceof WP_Error) {
+                if ($failed instanceof \WP_Error) {
                     return $failed;
                 }
 
                 $post = get_post($postId);
 
-                return $post instanceof WP_Post
+                return $post instanceof \WP_Post
                     ? PostFormatter::full($post)
                     : Failure::notFound('post', $postId);
             },
@@ -427,17 +425,17 @@ final class ContentGroup implements AbilityGroup
                 'id' => Schema::integer('ID of the post to delete.', minimum: 1),
                 'force' => Schema::boolean('Delete permanently instead of moving to the bin.', false),
             ], ['id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('id');
 
-                if (! get_post($postId) instanceof WP_Post) {
+                if (! get_post($postId) instanceof \WP_Post) {
                     return Failure::notFound('post', $postId);
                 }
 
                 $force = $input->boolean('force');
                 $result = $force ? wp_delete_post($postId, true) : wp_trash_post($postId);
 
-                if (! $result instanceof WP_Post) {
+                if (! $result instanceof \WP_Post) {
                     return Failure::invalid(sprintf('WordPress refused to delete post %d.', $postId));
                 }
 
@@ -473,25 +471,25 @@ final class ContentGroup implements AbilityGroup
                 'append' => Schema::boolean('Add to the existing terms rather than replacing them.', true),
                 'create_missing' => Schema::boolean('Create terms that do not exist yet instead of failing.', false),
             ], ['post_id', 'terms']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('post_id');
                 $taxonomy = $input->string('taxonomy', 'category');
 
-                if (! get_post($postId) instanceof WP_Post) {
+                if (! get_post($postId) instanceof \WP_Post) {
                     return Failure::notFound('post', $postId);
                 }
 
                 if (! taxonomy_exists($taxonomy)) {
                     return Failure::invalid(sprintf(
                         'Unknown taxonomy "%s". Call get-taxonomies to see what this site registers.',
-                        $taxonomy
+                        $taxonomy,
                     ));
                 }
 
                 $resolved = self::resolveTermSlugs(
                     $input->stringList('terms'),
                     $taxonomy,
-                    $input->boolean('create_missing')
+                    $input->boolean('create_missing'),
                 );
 
                 if (is_wp_error($resolved)) {
@@ -502,7 +500,7 @@ final class ContentGroup implements AbilityGroup
                     $postId,
                     $resolved,
                     $taxonomy,
-                    $input->boolean('append', true)
+                    $input->boolean('append', true),
                 );
 
                 if (is_wp_error($result)) {
@@ -529,9 +527,9 @@ final class ContentGroup implements AbilityGroup
      * @param int   $postId Post being written to.
      * @param Input $input  The ability input.
      *
-     * @return WP_Error|null An error when a declared field could not be written, null otherwise.
+     * @return \WP_Error|null An error when a declared field could not be written, null otherwise.
      */
-    private static function applySideEffects(int $postId, Input $input): ?WP_Error
+    private static function applySideEffects(int $postId, Input $input): ?\WP_Error
     {
         if ($input->filled('page_template')) {
             update_post_meta($postId, '_wp_page_template', sanitize_text_field($input->string('page_template')));
@@ -583,9 +581,9 @@ final class ContentGroup implements AbilityGroup
      *
      * @param Input $input The ability input.
      *
-     * @return array<int|string, mixed>|WP_Error The tax_query, empty when no filter was asked for.
+     * @return array<int|string, mixed>|\WP_Error The tax_query, empty when no filter was asked for.
      */
-    private static function buildTaxQuery(Input $input): array|WP_Error
+    private static function buildTaxQuery(Input $input): array|\WP_Error
     {
         $requested = $input->map('terms');
 
@@ -608,9 +606,9 @@ final class ContentGroup implements AbilityGroup
             $slugs = array_values(array_filter(
                 array_map(
                     static fn (mixed $slug): string => is_scalar($slug) ? trim((string) $slug) : '',
-                    (array) $slugs
+                    (array) $slugs,
                 ),
-                static fn (string $slug): bool => $slug !== ''
+                static fn (string $slug): bool => $slug !== '',
             ));
 
             if ($slugs === []) {
@@ -627,7 +625,7 @@ final class ContentGroup implements AbilityGroup
         if ($unknown !== []) {
             return Failure::invalid(sprintf(
                 'Unknown taxonomy: %s. Call get-taxonomies to see what this site registers.',
-                implode(', ', $unknown)
+                implode(', ', $unknown),
             ));
         }
 
@@ -651,9 +649,9 @@ final class ContentGroup implements AbilityGroup
      * @param string       $taxonomy      Taxonomy to resolve them in.
      * @param bool         $createMissing Whether to create the terms that do not exist.
      *
-     * @return list<int>|WP_Error Term IDs, or an error naming the slugs that could not be resolved.
+     * @return list<int>|\WP_Error Term IDs, or an error naming the slugs that could not be resolved.
      */
-    private static function resolveTermSlugs(array $slugs, string $taxonomy, bool $createMissing): array|WP_Error
+    private static function resolveTermSlugs(array $slugs, string $taxonomy, bool $createMissing): array|\WP_Error
     {
         $ids = [];
         $missing = [];
@@ -686,7 +684,7 @@ final class ContentGroup implements AbilityGroup
             return Failure::invalid(sprintf(
                 'No term in "%s" matches these slugs: %s. Call get-terms to list them, or pass create_missing=true.',
                 $taxonomy,
-                implode(', ', $missing)
+                implode(', ', $missing),
             ));
         }
 

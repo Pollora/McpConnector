@@ -11,10 +11,7 @@ use Pollora\McpConnector\OAuth\Controller\RegistrationController;
 use Pollora\McpConnector\OAuth\Controller\TokenController;
 use Pollora\McpConnector\Server\ServerRegistry;
 use Pollora\McpConnector\Settings;
-use WP;
-use WP_REST_Request;
 use WP_REST_Response;
-use WP_REST_Server;
 
 defined('ABSPATH') || exit;
 
@@ -57,9 +54,9 @@ final class OAuthServer
     /**
      * Serve the front-end OAuth paths, if this request is one of them.
      *
-     * @param WP $wp The WordPress environment, unused but supplied by the action.
+     * @param \WP $wp The WordPress environment, unused but supplied by the action.
      */
-    public function routeFrontEnd(WP $wp): void
+    public function routeFrontEnd(\WP $wp): void
     {
         unset($wp);
 
@@ -67,10 +64,10 @@ final class OAuthServer
 
         $response = match ($path) {
             Endpoints::PROTECTED_RESOURCE_PATH => self::asHttpResponse(
-                $this->discovery()->protectedResource()
+                $this->discovery()->protectedResource(),
             ),
             Endpoints::SERVER_METADATA_PATH => self::asHttpResponse(
-                $this->discovery()->authorizationServer()
+                $this->discovery()->authorizationServer(),
             ),
             Endpoints::AUTHORIZE_PATH => $this->authorization()->handle(),
             default => null,
@@ -85,20 +82,20 @@ final class OAuthServer
     public function registerRestRoutes(): void
     {
         register_rest_route(Endpoints::REST_NAMESPACE, '/token', [
-            'methods' => WP_REST_Server::CREATABLE,
-            'callback' => fn (WP_REST_Request $request): WP_REST_Response => $this->token()->handle($request),
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => fn (\WP_REST_Request $request): \WP_REST_Response => $this->token()->handle($request),
             'permission_callback' => '__return_true',
         ]);
 
         register_rest_route(Endpoints::REST_NAMESPACE, '/revoke', [
-            'methods' => WP_REST_Server::CREATABLE,
-            'callback' => fn (WP_REST_Request $request): WP_REST_Response => $this->token()->revoke($request),
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => fn (\WP_REST_Request $request): \WP_REST_Response => $this->token()->revoke($request),
             'permission_callback' => '__return_true',
         ]);
 
         register_rest_route(Endpoints::REST_NAMESPACE, '/register', [
-            'methods' => WP_REST_Server::CREATABLE,
-            'callback' => fn (WP_REST_Request $request): WP_REST_Response => $this->registration()->handle($request),
+            'methods' => \WP_REST_Server::CREATABLE,
+            'callback' => fn (\WP_REST_Request $request): \WP_REST_Response => $this->registration()->handle($request),
             'permission_callback' => '__return_true',
         ]);
 
@@ -108,14 +105,14 @@ final class OAuthServer
         // give a client something to fall back on, and give an administrator
         // something to test against when the canonical paths return the wrong thing.
         register_rest_route(Endpoints::REST_NAMESPACE, '/protected-resource', [
-            'methods' => WP_REST_Server::READABLE,
-            'callback' => fn (): WP_REST_Response => $this->discovery()->protectedResource(),
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => fn (): \WP_REST_Response => $this->discovery()->protectedResource(),
             'permission_callback' => '__return_true',
         ]);
 
         register_rest_route(Endpoints::REST_NAMESPACE, '/server-metadata', [
-            'methods' => WP_REST_Server::READABLE,
-            'callback' => fn (): WP_REST_Response => $this->discovery()->authorizationServer(),
+            'methods' => \WP_REST_Server::READABLE,
+            'callback' => fn (): \WP_REST_Response => $this->discovery()->authorizationServer(),
             'permission_callback' => '__return_true',
         ]);
     }
@@ -132,16 +129,16 @@ final class OAuthServer
      * to read a token response.
      *
      * @param mixed                                 $result  The response being returned.
-     * @param WP_REST_Server                        $server  The REST server, unused.
-     * @param WP_REST_Request<array<string, mixed>> $request The dispatched request.
+     * @param \WP_REST_Server                        $server  The REST server, unused.
+     * @param \WP_REST_Request<array<string, mixed>> $request The dispatched request.
      *
      * @return mixed The response, possibly with headers added.
      */
-    public function decorateResponse(mixed $result, WP_REST_Server $server, WP_REST_Request $request): mixed
+    public function decorateResponse(mixed $result, \WP_REST_Server $server, \WP_REST_Request $request): mixed
     {
         unset($server);
 
-        if (! $result instanceof WP_REST_Response) {
+        if (! $result instanceof \WP_REST_Response) {
             return $result;
         }
 
@@ -160,7 +157,7 @@ final class OAuthServer
             $result->header('WWW-Authenticate', sprintf(
                 'Bearer realm="%s", resource_metadata="%s"',
                 esc_url_raw(Endpoints::issuer()),
-                esc_url_raw(Endpoints::protectedResourceMetadata())
+                esc_url_raw(Endpoints::protectedResourceMetadata()),
             ));
         }
 
@@ -175,11 +172,23 @@ final class OAuthServer
      * home path is stripped so this keeps working for an installation in a
      * subdirectory.
      *
+     * ⚠️ Unslashed, but deliberately **not** passed through
+     * `sanitize_text_field()`. That function strips every `%XX` sequence it
+     * finds, and a request URI is percent-encoded by definition — a path
+     * containing one would silently stop matching, and the OAuth endpoints
+     * would answer 404 for a reason nothing would explain. What stands in for
+     * sanitisation is what follows: the value is reduced to its path component,
+     * decoded, trimmed, and then compared against a fixed set of literal route
+     * names. Nothing arbitrary survives that comparison.
+     *
      * @return string The path, with no leading or trailing slash.
      */
     private static function requestPath(): string
     {
-        $uri = (string) wp_parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- See the note above: sanitising would corrupt the percent-encoding; the value is matched against literal routes.
+        $raw = wp_unslash((string) ($_SERVER['REQUEST_URI'] ?? ''));
+
+        $uri = (string) wp_parse_url($raw, PHP_URL_PATH);
         $uri = trim(rawurldecode($uri), '/');
 
         $base = trim((string) wp_parse_url((string) home_url(), PHP_URL_PATH), '/');
@@ -197,11 +206,11 @@ final class OAuthServer
      * The discovery documents are served from both places and built once, in
      * `WP_REST_Response` form; this renders that form for the front-end path.
      *
-     * @param WP_REST_Response $response The REST response.
+     * @param \WP_REST_Response $response The REST response.
      *
      * @return HttpResponse The equivalent front-end response.
      */
-    private static function asHttpResponse(WP_REST_Response $response): HttpResponse
+    private static function asHttpResponse(\WP_REST_Response $response): HttpResponse
     {
         $body = (string) wp_json_encode($response->get_data());
 

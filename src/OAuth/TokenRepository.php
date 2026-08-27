@@ -143,7 +143,7 @@ final class TokenRepository
         foreach ([self::ACCESS_OPTION, self::REFRESH_OPTION] as $option) {
             $tokens = array_filter(
                 $this->allRaw($option),
-                static fn (mixed $record): bool => ! is_array($record) || ($record['client_id'] ?? '') !== $clientId
+                static fn (mixed $record): bool => ! is_array($record) || ($record['client_id'] ?? '') !== $clientId,
             );
 
             update_option($option, $tokens, false);
@@ -163,7 +163,7 @@ final class TokenRepository
         foreach ([self::ACCESS_OPTION, self::REFRESH_OPTION] as $option) {
             $tokens = array_filter(
                 $this->allRaw($option),
-                static fn (mixed $record): bool => ! is_array($record) || (int) ($record['user_id'] ?? 0) !== $userId
+                static fn (mixed $record): bool => ! is_array($record) || (int) ($record['user_id'] ?? 0) !== $userId,
             );
 
             update_option($option, $tokens, false);
@@ -184,7 +184,7 @@ final class TokenRepository
             $tokens = $this->allRaw($option);
             $live = array_filter(
                 $tokens,
-                static fn (mixed $record): bool => is_array($record) && (int) ($record['expires_at'] ?? 0) > $now
+                static fn (mixed $record): bool => is_array($record) && (int) ($record['expires_at'] ?? 0) > $now,
             );
 
             $removed += count($tokens) - count($live);

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="MCP Connector">
+  <title>AmphiBee MCP Connector</title>
+  <defs>
+    <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#005a61"/>
+      <stop offset="1" stop-color="#00343a"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#band)"/>
+  <g fill="none" stroke="#ddf0f0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+     transform="translate(21.09 21.09) scale(4.7727)">
+    <rect x="3.2" y="12" width="14" height="20" rx="4"/>
+    <path d="M8 12V7"/>
+    <path d="M12.4 12V7"/>
+    <path d="M17.2 22h9.6"/>
+    <path d="M26.8 12h9a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-9z"/>
+    <path d="M31 19v6"/>
+  </g>
+</svg>

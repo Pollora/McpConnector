@@ -80,7 +80,7 @@ final class Plugin
         }
 
         if (is_admin()) {
-            (new SettingsPage($settings))->register();
+            (new SettingsPage())->register();
 
             add_action('admin_notices', $this->renderRequirementNotices(...));
         }
@@ -110,7 +110,7 @@ final class Plugin
                 '<div class="notice notice-warning" data-mcp-connector-requirement="%s"><p><strong>%s</strong> %s</p></div>',
                 esc_attr($key),
                 esc_html__('MCP Connector:', 'amphibee-mcp-connector'),
-                esc_html($message)
+                esc_html($message),
             );
         }
     }

@@ -13,7 +13,6 @@ use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Formatting\FieldDiscovery;
 use Pollora\McpConnector\Formatting\PostMeta;
 use Pollora\McpConnector\Support\Failure;
-use WP_Error;
 
 defined('ABSPATH') || exit;
 
@@ -67,7 +66,7 @@ final class SiteGroup implements AbilityGroup
     {
         return __(
             'Read site information, registered post types and the active theme, and update the site title and tagline.',
-            'amphibee-mcp-connector'
+            'amphibee-mcp-connector',
         );
     }
 
@@ -179,7 +178,7 @@ final class SiteGroup implements AbilityGroup
                         // map — it knows their types and this does not.
                         'framework_fields' => FieldDiscovery::frameworkFields($type->name),
                     ],
-                    array_values(get_post_types($args, 'objects'))
+                    array_values(get_post_types($args, 'objects')),
                 );
 
                 return ['post_types' => $types];
@@ -205,7 +204,7 @@ final class SiteGroup implements AbilityGroup
                 'option_name' => Schema::string('Option to update. Must be one of the writable_options reported by get-site-info.'),
                 'option_value' => Schema::string('New value.'),
             ], ['option_name', 'option_value']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $name = $input->string('option_name');
                 $allowed = self::writableOptions();
 
@@ -213,7 +212,7 @@ final class SiteGroup implements AbilityGroup
                     return Failure::forbidden(sprintf(
                         'write the option "%s". This connector may only write: %s',
                         $name,
-                        implode(', ', $allowed)
+                        implode(', ', $allowed),
                     ));
                 }
 

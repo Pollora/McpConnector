@@ -38,7 +38,7 @@ final class Parts
                 . '<span class="mcpc-check__detail">%3$s</span>',
                 esc_attr($check['status']),
                 esc_html($check['label']),
-                esc_html($check['detail'])
+                esc_html($check['detail']),
             );
 
             if (isset($check['fix'])) {
@@ -65,7 +65,7 @@ final class Parts
     {
         printf(
             '<span class="mcpc-fix"><span class="mcpc-fix__head">%s</span><code class="mcpc-fix__code">',
-            esc_html($fix['title'])
+            esc_html($fix['title']),
         );
 
         foreach ($fix['lines'] as $index => $line) {
@@ -78,8 +78,8 @@ final class Parts
             printf(
                 '%s<span%s>%s</span>',
                 $index > 0 ? "\n" : '',
-                $class,
-                esc_html($line['text'])
+                $class, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- One of three literals from the match above; no input reaches it.
+                esc_html($line['text']),
             );
         }
 
@@ -109,7 +109,7 @@ final class Parts
                 . '<span class="mcpc-guide__tag">%s</span></summary>'
                 . '<div class="mcpc-guide__body"><ol class="mcpc-guide__steps">',
                 esc_html($guide['name']),
-                esc_html($guide['tag'])
+                esc_html($guide['tag']),
             );
 
             foreach ($guide['steps'] as $index => $step) {
@@ -125,7 +125,7 @@ final class Parts
                         esc_html($literal['label']),
                         esc_attr($literal['text']),
                         esc_html__('Copy', 'amphibee-mcp-connector'),
-                        esc_html($literal['text'])
+                        esc_html($literal['text']),
                     );
                 }
 
@@ -166,7 +166,7 @@ final class Parts
                 esc_html($label),
                 esc_html($url),
                 esc_attr($url),
-                esc_html__('Copy', 'amphibee-mcp-connector')
+                esc_html__('Copy', 'amphibee-mcp-connector'),
             );
         }
 
@@ -188,19 +188,19 @@ final class Parts
             . '<button type="button" class="mcpc-button mcpc-button--primary" id="mcpc-run-test" hidden>%s</button>'
             . '<span class="mcpc-actions__status" id="mcpc-test-status" role="status" aria-live="polite"></span>'
             . '</div>',
-            esc_html__('Test the connection', 'amphibee-mcp-connector')
+            esc_html__('Test the connection', 'amphibee-mcp-connector'),
         );
 
         echo '<ol class="mcpc-test" id="mcpc-test-steps" hidden></ol>';
 
         printf(
             '<p class="mcpc-note">%s</p>',
-            esc_html__('The test walks the whole chain the way a client does: it registers a throwaway application, authorises it as you, exchanges the code for a token, and calls the MCP endpoint with it. Everything it creates is deleted when the run ends, whether the run succeeded or not.', 'amphibee-mcp-connector')
+            esc_html__('The test walks the whole chain the way a client does: it registers a throwaway application, authorises it as you, exchanges the code for a token, and calls the MCP endpoint with it. Everything it creates is deleted when the run ends, whether the run succeeded or not.', 'amphibee-mcp-connector'),
         );
 
         printf(
             '<noscript><p class="mcpc-note">%s</p></noscript>',
-            esc_html__('The test needs JavaScript. The checks above are established without it.', 'amphibee-mcp-connector')
+            esc_html__('The test needs JavaScript. The checks above are established without it.', 'amphibee-mcp-connector'),
         );
     }
 }

@@ -1,0 +1,65 @@
+{
+    "preset": "psr12",
+    "exclude": [
+        "vendor",
+        "build",
+        "node_modules",
+        "languages",
+        "assets"
+    ],
+    "rules": {
+        "blank_line_after_opening_tag": false,
+        "declare_strict_types": true,
+        "strict_param": true,
+        "array_syntax": {
+            "syntax": "short"
+        },
+        "ordered_imports": {
+            "sort_algorithm": "alpha",
+            "imports_order": ["class", "function", "const"]
+        },
+        "no_unused_imports": true,
+        "single_quote": true,
+        "trailing_comma_in_multiline": {
+            "elements": ["arrays", "arguments", "parameters", "match"]
+        },
+        "no_superfluous_phpdoc_tags": {
+            "allow_mixed": true,
+            "remove_inheritdoc": false
+        },
+        "phpdoc_align": false,
+        "phpdoc_separation": false,
+        "binary_operator_spaces": {
+            "default": "single_space",
+            "operators": {
+                "=>": null,
+                "=": null
+            }
+        },
+        "concat_space": {
+            "spacing": "one"
+        },
+        "cast_spaces": {
+            "space": "single"
+        },
+        "class_attributes_separation": {
+            "elements": {
+                "const": "one",
+                "method": "one",
+                "property": "one"
+            }
+        },
+        "global_namespace_import": {
+            "import_classes": false,
+            "import_constants": false,
+            "import_functions": false
+        },
+        "native_function_invocation": false,
+        "yoda_style": false,
+        "not_operator_with_successor_space": false,
+        "void_return": true,
+        "return_type_declaration": {
+            "space_before": "none"
+        }
+    }
+}

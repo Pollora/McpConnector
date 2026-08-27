@@ -140,7 +140,7 @@ final class ClientGuides
                     'label' => __('In the MCP configuration file', 'amphibee-mcp-connector'),
                     'text' => wp_json_encode(
                         ['mcpServers' => [self::serverName() => ['type' => 'http', 'url' => $url]]],
-                        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
                     ) ?: '',
                 ],
             ];
@@ -158,6 +158,9 @@ final class ClientGuides
     {
         $name = sanitize_title((string) get_bloginfo('name'));
 
-        return $name !== '' ? $name : 'wordpress';
+        // Lowercase on purpose, and phpcbf must not "fix" it: this is the
+        // fallback for a machine name a client displays, sitting alongside
+        // values from sanitize_title(). It is not prose about WordPress.
+        return $name !== '' ? $name : 'wordpress'; // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText
     }
 }

@@ -87,12 +87,15 @@ final class ClientRepository
     {
         $clients = array_map(
             static fn (array $stored): Client => Client::fromArray($stored),
-            array_filter($this->allRaw(), 'is_array')
+            array_filter($this->allRaw(), 'is_array'),
         );
 
+        // usort() discards the client-identifier keys array_filter() preserved,
+        // so what comes back is already a list. An array_values() here would be
+        // a no-op that reads as if it were doing something.
         usort($clients, static fn (Client $a, Client $b): int => $b->createdAt <=> $a->createdAt);
 
-        return array_values($clients);
+        return $clients;
     }
 
     /**

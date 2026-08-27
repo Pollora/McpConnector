@@ -10,7 +10,6 @@ use WP\MCP\Core\McpAdapter;
 use WP\MCP\Infrastructure\ErrorHandling\ErrorLogMcpErrorHandler;
 use WP\MCP\Infrastructure\Observability\NullMcpObservabilityHandler;
 use WP\MCP\Transport\HttpTransport;
-use WP_REST_Request;
 
 defined('ABSPATH') || exit;
 
@@ -71,7 +70,7 @@ final class ServerRegistry
         // configured capability closes that without disabling the default server.
         add_filter(
             'mcp_adapter_default_transport_permission_user_capability',
-            fn (): string => $this->settings->requiredCapability
+            fn (): string => $this->settings->requiredCapability,
         );
     }
 
@@ -112,12 +111,12 @@ final class ServerRegistry
             sprintf(
                 /* translators: %s: the site title. */
                 __('%s MCP server', 'amphibee-mcp-connector'),
-                get_bloginfo('name')
+                get_bloginfo('name'),
             ),
             sprintf(
                 /* translators: %s: the site URL. */
                 __('Manage content on the WordPress site at %s.', 'amphibee-mcp-connector'),
-                home_url()
+                home_url(),
             ),
             'v1.0.0',
             [HttpTransport::class],
@@ -132,7 +131,7 @@ final class ServerRegistry
         if (is_wp_error($result)) {
             (new ErrorLogMcpErrorHandler())->log(
                 'MCP Connector could not create its server: ' . $result->get_error_message(),
-                ['ServerRegistry::createServer']
+                ['ServerRegistry::createServer'],
             );
         }
     }
@@ -146,11 +145,11 @@ final class ServerRegistry
      * OAuth token was issued before the capability was tightened — enumerating
      * the tool list.
      *
-     * @param WP_REST_Request<array<string, mixed>> $request The incoming MCP request.
+     * @param \WP_REST_Request<array<string, mixed>> $request The incoming MCP request.
      *
      * @return bool True when the request may proceed.
      */
-    public function checkPermission(WP_REST_Request $request): bool
+    public function checkPermission(\WP_REST_Request $request): bool
     {
         unset($request);
 
@@ -190,7 +189,7 @@ final class ServerRegistry
         // nothing else.
         return array_values(array_unique(array_filter(
             array_map('strval', $tools),
-            static fn (string $name): bool => wp_has_ability($name)
+            static fn (string $name): bool => wp_has_ability($name),
         )));
     }
 }

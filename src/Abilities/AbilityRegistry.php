@@ -82,7 +82,7 @@ final class AbilityRegistry
 
         return array_values(array_filter(
             $groups,
-            static fn (mixed $group): bool => $group instanceof AbilityGroup
+            static fn (mixed $group): bool => $group instanceof AbilityGroup,
         ));
     }
 
@@ -203,7 +203,7 @@ final class AbilityRegistry
                 // capabilities would take reading down with it.
                 if (! $definition->annotations->readonly && ! Scope::currentAllowsWrite()) {
                     return Failure::forbidden(
-                        'change the site: the connected application was granted read-only access'
+                        'change the site: the connected application was granted read-only access',
                     );
                 }
 

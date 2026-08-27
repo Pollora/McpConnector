@@ -15,7 +15,9 @@ defined('ABSPATH') || exit;
  * memoised because the ability registry consults these values dozens of times
  * per request.
  *
- * @psalm-immutable
+ * Instances are immutable, but the class is not marked `@psalm-immutable`: the
+ * memo below is mutable static state, and the annotation would make every
+ * analyser treat `$current` as a readonly property that may not have a default.
  */
 final class Settings
 {
@@ -98,7 +100,7 @@ final class Settings
     public static function current(): self
     {
         return self::$current ??= self::fromArray(
-            (array) get_option(self::OPTION, [])
+            (array) get_option(self::OPTION, []),
         );
     }
 
@@ -139,15 +141,15 @@ final class Settings
             serverRoute: str_replace('_', '-', $route) ?: 'connector',
             requiredCapability: $capability ?: 'edit_posts',
             enabledGroups: array_values(array_filter(
-                array_map('strval', (array) ($merged['enabled_groups'] ?? []))
+                array_map('strval', (array) ($merged['enabled_groups'] ?? [])),
             )),
             readOnlyMode: (bool) ($merged['read_only_mode'] ?? false),
             externalAbilities: array_values(array_filter(
-                array_map('strval', (array) ($merged['external_abilities'] ?? []))
+                array_map('strval', (array) ($merged['external_abilities'] ?? [])),
             )),
             externalAbilitiesReviewed: (bool) ($merged['external_abilities_reviewed'] ?? false),
             addressablePostTypes: array_values(array_filter(
-                array_map('sanitize_key', array_map('strval', (array) ($merged['addressable_post_types'] ?? [])))
+                array_map('sanitize_key', array_map('strval', (array) ($merged['addressable_post_types'] ?? []))),
             )),
             postTypesReviewed: (bool) ($merged['post_types_reviewed'] ?? false),
             oauthEnabled: (bool) ($merged['oauth_enabled'] ?? true),

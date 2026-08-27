@@ -7,8 +7,6 @@ namespace Pollora\McpConnector\OAuth\Controller;
 use Pollora\McpConnector\OAuth\Client;
 use Pollora\McpConnector\OAuth\ClientRepository;
 use Pollora\McpConnector\Settings;
-use WP_REST_Request;
-use WP_REST_Response;
 
 defined('ABSPATH') || exit;
 
@@ -58,17 +56,17 @@ final class RegistrationController
     /**
      * Register a client and return its credentials.
      *
-     * @param WP_REST_Request<array<string, mixed>> $request The registration request.
+     * @param \WP_REST_Request<array<string, mixed>> $request The registration request.
      *
-     * @return WP_REST_Response The registration response, or an OAuth error.
+     * @return \WP_REST_Response The registration response, or an OAuth error.
      */
-    public function handle(WP_REST_Request $request): WP_REST_Response
+    public function handle(\WP_REST_Request $request): \WP_REST_Response
     {
         if (! $this->settings->dynamicRegistrationOpen) {
             return self::error(
                 'access_denied',
                 __('This site does not accept self-registration. An administrator must create the client.', 'amphibee-mcp-connector'),
-                403
+                403,
             );
         }
 
@@ -80,7 +78,7 @@ final class RegistrationController
         if ($redirectUris === []) {
             return self::error(
                 'invalid_redirect_uri',
-                __('At least one valid https redirect URI is required.', 'amphibee-mcp-connector')
+                __('At least one valid https redirect URI is required.', 'amphibee-mcp-connector'),
             );
         }
 
@@ -131,7 +129,7 @@ final class RegistrationController
         $candidates = array_slice(
             array_map('strval', (array) ($body['redirect_uris'] ?? [])),
             0,
-            self::MAX_REDIRECT_URIS
+            self::MAX_REDIRECT_URIS,
         );
 
         $accepted = [];
@@ -196,11 +194,11 @@ final class RegistrationController
      * @param array<string, mixed> $body   The response body.
      * @param int                  $status HTTP status code.
      *
-     * @return WP_REST_Response The response.
+     * @return \WP_REST_Response The response.
      */
-    private static function json(array $body, int $status): WP_REST_Response
+    private static function json(array $body, int $status): \WP_REST_Response
     {
-        $response = new WP_REST_Response($body, $status);
+        $response = new \WP_REST_Response($body, $status);
 
         $response->header('Cache-Control', 'no-store');
         $response->header('Pragma', 'no-cache');
@@ -215,9 +213,9 @@ final class RegistrationController
      * @param string $description Human-readable explanation.
      * @param int    $status      HTTP status code.
      *
-     * @return WP_REST_Response The response.
+     * @return \WP_REST_Response The response.
      */
-    private static function error(string $code, string $description, int $status = 400): WP_REST_Response
+    private static function error(string $code, string $description, int $status = 400): \WP_REST_Response
     {
         return self::json(['error' => $code, 'error_description' => $description], $status);
     }

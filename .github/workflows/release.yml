@@ -1,0 +1,200 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. v1.2.0)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # A tag must never be published without the full gate having passed on exactly
+  # the code being tagged.
+  # ---------------------------------------------------------------------------
+  verify:
+    name: Verify the tagged tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Quality gate
+        run: composer run qa
+
+      - name: The tag must match the version in the plugin header
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          header=$(grep -m1 '^ \* Version:' mcp-connector.php | sed 's/.*Version: *//')
+
+          if [[ "$tag" != "v${header}" ]]; then
+            echo "::error::tag ${tag} does not match the plugin header version ${header}"
+            exit 1
+          fi
+
+          echo "Tag ${tag} matches the plugin header."
+
+  build:
+    name: Build the distributable zip
+    runs-on: ubuntu-latest
+    needs: verify
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Export the shippable tree
+        # git archive honours the export-ignore attributes in .gitattributes, so
+        # tests, tool configuration and CI cannot end up in a user's plugins
+        # directory. Anything that must ship has to be tracked and not ignored —
+        # which is why assets/ and languages/ are checked for below rather than
+        # merely assumed.
+        run: |
+          mkdir -p build
+          git archive --format=tar --prefix=mcp-connector/ HEAD | tar -x -C build
+
+      - name: Install runtime dependencies into the export
+        working-directory: build/mcp-connector
+        run: |
+          composer install --no-dev --no-interaction --no-progress \
+            --optimize-autoloader --classmap-authoritative
+
+          # composer.lock is export-ignored, so the install above writes a fresh
+          # one into the build. The plugin has no runtime dependencies, which
+          # makes that file pure noise in an installed plugin directory.
+          rm -f composer.lock
+
+      - name: The autoloader must not eagerly load anything
+        working-directory: build/mcp-connector
+        run: |
+          # Learned from the MCP Adapter, whose shipped autoload_files.php loads
+          # five phpstan and phpunit files at bootstrap — enough to fatal an
+          # entire site when vendor/ is copied without the dev tree. This plugin
+          # has no runtime dependencies, so its own autoload_files.php must be
+          # empty or absent. If that ever stops being true, it is a real
+          # dependency arriving, and it should be a decision rather than a
+          # surprise found in production.
+          files='vendor/composer/autoload_files.php'
+
+          if [[ -f "$files" ]] && grep -qE "^\s*'[0-9a-f]{32}' =>" "$files"; then
+            echo "::error::${files} declares files to load at bootstrap"
+            grep -E "^\s*'[0-9a-f]{32}' =>" "$files"
+            exit 1
+          fi
+
+          echo 'The autoloader loads nothing eagerly.'
+
+      - name: Refuse to ship a development file
+        run: |
+          cd build/mcp-connector
+          failed=0
+          for forbidden in tests phpunit.xml.dist phpstan.neon.dist phpcs.xml.dist pint.json .github .git .gitignore .gitattributes .editorconfig composer.lock CONTRIBUTING.md SECURITY.md .wordpress-org; do
+            if [[ -e "$forbidden" ]]; then
+              echo "::error::${forbidden} is present in the build"
+              failed=1
+            fi
+          done
+
+          # assets/ and languages/ are not decoration: without the stylesheet the
+          # settings screen renders unstyled, and without the catalogues it
+          # renders in English on a site that has translations.
+          for required in mcp-connector.php uninstall.php readme.txt README.md LICENSE CHANGELOG.md src assets/admin.css assets/admin.js languages/amphibee-mcp-connector.pot vendor/autoload.php; do
+            if [[ ! -e "$required" ]]; then
+              echo "::error::${required} is missing from the build"
+              failed=1
+            fi
+          done
+
+          # Generated from the .po files by `wp i18n make-php`; a build step, not
+          # a source, and gitignored for that reason. One went stale on a server
+          # once and kept being served after the text domain was renamed.
+          if compgen -G 'languages/*.l10n.php' > /dev/null; then
+            echo '::error::generated .l10n.php files are present in the build'
+            failed=1
+          fi
+
+          # Every shipped .po must have its compiled .mo beside it: WordPress
+          # reads the .mo, so a missing one is a language that silently does not
+          # load.
+          for po in languages/*.po; do
+            [[ -e "$po" ]] || continue
+            if [[ ! -e "${po%.po}.mo" ]]; then
+              echo "::error::${po} has no compiled .mo in the build"
+              failed=1
+            fi
+          done
+
+          exit $failed
+
+      - name: Confirm the build parses on the minimum PHP version
+        working-directory: build/mcp-connector
+        run: find . -name '*.php' -print0 | xargs -0 -n1 -P4 php -l > /dev/null
+
+      - name: Create the zip
+        run: |
+          cd build
+          zip -rq "../mcp-connector-${{ github.event.inputs.tag || github.ref_name }}.zip" mcp-connector
+          cd ..
+          unzip -l "mcp-connector-${{ github.event.inputs.tag || github.ref_name }}.zip" | tail -5
+
+      - name: Upload the artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-connector-zip
+          path: mcp-connector-*.zip
+          retention-days: 30
+
+      - name: Extract this version's changelog entry
+        id: notes
+        run: |
+          version="${{ github.event.inputs.tag || github.ref_name }}"
+          version="${version#v}"
+
+          # Everything between this version's heading and the next one.
+          awk -v v="## ${version}" '
+            $0 == v { capture = 1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [[ ! -s release-notes.md ]]; then
+            echo "::warning::no CHANGELOG entry found for ${version}"
+            echo "See CHANGELOG.md." > release-notes.md
+          fi
+
+          cat release-notes.md
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mcp-connector-*.zip
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          fail_on_unmatched_files: true
+
+      # ⚠️ Nothing here publishes to wordpress.org. This builds a zip and
+      # attaches it to a GitHub release; the SVN repository is never touched.
+      # Adding that step — 10up/action-wordpress-plugin-deploy, or an SVN push by
+      # hand — is still outstanding, for this plugin and for AiVisibility alike.

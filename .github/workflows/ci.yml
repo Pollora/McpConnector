@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # The lowest version the plugin claims to support. Anything that only works on
+  # a newer PHP is a bug, not a preference.
+  MIN_PHP: '8.3'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fast feedback: syntax and packaging errors should fail in seconds, not after
+  # the whole matrix has spun up.
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint & metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.MIN_PHP }}
+          coverage: none
+          tools: composer:v2, wp-cli
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate --strict --no-check-publish
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Check PHP syntax
+        run: composer run lint
+
+      - name: Check code style
+        run: composer run format:check
+
+      - name: The translation template must match the source
+        run: |
+          wp i18n make-pot . /tmp/regenerated.pot \
+            --slug=amphibee-mcp-connector --domain=amphibee-mcp-connector \
+            --exclude=vendor,tests,build,node_modules,assets \
+            --headers='{"Report-Msgid-Bugs-To":"https://amphibee.fr","Last-Translator":"AmphiBee","Language-Team":"AmphiBee"}'
+
+          # What this check is for: catching a string that was added, changed or
+          # removed without the template following. Two kinds of line move on
+          # their own and say nothing about that.
+          #
+          #   POT-Creation-Date  changes on every run.
+          #   #: file.php:123    records where each string sits, so inserting a
+          #                      line anywhere shifts every reference below it.
+          #                      A commit that touches no string at all then
+          #                      fails the check.
+          #
+          # Dropping the references costs the guarantee that they point at the
+          # current line. Nothing reads them but a translator opening the file,
+          # and `wp i18n make-pot` refreshes them whenever it next runs.
+          strip() { grep -vE '^"POT-Creation-Date:|^#: ' "$1"; }
+
+          if ! diff -u <(strip languages/amphibee-mcp-connector.pot) <(strip /tmp/regenerated.pot); then
+            echo '::error file=languages/amphibee-mcp-connector.pot::out of date — run `wp i18n make-pot` and commit the result'
+            exit 1
+          fi
+
+          echo 'languages/amphibee-mcp-connector.pot is up to date.'
+
+  # ---------------------------------------------------------------------------
+  # Static analysis and coding standards. One PHP version is enough: PHPStan's
+  # verdict does not vary with the runtime, and PHPCS is told which versions to
+  # target through its own configuration.
+  # ---------------------------------------------------------------------------
+  analyse:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.MIN_PHP }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: PHPStan
+        run: composer run analyse -- --error-format=github --no-progress
+
+      - name: PHPCS
+        run: vendor/bin/phpcs --report=full --report-checkstyle=phpcs-report.xml
+
+      - name: Annotate PHPCS findings
+        if: failure()
+        run: vendor/bin/phpcs --report=emacs || true
+
+  # ---------------------------------------------------------------------------
+  # The test suite, across every PHP version the plugin supports.
+  #
+  # No coverage threshold yet, deliberately: the suite is structural — it guards
+  # the distribution metadata and the codebase-wide invariants — and asserting a
+  # percentage over code it does not exercise would be a number rather than a
+  # guarantee. See CONTRIBUTING.md.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+        with:
+          # The lock file pins the minimum PHP; let the newer runtime resolve.
+          composer-options: ${{ matrix.php != '8.3' && '--ignore-platform-req=php+' || '' }}
+
+      - name: Run tests
+        run: composer run test -- --no-coverage
+
+  # ---------------------------------------------------------------------------
+  # A single required check, so branch protection needs one rule rather than a
+  # list that goes stale every time the matrix changes.
+  # ---------------------------------------------------------------------------
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    needs: [lint, analyse, test]
+    if: always()
+    steps:
+      - name: Fail if any job failed
+        run: |
+          if echo '${{ toJSON(needs) }}' | grep -q '"result": *"failure"'; then
+            echo 'One or more CI jobs failed.'
+            exit 1
+          fi
+          if echo '${{ toJSON(needs) }}' | grep -q '"result": *"cancelled"'; then
+            echo 'One or more CI jobs were cancelled.'
+            exit 1
+          fi
+          echo 'All CI jobs passed.'

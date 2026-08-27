@@ -76,7 +76,7 @@ final class AbilityDefinition
             $inputSchema,
             $execute,
             $permission,
-            Annotations::readOnly()
+            Annotations::readOnly(),
         );
     }
 
@@ -113,7 +113,7 @@ final class AbilityDefinition
             $inputSchema,
             $execute,
             $permission,
-            $annotations ?? Annotations::creates()
+            $annotations ?? Annotations::creates(),
         );
     }
 }

@@ -88,7 +88,7 @@ final class BearerAuthenticator
 
         foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION'] as $key) {
             if (! empty($_SERVER[$key])) {
-                $header = (string) $_SERVER[$key];
+                $header = sanitize_text_field(wp_unslash((string) $_SERVER[$key]));
 
                 break;
             }

@@ -11,3 +11,6 @@
 # Generated from the .po files by `wp i18n make-php`. Regenerating them is a
 # build step, not a source change — the .po and .mo are what is committed.
 languages/*.l10n.php
+
+# PHPUnit result cache.
+/.phpunit.cache/

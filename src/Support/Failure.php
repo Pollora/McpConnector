@@ -34,19 +34,19 @@ final class Failure
      * @param string     $subject Human-readable kind of record, e.g. `post` or `term`.
      * @param int|string $handle  Identifier or slug that was looked up.
      *
-     * @return WP_Error The error.
+     * @return \WP_Error The error.
      */
-    public static function notFound(string $subject, int|string $handle): WP_Error
+    public static function notFound(string $subject, int|string $handle): \WP_Error
     {
-        return new WP_Error(
+        return new \WP_Error(
             'mcp_connector_not_found',
             sprintf(
                 /* translators: 1: kind of record, 2: identifier that was looked up. */
                 __('No %1$s found for "%2$s".', 'amphibee-mcp-connector'),
                 $subject,
-                (string) $handle
+                (string) $handle,
             ),
-            ['status' => 404]
+            ['status' => 404],
         );
     }
 
@@ -55,18 +55,18 @@ final class Failure
      *
      * @param string $action What was attempted, phrased as an infinitive without "to".
      *
-     * @return WP_Error The error.
+     * @return \WP_Error The error.
      */
-    public static function forbidden(string $action): WP_Error
+    public static function forbidden(string $action): \WP_Error
     {
-        return new WP_Error(
+        return new \WP_Error(
             'mcp_connector_forbidden',
             sprintf(
                 /* translators: %s: the attempted action. */
                 __('The authenticated user is not allowed to %s.', 'amphibee-mcp-connector'),
-                $action
+                $action,
             ),
-            ['status' => 403]
+            ['status' => 403],
         );
     }
 
@@ -78,11 +78,11 @@ final class Failure
      *
      * @param string $message What is wrong, and what an acceptable value looks like.
      *
-     * @return WP_Error The error.
+     * @return \WP_Error The error.
      */
-    public static function invalid(string $message): WP_Error
+    public static function invalid(string $message): \WP_Error
     {
-        return new WP_Error('mcp_connector_invalid_input', $message, ['status' => 400]);
+        return new \WP_Error('mcp_connector_invalid_input', $message, ['status' => 400]);
     }
 
     /**
@@ -91,22 +91,22 @@ final class Failure
      * The original error is preserved as the cause so its code survives into the
      * response, rather than being flattened into a string.
      *
-     * @param WP_Error $cause  The error WordPress returned.
+     * @param \WP_Error $cause  The error WordPress returned.
      * @param string   $action What was being attempted when it failed.
      *
-     * @return WP_Error The wrapped error.
+     * @return \WP_Error The wrapped error.
      */
-    public static function fromWordPress(WP_Error $cause, string $action): WP_Error
+    public static function fromWordPress(\WP_Error $cause, string $action): \WP_Error
     {
-        return new WP_Error(
+        return new \WP_Error(
             $cause->get_error_code() ?: 'mcp_connector_wordpress_error',
             sprintf(
                 /* translators: 1: the attempted action, 2: the underlying error message. */
                 __('Could not %1$s: %2$s', 'amphibee-mcp-connector'),
                 $action,
-                $cause->get_error_message()
+                $cause->get_error_message(),
             ),
-            $cause->get_error_data() ?: ['status' => 500]
+            $cause->get_error_data() ?: ['status' => 500],
         );
     }
 }

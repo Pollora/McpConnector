@@ -98,9 +98,14 @@ final class SettingsPage
     private const SECRET_TRANSIENT = 'mcp_connector_new_secret_';
 
     /**
-     * @param Settings $settings Resolved plugin configuration.
+     * This screen takes no configuration, deliberately.
+     *
+     * It is constructed on `plugins_loaded` but renders much later, and
+     * `mcp_connector_settings` may have been filtered in between — so
+     * {@see self::render()} reads `Settings::current()` at render time instead.
+     * An injected instance would silently be the stale one.
      */
-    public function __construct(private readonly Settings $settings)
+    public function __construct()
     {
     }
 
@@ -114,7 +119,7 @@ final class SettingsPage
         add_action('admin_enqueue_scripts', $this->enqueueAssets(...));
         add_filter(
             'plugin_action_links_' . plugin_basename(\Pollora\McpConnector\PLUGIN_FILE),
-            $this->addSettingsLink(...)
+            $this->addSettingsLink(...),
         );
 
         if (self::onSetupScreen()) {
@@ -139,7 +144,7 @@ final class SettingsPage
             __('MCP Connector', 'amphibee-mcp-connector'),
             'manage_options',
             self::MENU_SLUG,
-            $this->render(...)
+            $this->render(...),
         );
 
         add_submenu_page(
@@ -148,7 +153,7 @@ final class SettingsPage
             __('Set up MCP Connector', 'amphibee-mcp-connector'),
             'manage_options',
             Wizard::MENU_SLUG,
-            $this->renderSetup(...)
+            $this->renderSetup(...),
         );
 
         remove_submenu_page('options-general.php', Wizard::MENU_SLUG);
@@ -167,7 +172,7 @@ final class SettingsPage
     {
         // Chooses a presentation and changes nothing; the value is reduced to
         // [a-z0-9_-] and then compared against one constant.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_key() on the next line.
         $raw = isset($_GET['page']) ? wp_unslash($_GET['page']) : '';
 
         return is_string($raw) && sanitize_key($raw) === Wizard::MENU_SLUG;
@@ -220,7 +225,7 @@ final class SettingsPage
         (new Wizard(
             Settings::current(),
             (new ClientRepository())->all(),
-            (new TokenRepository())->liveAccessTokenSummaries()
+            (new TokenRepository())->liveAccessTokenSummaries(),
         ))->render();
     }
 
@@ -236,7 +241,7 @@ final class SettingsPage
         $settingsLink = sprintf(
             '<a href="%s">%s</a>',
             esc_url(self::url()),
-            esc_html__('Settings', 'amphibee-mcp-connector')
+            esc_html__('Settings', 'amphibee-mcp-connector'),
         );
 
         return array_merge([$settingsLink], $links);
@@ -262,7 +267,7 @@ final class SettingsPage
             'mcp-connector-admin',
             plugins_url('assets/admin.css', \Pollora\McpConnector\PLUGIN_FILE),
             [],
-            VERSION
+            VERSION,
         );
 
         wp_enqueue_script(
@@ -270,7 +275,7 @@ final class SettingsPage
             plugins_url('assets/admin.js', \Pollora\McpConnector\PLUGIN_FILE),
             [],
             VERSION,
-            true
+            true,
         );
 
         wp_localize_script('mcp-connector-admin', 'mcpConnectorAdmin', [
@@ -365,15 +370,19 @@ final class SettingsPage
      */
     private function saveSettings(): void
     {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified by the caller.
+        // Each list value is cast to string and passed through sanitize_key() in
+        // the same expression; the sniff does not follow array_map(). Unslashing
+        // a list of [a-z0-9_-] keys would be a no-op, and sanitize_key() drops a
+        // stray backslash rather than carrying it through.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput -- Verified by the caller; sanitize_key() inside the array_map().
         $groups = array_map(
             'sanitize_key',
-            array_map('strval', (array) ($_POST['enabled_groups'] ?? []))
+            array_map('strval', (array) ($_POST['enabled_groups'] ?? [])),
         );
 
         $postTypes = array_values(array_intersect(
             array_map('sanitize_key', array_map('strval', (array) ($_POST['addressable_post_types'] ?? []))),
-            array_map(static fn (\WP_Post_Type $t): string => $t->name, PostTypes::offerable())
+            array_map(static fn (\WP_Post_Type $t): string => $t->name, PostTypes::offerable()),
         ));
 
         Settings::save([
@@ -389,7 +398,7 @@ final class SettingsPage
             'oauth_enabled' => isset($_POST['oauth_enabled']),
             'dynamic_registration_open' => isset($_POST['dynamic_registration_open']),
         ]);
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput
 
         $this->redirect(['saved' => '1']);
     }
@@ -435,7 +444,10 @@ final class SettingsPage
             }
         }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Verified by the caller.
+        // Whatever arrives is intersected with the abilities actually on offer
+        // on the next line, so an unrecognised name cannot survive — which is a
+        // stricter filter than any sanitiser would be.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput -- Verified by the caller; intersected against the offered set below.
         $submitted = array_map('strval', (array) ($_POST['external_abilities'] ?? []));
 
         return array_values(array_intersect($submitted, $offered));
@@ -446,14 +458,17 @@ final class SettingsPage
      */
     private function createClient(): void
     {
-        // phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified by the caller.
+        // The URI list is a textarea of one address per line. It is split and
+        // each line passed through esc_url_raw() just below, which is the
+        // sanitiser that fits a URL; a text sanitiser first would only mangle it.
+        // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified by the caller; esc_url_raw() below.
         $name = sanitize_text_field(wp_unslash((string) ($_POST['client_name'] ?? '')));
         $rawUris = wp_unslash((string) ($_POST['redirect_uris'] ?? ''));
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
+        // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
         $uris = array_values(array_filter(array_map(
             static fn (string $line): string => esc_url_raw(trim($line)),
-            preg_split('/\R/', $rawUris) ?: []
+            preg_split('/\R/', $rawUris) ?: [],
         )));
 
         if ($uris === []) {
@@ -468,7 +483,7 @@ final class SettingsPage
         set_transient(
             self::SECRET_TRANSIENT . $created['client']->id,
             $created['secret'],
-            MINUTE_IN_SECONDS * 5
+            MINUTE_IN_SECONDS * 5,
         );
 
         $this->redirect(['created' => $created['client']->id]);
@@ -494,7 +509,6 @@ final class SettingsPage
      *
      * @param array<string, string> $arguments Notice parameters to carry.
      *
-     * @return never
      */
     private function redirect(array $arguments): never
     {
@@ -605,7 +619,7 @@ final class SettingsPage
         // A nonce would be meaningless here: this selects which panel to draw,
         // it changes nothing. The value is reduced to [a-z0-9_-] and then has to
         // match a panel key, so nothing arbitrary survives to reach the markup.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_key() on the next line.
         $raw = isset($_GET['tab']) ? wp_unslash($_GET['tab']) : '';
         $requested = is_string($raw) ? sanitize_key($raw) : '';
 
@@ -628,7 +642,7 @@ final class SettingsPage
 
         return add_query_arg(
             $arguments,
-            admin_url('options-general.php?page=' . self::MENU_SLUG)
+            admin_url('options-general.php?page=' . self::MENU_SLUG),
         );
     }
 
@@ -719,7 +733,7 @@ final class SettingsPage
             esc_html__('What this site lets an AI client read, write and call — and who is allowed to.', 'amphibee-mcp-connector'),
             esc_attr($status),
             esc_html($labels[$status]),
-            esc_html(VERSION)
+            esc_html(VERSION),
         );
     }
 
@@ -795,21 +809,21 @@ final class SettingsPage
             . '<p class="mcpc-secret__title">%s</p>'
             . '<p class="mcpc-secret__help">%s</p>',
             esc_html__('Application created — copy these now', 'amphibee-mcp-connector'),
-            esc_html__('The secret is stored only as a hash. This is the one time it can be read.', 'amphibee-mcp-connector')
+            esc_html__('The secret is stored only as a hash. This is the one time it can be read.', 'amphibee-mcp-connector'),
         );
 
         Field::address(
             'mcpc-new-client-id',
             __('Client ID', 'amphibee-mcp-connector'),
             $client->id,
-            __('Identifies the application. Not secret.', 'amphibee-mcp-connector')
+            __('Identifies the application. Not secret.', 'amphibee-mcp-connector'),
         );
 
         Field::address(
             'mcpc-new-client-secret',
             __('Client secret', 'amphibee-mcp-connector'),
             $secret,
-            __('Proves the application is itself. Treat it as a password; it will not be shown again.', 'amphibee-mcp-connector')
+            __('Proves the application is itself. Treat it as a password; it will not be shown again.', 'amphibee-mcp-connector'),
         );
 
         echo '</div></div>';
@@ -855,7 +869,7 @@ final class SettingsPage
                 esc_html($panel['description']),
                 isset($counts[$id])
                     ? '<span class="mcpc__navcount">' . esc_html($counts[$id]) . '</span>'
-                    : ''
+                    : '',
             );
         }
 
@@ -878,7 +892,7 @@ final class SettingsPage
             . '</div>',
             in_array($active, $quiet, true) ? ' hidden' : '',
             esc_html__('Saving writes every panel at once, including the ones you have not opened.', 'amphibee-mcp-connector'),
-            esc_html__('Save settings', 'amphibee-mcp-connector')
+            esc_html__('Save settings', 'amphibee-mcp-connector'),
         );
     }
 
@@ -899,7 +913,7 @@ final class SettingsPage
             esc_attr($id),
             $id === $active ? '' : ' hidden',
             esc_html($title),
-            esc_html($intro)
+            esc_html($intro),
         );
     }
 
@@ -914,7 +928,7 @@ final class SettingsPage
         printf(
             '<div class="notice notice-%s"><p>%s</p></div>',
             esc_attr($type),
-            esc_html($message)
+            esc_html($message),
         );
     }
 
@@ -934,7 +948,7 @@ final class SettingsPage
             'dashboard',
             $active,
             __('Dashboard', 'amphibee-mcp-connector'),
-            __('Whether a client can connect right now, and if not, which link of the chain is broken.', 'amphibee-mcp-connector')
+            __('Whether a client can connect right now, and if not, which link of the chain is broken.', 'amphibee-mcp-connector'),
         );
 
         $connected = count(array_filter($tokens, static fn (array $s): bool => $s['count'] > 0));
@@ -954,7 +968,7 @@ final class SettingsPage
             esc_html__('Live tokens', 'amphibee-mcp-connector'),
             esc_html(number_format_i18n((int) $live)),
             esc_html__('Post types', 'amphibee-mcp-connector'),
-            esc_html(number_format_i18n(count(PostTypes::addressable())))
+            esc_html(number_format_i18n(count(PostTypes::addressable()))),
         );
 
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('Checks', 'amphibee-mcp-connector'));
@@ -966,7 +980,7 @@ final class SettingsPage
             '<p class="mcpc-note">%s <a class="mcpc-link" href="%s">%s</a></p>',
             esc_html__('The discovery answer is cached for five minutes, since the usual sequence is to read this, change the server, and come back.', 'amphibee-mcp-connector'),
             esc_url(self::url('dashboard', ['probe' => '1'])),
-            esc_html__('Ask the server again', 'amphibee-mcp-connector')
+            esc_html__('Ask the server again', 'amphibee-mcp-connector'),
         );
 
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('End-to-end test', 'amphibee-mcp-connector'));
@@ -975,7 +989,7 @@ final class SettingsPage
         printf(
             '<p class="mcpc-note"><a class="mcpc-link" href="%s">%s</a></p>',
             esc_url(Wizard::url()),
-            esc_html__('Run the setup assistant again', 'amphibee-mcp-connector')
+            esc_html__('Run the setup assistant again', 'amphibee-mcp-connector'),
         );
 
         echo '</section>';
@@ -993,14 +1007,14 @@ final class SettingsPage
             'connect',
             $active,
             __('Connect', 'amphibee-mcp-connector'),
-            __('One address is all a client needs. It reads everything else — the authorization server, the token endpoint, the tool list — from there.', 'amphibee-mcp-connector')
+            __('One address is all a client needs. It reads everything else — the authorization server, the token endpoint, the tool list — from there.', 'amphibee-mcp-connector'),
         );
 
         Field::address(
             'mcpc-server-url',
             __('MCP server URL', 'amphibee-mcp-connector'),
             ServerRegistry::endpointUrl(),
-            __('This is the only value to hand over. Anything a client asks for beyond it, it can already work out.', 'amphibee-mcp-connector')
+            __('This is the only value to hand over. Anything a client asks for beyond it, it can already work out.', 'amphibee-mcp-connector'),
         );
 
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('Client by client', 'amphibee-mcp-connector'));
@@ -1009,7 +1023,7 @@ final class SettingsPage
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('The other addresses', 'amphibee-mcp-connector'));
         printf(
             '<p class="mcpc-note">%s</p>',
-            esc_html__('Nothing needs to be given these; they are here because when a connection fails, the next question is which of them answers.', 'amphibee-mcp-connector')
+            esc_html__('Nothing needs to be given these; they are here because when a connection fails, the next question is which of them answers.', 'amphibee-mcp-connector'),
         );
         Parts::endpoints();
 
@@ -1028,7 +1042,7 @@ final class SettingsPage
             'tools',
             $active,
             __('Tools', 'amphibee-mcp-connector'),
-            __('Every published ability becomes one tool in the client. What is not here is refused, whatever a client asks for.', 'amphibee-mcp-connector')
+            __('Every published ability becomes one tool in the client. What is not here is refused, whatever a client asks for.', 'amphibee-mcp-connector'),
         );
 
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('Ability groups', 'amphibee-mcp-connector'));
@@ -1040,7 +1054,7 @@ final class SettingsPage
                 $group->key(),
                 $group->label(),
                 $group->description(),
-                $settings->isGroupEnabled($group->key())
+                $settings->isGroupEnabled($group->key()),
             );
         }
 
@@ -1060,7 +1074,7 @@ final class SettingsPage
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('Addressable post types', 'amphibee-mcp-connector'));
         printf(
             '<p class="mcpc__panelintro">%s</p>',
-            esc_html__('Which types a client may list, read and write. A site accumulates types that are storage rather than content, and those have no business being offered to a model.', 'amphibee-mcp-connector')
+            esc_html__('Which types a client may list, read and write. A site accumulates types that are storage rather than content, and those have no business being offered to a model.', 'amphibee-mcp-connector'),
         );
 
         $addressable = PostTypes::addressable();
@@ -1080,7 +1094,7 @@ final class SettingsPage
                     ? self::publishedCount($type->name)
                     : __('not public', 'amphibee-mcp-connector'),
                 ! $type->public,
-                in_array($type->name, $addressable, true)
+                in_array($type->name, $addressable, true),
             );
         }
 
@@ -1110,7 +1124,7 @@ final class SettingsPage
         if ($available === []) {
             printf(
                 '<p class="mcpc-empty">%s</p>',
-                esc_html__('No other active plugin publishes abilities for MCP.', 'amphibee-mcp-connector')
+                esc_html__('No other active plugin publishes abilities for MCP.', 'amphibee-mcp-connector'),
             );
 
             return;
@@ -1118,7 +1132,7 @@ final class SettingsPage
 
         printf(
             '<p class="mcpc__panelintro">%s</p>',
-            esc_html__('Publishing these here puts them in the same connector, so a client sees one set of tools rather than one server per plugin. Each keeps its own permission checks. They are grouped by what their provider says about them, which is the only thing that separates reading a field from deleting a field group.', 'amphibee-mcp-connector')
+            esc_html__('Publishing these here puts them in the same connector, so a client sees one set of tools rather than one server per plugin. Each keeps its own permission checks. They are grouped by what their provider says about them, which is the only thing that separates reading a field from deleting a field group.', 'amphibee-mcp-connector'),
         );
 
         // Before the first save there is no stored selection, so show what would
@@ -1129,7 +1143,7 @@ final class SettingsPage
         if (! $settings->externalAbilitiesReviewed) {
             printf(
                 '<p class="mcpc-note">%s</p>',
-                esc_html__('These are the recommended defaults, in force until you save this screen. Reading is selected wherever a plugin declares it; anything a shipped profile marks as structural is not.', 'amphibee-mcp-connector')
+                esc_html__('These are the recommended defaults, in force until you save this screen. Reading is selected wherever a plugin declares it; anything a shipped profile marks as structural is not.', 'amphibee-mcp-connector'),
             );
         }
 
@@ -1144,8 +1158,8 @@ final class SettingsPage
                 esc_html(sprintf(
                     /* translators: %d: number of abilities offered by one plugin. */
                     _n('%d ability offered', '%d abilities offered', count($abilities), 'amphibee-mcp-connector'),
-                    count($abilities)
-                ))
+                    count($abilities),
+                )),
             );
 
             foreach (self::byClaim($abilities) as $claim) {
@@ -1154,7 +1168,7 @@ final class SettingsPage
                     . '<h5 class="mcpc-claim__title">%s</h5>'
                     . '<span class="mcpc-claim__note">%s</span></div>',
                     esc_html($claim['title']),
-                    esc_html($claim['note'])
+                    esc_html($claim['note']),
                 );
 
                 foreach ($claim['abilities'] as $ability) {
@@ -1164,7 +1178,7 @@ final class SettingsPage
                         $ability->label,
                         $ability->description,
                         in_array($ability->name, $recommended, true),
-                        in_array($ability->name, $selected, true)
+                        in_array($ability->name, $selected, true),
                     );
                 }
 
@@ -1220,7 +1234,7 @@ final class SettingsPage
 
         return array_values(array_filter(
             $buckets,
-            static fn (array $bucket): bool => $bucket['abilities'] !== []
+            static fn (array $bucket): bool => $bucket['abilities'] !== [],
         ));
     }
 
@@ -1236,7 +1250,7 @@ final class SettingsPage
             'security',
             $active,
             __('Security', 'amphibee-mcp-connector'),
-            __('Three decisions: who may authorise a client, how far a client may reach, and whether a client may introduce itself.', 'amphibee-mcp-connector')
+            __('Three decisions: who may authorise a client, how far a client may reach, and whether a client may introduce itself.', 'amphibee-mcp-connector'),
         );
 
         Field::input(
@@ -1244,7 +1258,7 @@ final class SettingsPage
             __('Required capability', 'amphibee-mcp-connector'),
             __('A user needs this to authorise a client and to reach the endpoint. It is checked again on every token refresh, so demoting a user disconnects them rather than merely stopping them from reconnecting.', 'amphibee-mcp-connector'),
             $settings->requiredCapability,
-            true
+            true,
         );
 
         echo '<div class="mcpc-stack">';
@@ -1253,21 +1267,21 @@ final class SettingsPage
             'read_only_mode',
             __('Read-only mode', 'amphibee-mcp-connector'),
             __('Abilities that would change the site are not registered at all — not refused at call time, absent from the tool list. This is the safe way to bring a connector up on a live site: prove the transport and the authentication first.', 'amphibee-mcp-connector'),
-            $settings->readOnlyMode
+            $settings->readOnlyMode,
         );
 
         Field::toggle(
             'oauth_enabled',
             __('Built-in OAuth 2.1 provider', 'amphibee-mcp-connector'),
             __('Serves the discovery, authorization, token and registration endpoints. Required for a remote client such as Claude. Turn it off only if something else on the site handles authentication.', 'amphibee-mcp-connector'),
-            $settings->oauthEnabled
+            $settings->oauthEnabled,
         );
 
         Field::toggle(
             'dynamic_registration_open',
             __('Let clients register themselves', 'amphibee-mcp-connector'),
             __('RFC 7591, and what makes a one-click connection possible. Registering grants nothing on its own: a user still has to approve the request on the consent screen, holding the capability above. Turn it off to require that every application be created by hand.', 'amphibee-mcp-connector'),
-            $settings->dynamicRegistrationOpen
+            $settings->dynamicRegistrationOpen,
         );
 
         echo '</div>';
@@ -1275,7 +1289,7 @@ final class SettingsPage
         if ($settings->readOnlyMode) {
             printf(
                 '<p class="mcpc-note">%s</p>',
-                esc_html__('Read-only mode is on, so the write-side tools are absent from the tool list whatever the Tools panel says.', 'amphibee-mcp-connector')
+                esc_html__('Read-only mode is on, so the write-side tools are absent from the tool list whatever the Tools panel says.', 'amphibee-mcp-connector'),
             );
         }
 
@@ -1295,13 +1309,13 @@ final class SettingsPage
             'applications',
             $active,
             __('Applications', 'amphibee-mcp-connector'),
-            __('Every client that has registered against this site. Removing one revokes its tokens with it, and the application is disconnected on its next call.', 'amphibee-mcp-connector')
+            __('Every client that has registered against this site. Removing one revokes its tokens with it, and the application is disconnected on its next call.', 'amphibee-mcp-connector'),
         );
 
         if ($clients === []) {
             printf(
                 '<p class="mcpc-empty">%s</p>',
-                esc_html__('Nothing registered yet. Connecting from a client registers it automatically, or create one below.', 'amphibee-mcp-connector')
+                esc_html__('Nothing registered yet. Connecting from a client registers it automatically, or create one below.', 'amphibee-mcp-connector'),
             );
         } else {
             echo '<div class="mcpc-apps">';
@@ -1328,7 +1342,7 @@ final class SettingsPage
     {
         $deleteUrl = wp_nonce_url(
             self::url('applications', ['mcp_connector_delete_client' => $client->id]),
-            self::NONCE_DELETE_CLIENT
+            self::NONCE_DELETE_CLIENT,
         );
 
         $live = $summary['count'] ?? 0;
@@ -1360,14 +1374,14 @@ final class SettingsPage
             esc_html(
                 isset($summary['issued']) && $summary['issued'] > 0
                     ? self::formatTime($summary['issued'])
-                    : __('never', 'amphibee-mcp-connector')
+                    : __('never', 'amphibee-mcp-connector'),
             ),
             esc_html(implode(' · ', $client->redirectUris)),
             esc_url($deleteUrl),
             esc_attr(wp_json_encode(
-                __('Remove this application and revoke its tokens?', 'amphibee-mcp-connector')
+                __('Remove this application and revoke its tokens?', 'amphibee-mcp-connector'),
             ) ?: '""'),
-            esc_html__('Remove', 'amphibee-mcp-connector')
+            esc_html__('Remove', 'amphibee-mcp-connector'),
         );
     }
 
@@ -1382,7 +1396,7 @@ final class SettingsPage
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('Create an application by hand', 'amphibee-mcp-connector'));
         printf(
             '<p class="mcpc__panelintro">%s</p>',
-            esc_html__('For a client that will not register itself, or for a site that keeps self-registration closed. The secret is shown once, at creation.', 'amphibee-mcp-connector')
+            esc_html__('For a client that will not register itself, or for a site that keeps self-registration closed. The secret is shown once, at creation.', 'amphibee-mcp-connector'),
         );
 
         Field::hidden('_wpnonce', wp_create_nonce(self::NONCE_CREATE_CLIENT), self::CLIENT_FORM);
@@ -1394,7 +1408,7 @@ final class SettingsPage
             __('Shown in this list and on the consent screen the user approves.', 'amphibee-mcp-connector'),
             'Claude',
             false,
-            self::CLIENT_FORM
+            self::CLIENT_FORM,
         );
 
         Field::textarea(
@@ -1404,14 +1418,14 @@ final class SettingsPage
             implode("\n", ClientGuides::CLAUDE_REDIRECT_URIS),
             3,
             '',
-            self::CLIENT_FORM
+            self::CLIENT_FORM,
         );
 
         printf(
             '<button type="submit" name="mcp_connector_create_client" value="1" form="%s" '
             . 'class="mcpc-button mcpc-button--quiet">%s</button>',
             esc_attr(self::CLIENT_FORM),
-            esc_html__('Create application', 'amphibee-mcp-connector')
+            esc_html__('Create application', 'amphibee-mcp-connector'),
         );
     }
 
@@ -1427,7 +1441,7 @@ final class SettingsPage
             'advanced',
             $active,
             __('Advanced', 'amphibee-mcp-connector'),
-            __('Both of these are baked into what a connected client already knows. Changing either is a reconnection, not a setting.', 'amphibee-mcp-connector')
+            __('Both of these are baked into what a connected client already knows. Changing either is a reconnection, not a setting.', 'amphibee-mcp-connector'),
         );
 
         Field::input(
@@ -1435,7 +1449,7 @@ final class SettingsPage
             __('Ability namespace', 'amphibee-mcp-connector'),
             __('Prefixes every ability, and with it every MCP tool name. Changing it renames the tools a connected client has already learned, which reads to it as the old ones disappearing.', 'amphibee-mcp-connector'),
             $settings->abilityNamespace,
-            true
+            true,
         );
 
         Field::input(
@@ -1443,13 +1457,13 @@ final class SettingsPage
             __('Server route', 'amphibee-mcp-connector'),
             __('The last segment of the MCP endpoint URL. Changing it invalidates the address already handed to every client.', 'amphibee-mcp-connector'),
             $settings->serverRoute,
-            true
+            true,
         );
 
         printf(
             '<p class="mcpc-note">%s <code>%s</code></p>',
             esc_html__('The endpoint currently answers at:', 'amphibee-mcp-connector'),
-            esc_html(ServerRegistry::endpointUrl())
+            esc_html(ServerRegistry::endpointUrl()),
         );
 
         echo '</section>';
@@ -1473,7 +1487,7 @@ final class SettingsPage
         return sprintf(
             /* translators: %s: number of published entries. */
             _n('%s published', '%s published', $total, 'amphibee-mcp-connector'),
-            number_format_i18n($total)
+            number_format_i18n($total),
         );
     }
 

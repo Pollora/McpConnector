@@ -174,7 +174,7 @@ final class Input
 
         $strings = array_map(
             static fn (mixed $item): string => is_scalar($item) ? trim((string) $item) : '',
-            $this->values[$key]
+            $this->values[$key],
         );
 
         return array_values(array_filter($strings, static fn (string $item): bool => $item !== ''));

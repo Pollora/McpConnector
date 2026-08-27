@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pollora\McpConnector\Server;
 
 use Pollora\McpConnector\Settings;
-use WP_Ability;
 
 defined('ABSPATH') || exit;
 
@@ -76,7 +75,7 @@ final class ExternalAbilities
         $grouped = [];
 
         foreach (wp_get_abilities() as $ability) {
-            if (! $ability instanceof WP_Ability || ! $this->isPublishable($ability)) {
+            if (! $ability instanceof \WP_Ability || ! $this->isPublishable($ability)) {
                 continue;
             }
 
@@ -88,7 +87,7 @@ final class ExternalAbilities
             usort(
                 $abilities,
                 static fn (ExternalAbility $a, ExternalAbility $b): int
-                    => [$b->isSafeByDefault(), $a->name] <=> [$a->isSafeByDefault(), $b->name]
+                    => [$b->isSafeByDefault(), $a->name] <=> [$a->isSafeByDefault(), $b->name],
             );
         }
 
@@ -162,7 +161,7 @@ final class ExternalAbilities
 
         return array_values(array_map(
             static fn (ExternalAbility $a): string => $a->name,
-            array_filter($abilities, static fn (ExternalAbility $a): bool => $a->isSafeByDefault())
+            array_filter($abilities, static fn (ExternalAbility $a): bool => $a->isSafeByDefault()),
         ));
     }
 
@@ -209,11 +208,11 @@ final class ExternalAbilities
     /**
      * Whether an ability is a candidate for publication at all.
      *
-     * @param WP_Ability $ability The ability.
+     * @param \WP_Ability $ability The ability.
      *
      * @return bool True when it may be offered on the settings screen.
      */
-    private function isPublishable(WP_Ability $ability): bool
+    private function isPublishable(\WP_Ability $ability): bool
     {
         $name = $ability->get_name();
         $provider = explode('/', $name)[0];

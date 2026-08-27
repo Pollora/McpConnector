@@ -11,9 +11,6 @@ use Pollora\McpConnector\Abilities\Annotations;
 use Pollora\McpConnector\Abilities\Input;
 use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Support\Failure;
-use WP_Error;
-use WP_Post;
-use WP_Term;
 
 defined('ABSPATH') || exit;
 
@@ -58,7 +55,7 @@ final class NavigationGroup implements AbilityGroup
     {
         return __(
             'Read and edit classic navigation menus, their items and their theme locations.',
-            'amphibee-mcp-connector'
+            'amphibee-mcp-connector',
         );
     }
 
@@ -96,13 +93,13 @@ final class NavigationGroup implements AbilityGroup
             inputSchema: Schema::object(),
             execute: static function (): array {
                 $menus = array_map(
-                    static fn (WP_Term $menu): array => [
+                    static fn (\WP_Term $menu): array => [
                         'id' => $menu->term_id,
                         'name' => $menu->name,
                         'slug' => $menu->slug,
                         'count' => $menu->count,
                     ],
-                    wp_get_nav_menus()
+                    wp_get_nav_menus(),
                 );
 
                 return [
@@ -131,7 +128,7 @@ final class NavigationGroup implements AbilityGroup
             inputSchema: Schema::object([
                 'menu' => Schema::string('Menu ID, slug or name.'),
             ], ['menu']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $items = wp_get_nav_menu_items($input->string('menu'));
 
                 if ($items === false) {
@@ -140,7 +137,7 @@ final class NavigationGroup implements AbilityGroup
 
                 return [
                     'items' => array_map(
-                        static fn (WP_Post $item): array => [
+                        static fn (\WP_Post $item): array => [
                             'id' => $item->ID,
                             'title' => $item->title,
                             'url' => $item->url,
@@ -152,7 +149,7 @@ final class NavigationGroup implements AbilityGroup
                             'target' => $item->target,
                             'classes' => array_values(array_filter((array) $item->classes)),
                         ],
-                        $items
+                        $items,
                     ),
                 ];
             },
@@ -187,7 +184,7 @@ final class NavigationGroup implements AbilityGroup
                         'slug' => $slug,
                         'label' => $label,
                         'menu_id' => $menuId ?: null,
-                        'menu_name' => $menu instanceof WP_Term ? $menu->name : null,
+                        'menu_name' => $menu instanceof \WP_Term ? $menu->name : null,
                     ];
                 }
 
@@ -213,10 +210,10 @@ final class NavigationGroup implements AbilityGroup
             inputSchema: Schema::object([
                 'name' => Schema::string('Menu name, as shown in the admin.'),
             ], ['name']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $name = $input->string('name');
 
-                if (wp_get_nav_menu_object($name) instanceof WP_Term) {
+                if (wp_get_nav_menu_object($name) instanceof \WP_Term) {
                     return Failure::invalid(sprintf('A menu named "%s" already exists.', $name));
                 }
 
@@ -258,10 +255,10 @@ final class NavigationGroup implements AbilityGroup
                 'target' => Schema::string('Link target. Use _blank to open in a new tab.', enum: ['', '_blank']),
                 'description' => Schema::string('Item description, shown by themes that support it.'),
             ], ['menu']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $menu = wp_get_nav_menu_object($input->string('menu'));
 
-                if (! $menu instanceof WP_Term) {
+                if (! $menu instanceof \WP_Term) {
                     return Failure::notFound('menu', $input->string('menu'));
                 }
 
@@ -274,7 +271,7 @@ final class NavigationGroup implements AbilityGroup
                 if ($type !== 'custom' && ($input->id('object_id') === 0 || ! $input->filled('object'))) {
                     return Failure::invalid(sprintf(
                         'A menu item of type "%s" needs both object and object_id.',
-                        $type
+                        $type,
                     ));
                 }
 
@@ -334,17 +331,17 @@ final class NavigationGroup implements AbilityGroup
                 'target' => Schema::string('New link target.', enum: ['', '_blank']),
                 'description' => Schema::string('New item description.'),
             ], ['menu', 'id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $menu = wp_get_nav_menu_object($input->string('menu'));
 
-                if (! $menu instanceof WP_Term) {
+                if (! $menu instanceof \WP_Term) {
                     return Failure::notFound('menu', $input->string('menu'));
                 }
 
                 $itemId = $input->id('id');
                 $existing = get_post($itemId);
 
-                if (! $existing instanceof WP_Post || $existing->post_type !== 'nav_menu_item') {
+                if (! $existing instanceof \WP_Post || $existing->post_type !== 'nav_menu_item') {
                     return Failure::notFound('menu item', $itemId);
                 }
 
@@ -398,11 +395,11 @@ final class NavigationGroup implements AbilityGroup
             inputSchema: Schema::object([
                 'id' => Schema::integer('ID of the menu item to delete.', minimum: 1),
             ], ['id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $itemId = $input->id('id');
                 $item = get_post($itemId);
 
-                if (! $item instanceof WP_Post || $item->post_type !== 'nav_menu_item') {
+                if (! $item instanceof \WP_Post || $item->post_type !== 'nav_menu_item') {
                     return Failure::notFound('menu item', $itemId);
                 }
 
@@ -412,7 +409,7 @@ final class NavigationGroup implements AbilityGroup
 
                 $result = wp_delete_post($itemId, true);
 
-                if (! $result instanceof WP_Post) {
+                if (! $result instanceof \WP_Post) {
                     return Failure::invalid(sprintf('WordPress refused to delete menu item %d.', $itemId));
                 }
 
@@ -440,13 +437,13 @@ final class NavigationGroup implements AbilityGroup
                 'location' => Schema::string('Theme menu location slug.'),
                 'menu' => Schema::string('Menu ID, slug or name to display there. Pass an empty string to clear the location.'),
             ], ['location', 'menu']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $location = $input->string('location');
 
                 if (! array_key_exists($location, get_registered_nav_menus())) {
                     return Failure::invalid(sprintf(
                         'The active theme does not declare a menu location named "%s". Call get-menu-locations to list them.',
-                        $location
+                        $location,
                     ));
                 }
 
@@ -461,7 +458,7 @@ final class NavigationGroup implements AbilityGroup
 
                 $menu = wp_get_nav_menu_object($input->string('menu'));
 
-                if (! $menu instanceof WP_Term) {
+                if (! $menu instanceof \WP_Term) {
                     return Failure::notFound('menu', $input->string('menu'));
                 }
 

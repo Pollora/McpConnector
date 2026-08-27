@@ -13,9 +13,6 @@ use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Formatting\PostFormatter;
 use Pollora\McpConnector\Support\Failure;
 use Pollora\McpConnector\Support\PostTypes;
-use WP_Error;
-use WP_Post;
-use WP_Query;
 
 defined('ABSPATH') || exit;
 
@@ -62,7 +59,7 @@ final class MediaGroup implements AbilityGroup
     {
         return __(
             'List attachments, import files from a URL, edit attachment metadata, and delete attachments.',
-            'amphibee-mcp-connector'
+            'amphibee-mcp-connector',
         );
     }
 
@@ -102,11 +99,11 @@ final class MediaGroup implements AbilityGroup
                 'post_id' => Schema::integer('ID of the post to set the featured image on.', minimum: 1),
                 'attachment_id' => Schema::integer('Attachment ID of the image, or 0 to remove the current one.', minimum: 0),
             ], ['post_id', 'attachment_id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('post_id');
                 $attachmentId = $input->id('attachment_id');
 
-                if (! get_post($postId) instanceof WP_Post) {
+                if (! get_post($postId) instanceof \WP_Post) {
                     return Failure::notFound('post', $postId);
                 }
 
@@ -122,7 +119,7 @@ final class MediaGroup implements AbilityGroup
                 if (! wp_attachment_is_image($attachmentId)) {
                     return Failure::invalid(sprintf(
                         'Attachment %d is not an image and cannot be used as a featured image.',
-                        $attachmentId
+                        $attachmentId,
                     ));
                 }
 
@@ -130,7 +127,7 @@ final class MediaGroup implements AbilityGroup
                     return Failure::invalid(sprintf(
                         'WordPress refused to set attachment %d as the featured image of post %d.',
                         $attachmentId,
-                        $postId
+                        $postId,
                     ));
                 }
 
@@ -182,7 +179,7 @@ final class MediaGroup implements AbilityGroup
                     $args['post_mime_type'] = $input->string('mime_type');
                 }
 
-                $query = new WP_Query($args);
+                $query = new \WP_Query($args);
 
                 return [
                     'media' => array_map(PostFormatter::attachment(...), $query->posts),
@@ -216,7 +213,7 @@ final class MediaGroup implements AbilityGroup
                 'description' => Schema::string('Long description stored on the attachment.'),
                 'post_id' => Schema::integer('Post to attach the file to.', minimum: 1),
             ], ['url']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 // These live in wp-admin and are not loaded during a REST request.
                 require_once ABSPATH . 'wp-admin/includes/file.php';
                 require_once ABSPATH . 'wp-admin/includes/media.php';
@@ -227,7 +224,7 @@ final class MediaGroup implements AbilityGroup
                 if (! wp_http_validate_url($url)) {
                     return Failure::invalid(sprintf(
                         'The URL "%s" is not a valid, publicly reachable http or https address.',
-                        $url
+                        $url,
                     ));
                 }
 
@@ -248,7 +245,7 @@ final class MediaGroup implements AbilityGroup
 
                     return Failure::invalid(sprintf(
                         'WordPress does not accept uploads of type "%s" on this site.',
-                        pathinfo($fileName, PATHINFO_EXTENSION) ?: 'unknown'
+                        pathinfo($fileName, PATHINFO_EXTENSION) ?: 'unknown',
                     ));
                 }
 
@@ -270,7 +267,7 @@ final class MediaGroup implements AbilityGroup
                     ['name' => $fileName, 'tmp_name' => $temporaryFile],
                     $input->id('post_id'),
                     null,
-                    $postData
+                    $postData,
                 );
 
                 if (is_wp_error($attachmentId)) {
@@ -283,13 +280,13 @@ final class MediaGroup implements AbilityGroup
                     update_post_meta(
                         $attachmentId,
                         '_wp_attachment_image_alt',
-                        sanitize_text_field($input->string('alt_text'))
+                        sanitize_text_field($input->string('alt_text')),
                     );
                 }
 
                 $attachment = get_post($attachmentId);
 
-                return $attachment instanceof WP_Post
+                return $attachment instanceof \WP_Post
                     ? PostFormatter::attachment($attachment)
                     : Failure::notFound('attachment', $attachmentId);
             },
@@ -317,7 +314,7 @@ final class MediaGroup implements AbilityGroup
                 'caption' => Schema::string('New caption.'),
                 'description' => Schema::string('New description.'),
             ], ['id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $attachmentId = $input->id('id');
 
                 if (get_post_type($attachmentId) !== 'attachment') {
@@ -344,13 +341,13 @@ final class MediaGroup implements AbilityGroup
                     update_post_meta(
                         $attachmentId,
                         '_wp_attachment_image_alt',
-                        sanitize_text_field($input->string('alt_text'))
+                        sanitize_text_field($input->string('alt_text')),
                     );
                 }
 
                 $attachment = get_post($attachmentId);
 
-                return $attachment instanceof WP_Post
+                return $attachment instanceof \WP_Post
                     ? PostFormatter::attachment($attachment)
                     : Failure::notFound('attachment', $attachmentId);
             },
@@ -375,7 +372,7 @@ final class MediaGroup implements AbilityGroup
             inputSchema: Schema::object([
                 'id' => Schema::integer('ID of the attachment to delete.', minimum: 1),
             ], ['id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $attachmentId = $input->id('id');
 
                 if (get_post_type($attachmentId) !== 'attachment') {
@@ -385,7 +382,7 @@ final class MediaGroup implements AbilityGroup
                 // Always permanent: an attachment in the bin keeps its file on
                 // disk but stops resolving, which reads as data loss with extra
                 // steps. If the file should survive, do not call this.
-                if (! wp_delete_attachment($attachmentId, true) instanceof WP_Post) {
+                if (! wp_delete_attachment($attachmentId, true) instanceof \WP_Post) {
                     return Failure::invalid(sprintf('WordPress refused to delete attachment %d.', $attachmentId));
                 }
 

@@ -47,9 +47,9 @@ final class Field
             esc_attr($id),
             esc_attr($name),
             checked($checked, true, false),
-            self::formAttribute($form),
+            self::formAttribute($form), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Returns either '' or a form="" attribute built with esc_attr(); the sniff does not follow method calls.
             esc_html($label),
-            esc_html($help)
+            esc_html($help),
         );
     }
 
@@ -84,7 +84,7 @@ final class Field
             esc_attr($value),
             checked($checked, true, false),
             esc_html($label),
-            esc_html($help)
+            esc_html($help),
         );
     }
 
@@ -104,7 +104,7 @@ final class Field
         string $help,
         string $value,
         bool $mono = false,
-        string $form = ''
+        string $form = '',
     ): void {
         $id = 'mcpc-' . $name;
 
@@ -120,8 +120,8 @@ final class Field
             $mono ? ' mcpc-field__control--mono' : '',
             esc_attr($name),
             esc_attr($value),
-            self::formAttribute($form),
-            esc_html($help)
+            self::formAttribute($form), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Returns either '' or a form="" attribute built with esc_attr(); the sniff does not follow method calls.
+            esc_html($help),
         );
     }
 
@@ -143,7 +143,7 @@ final class Field
         string $value,
         int $rows = 4,
         string $placeholder = '',
-        string $form = ''
+        string $form = '',
     ): void {
         $id = 'mcpc-' . $name;
 
@@ -159,9 +159,9 @@ final class Field
             esc_attr($name),
             esc_attr((string) $rows),
             esc_attr($placeholder),
-            self::formAttribute($form),
+            self::formAttribute($form), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Returns either '' or a form="" attribute built with esc_attr(); the sniff does not follow method calls.
             esc_textarea($value),
-            esc_html($help)
+            esc_html($help),
         );
     }
 
@@ -193,7 +193,7 @@ final class Field
             esc_html($label),
             esc_attr($value),
             esc_html__('Copy', 'amphibee-mcp-connector'),
-            esc_html($help)
+            esc_html($help),
         );
     }
 
@@ -213,7 +213,7 @@ final class Field
         string $label,
         string $note,
         bool $warn,
-        bool $checked
+        bool $checked,
     ): void {
         $id = 'mcpc-' . $name . '-' . $value;
 
@@ -231,7 +231,7 @@ final class Field
             checked($checked, true, false),
             esc_html($label),
             $warn ? ' mcpc-card-check__note--warn' : '',
-            esc_html($note)
+            esc_html($note),
         );
     }
 
@@ -255,7 +255,7 @@ final class Field
         string $label,
         string $description,
         bool $recommended,
-        bool $checked
+        bool $checked,
     ): void {
         $id = 'mcpc-ability-' . md5($value);
 
@@ -276,7 +276,7 @@ final class Field
             $recommended
                 ? '<span class="mcpc-badge mcpc-badge--recommended">' . esc_html__('recommended', 'amphibee-mcp-connector') . '</span>'
                 : '',
-            esc_html($description)
+            esc_html($description),
         );
     }
 
@@ -293,7 +293,7 @@ final class Field
             '<input type="hidden" name="%s" value="%s"%s>',
             esc_attr($name),
             esc_attr($value),
-            self::formAttribute($form)
+            self::formAttribute($form), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Returns either '' or a form="" attribute built with esc_attr(); the sniff does not follow method calls.
         );
     }
 

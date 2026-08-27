@@ -107,7 +107,6 @@ final class HttpResponse
      * a template would be chosen, and letting WordPress continue would append a
      * theme's output to an OAuth redirect.
      *
-     * @return never
      */
     public function send(): never
     {

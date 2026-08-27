@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Server;
 
-use WP_Ability;
-
 defined('ABSPATH') || exit;
 
 /**
@@ -50,11 +48,11 @@ final class ExternalAbility
     /**
      * Describe a registered ability.
      *
-     * @param WP_Ability $ability The ability.
+     * @param \WP_Ability $ability The ability.
      *
      * @return self The description.
      */
-    public static function fromAbility(WP_Ability $ability): self
+    public static function fromAbility(\WP_Ability $ability): self
     {
         $meta = $ability->get_meta();
         $annotations = $meta['annotations'] ?? [];

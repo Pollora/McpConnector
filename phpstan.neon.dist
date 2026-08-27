@@ -1,0 +1,56 @@
+parameters:
+    # Level 6, not max, and that is a deliberate stop rather than the finish
+    # line. Levels 7 and above object to every `(string)` and `(int)` cast of a
+    # value WordPress hands back as `mixed` — 142 of them across the OAuth
+    # repositories, the ability groups and the admin screens. Narrowing those is
+    # worth doing, but it is a change to the runtime of a live authorisation
+    # server, and it belongs in the same session as the behavioural test suite
+    # that would catch a regression. Raising this line is that session's first
+    # commit. See CONTRIBUTING.md.
+    level: 6
+    phpVersion:
+        min: 80300
+        max: 80400
+
+    paths:
+        - mcp-connector.php
+        - uninstall.php
+        - src
+
+    # Pest describes tests as closures rebound onto a generated TestCase, so
+    # every `$this->` in a test resolves to PHPUnit\Framework\TestCase and
+    # reports as an undefined property. Analysing them would mean either a
+    # baseline of hundreds of false positives or writing the suite in a style
+    # that fights the framework. The suite proves itself by running.
+
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true
+
+    ignoreErrors:
+        # The MCP Adapter is a hard runtime dependency that cannot be a Composer
+        # one: it is distributed as a GitHub repository of a WordPress plugin,
+        # not as a package, so there is nothing for `composer require` to fetch
+        # and nothing in vendor/ for PHPStan to read. Every use of these classes
+        # sits behind Environment::hasMcpAdapter(), which is what makes the
+        # plugin degrade rather than fatal when the adapter is absent — the same
+        # condition that makes them invisible here.
+        -
+            identifier: class.notFound
+            path: src/Server/ServerRegistry.php
+
+        # wp_get_nav_menu_items() returns WP_Post objects that
+        # wp_setup_nav_menu_item() has decorated with title, url, type, object,
+        # object_id, menu_item_parent, target and classes. They are real, they
+        # are documented, and they are not declared on WP_Post — no stub can
+        # express "this WP_Post came back from that function".
+        -
+            identifier: property.notFound
+            path: src/Abilities/Group/NavigationGroup.php
+
+        # get_post() returns null for an identifier that no longer resolves, and
+        # this check is what turns that into a 404 instead of a fatal. The stub's
+        # conditional return type narrows to WP_Post for an int argument, which
+        # is optimistic; deleting the guard to satisfy it would be a regression.
+        -
+            identifier: instanceof.alwaysTrue
+            path: src/Abilities/Group/ContentGroup.php

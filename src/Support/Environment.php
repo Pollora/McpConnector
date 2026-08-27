@@ -140,7 +140,7 @@ final class Environment
 
         return $statuses !== [] && ! in_array(true, array_map(
             static fn (int $status): bool => $status !== 200,
-            $statuses
+            $statuses,
         ), true);
     }
 
@@ -160,21 +160,21 @@ final class Environment
         if (! self::hasAbilitiesApi()) {
             $problems['abilities-api'] = __(
                 'The Abilities API is unavailable. It ships with WordPress 6.9 and later; on older versions, install the Abilities API feature plugin.',
-                'amphibee-mcp-connector'
+                'amphibee-mcp-connector',
             );
         }
 
         if (! self::hasMcpAdapter()) {
             $problems['mcp-adapter'] = __(
                 'The MCP Adapter plugin is not active, so no MCP endpoint is served. It is not on wordpress.org and cannot be installed from the plugin screen — download it from https://github.com/WordPress/mcp-adapter and unpack it into wp-content/plugins/mcp-adapter/.',
-                'amphibee-mcp-connector'
+                'amphibee-mcp-connector',
             );
         }
 
         if (! self::hasPrettyPermalinks()) {
             $problems['permalinks'] = __(
                 'Pretty permalinks are disabled. The MCP and OAuth endpoints are only reachable at the URLs advertised to clients when a permalink structure is set.',
-                'amphibee-mcp-connector'
+                'amphibee-mcp-connector',
             );
         }
 

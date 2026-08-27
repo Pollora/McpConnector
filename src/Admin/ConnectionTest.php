@@ -134,7 +134,7 @@ final class ConnectionTest
         if (! current_user_can('manage_options')) {
             wp_send_json_error(
                 ['message' => __('You are not allowed to run this test.', 'amphibee-mcp-connector')],
-                403
+                403,
             );
         }
 
@@ -161,14 +161,14 @@ final class ConnectionTest
                     'detail' => $s['detail'],
                     'ms' => $s['ms'],
                 ],
-                $this->steps
+                $this->steps,
             ),
             'message' => $failed === []
                 ? __('The whole chain works. A client given the URL will connect.', 'amphibee-mcp-connector')
                 : sprintf(
                     /* translators: %s: the label of the first failing step. */
                     __('Stopped at: %s.', 'amphibee-mcp-connector'),
-                    (string) (reset($failed)['label'] ?? '')
+                    (string) (reset($failed)['label'] ?? ''),
                 ),
         ];
 
@@ -257,13 +257,13 @@ final class ConnectionTest
                 ? sprintf(
                     /* translators: %s: the discovery document URL. */
                     __('%s could not be reached from the site itself, so the rest of this test cannot run either. That may only mean the server has no route back to its own hostname.', 'amphibee-mcp-connector'),
-                    $url
+                    $url,
                 )
                 : sprintf(
                     /* translators: 1: HTTP status, 2: the discovery document URL. */
                     __('%1$d from %2$s. The web server is blocking /.well-known/; see the fix on the dashboard.', 'amphibee-mcp-connector'),
                     $status,
-                    $url
+                    $url,
                 ),
         ];
     }
@@ -325,7 +325,7 @@ final class ConnectionTest
             sprintf(
                 /* translators: %s: the client identifier. */
                 __('Registered as %s. It is deleted at the end of this run.', 'amphibee-mcp-connector'),
-                $this->clientId
+                $this->clientId,
             ),
         ];
     }
@@ -357,7 +357,7 @@ final class ConnectionTest
 
         $response = wp_remote_get(
             add_query_arg(array_map('rawurlencode', $this->params), Endpoints::authorize()),
-            self::requestArguments(['headers' => ['Cookie' => self::sessionCookies()]])
+            self::requestArguments(['headers' => ['Cookie' => self::sessionCookies()]]),
         );
 
         if (is_wp_error($response)) {
@@ -373,7 +373,7 @@ final class ConnectionTest
                 sprintf(
                     /* translators: %s: the URL the endpoint redirected to. */
                     __('The endpoint redirected to %s instead of rendering the form. The forwarded session was not recognised, which usually means a cache or a proxy in front of the site stripped the cookies.', 'amphibee-mcp-connector'),
-                    (string) wp_remote_retrieve_header($response, 'location')
+                    (string) wp_remote_retrieve_header($response, 'location'),
                 ),
             ];
         }
@@ -419,7 +419,7 @@ final class ConnectionTest
                 sprintf(
                     /* translators: %d: HTTP status code. */
                     __('The approval answered %d with no redirect. An expired form nonce reports itself this way.', 'amphibee-mcp-connector'),
-                    $status
+                    $status,
                 ),
             ];
         }
@@ -434,7 +434,7 @@ final class ConnectionTest
                     /* translators: 1: OAuth error code, 2: the description returned with it. */
                     __('The endpoint refused with %1$s: %2$s', 'amphibee-mcp-connector'),
                     (string) $query['error'],
-                    (string) ($query['error_description'] ?? '')
+                    (string) ($query['error_description'] ?? ''),
                 ),
             ];
         }
@@ -492,7 +492,7 @@ final class ConnectionTest
             sprintf(
                 /* translators: %d: token lifetime in seconds. */
                 __('A bearer token was issued, valid for %d seconds.', 'amphibee-mcp-connector'),
-                (int) ($body['expires_in'] ?? 0)
+                (int) ($body['expires_in'] ?? 0),
             ),
         ];
     }
@@ -522,7 +522,7 @@ final class ConnectionTest
                 sprintf(
                     /* translators: %d: HTTP status code. */
                     __('%d from the MCP endpoint with a token that was just issued. The user this grant belongs to does not hold the required capability, or a security layer is stripping the Authorization header before PHP sees it.', 'amphibee-mcp-connector'),
-                    $status
+                    $status,
                 ),
             ];
         }
@@ -555,7 +555,7 @@ final class ConnectionTest
                 ? sprintf(
                     /* translators: %s: the MCP server name. */
                     __('Handshake completed with %s.', 'amphibee-mcp-connector'),
-                    $server
+                    $server,
                 )
                 : __('Handshake completed.', 'amphibee-mcp-connector'),
         ];
@@ -599,7 +599,7 @@ final class ConnectionTest
             sprintf(
                 /* translators: %d: number of tools. */
                 _n('%d tool published.', '%d tools published.', count($tools), 'amphibee-mcp-connector'),
-                count($tools)
+                count($tools),
             ),
         ];
     }
@@ -640,7 +640,7 @@ final class ConnectionTest
                 : sprintf(
                     /* translators: %s: the client identifier. */
                     __('Could not remove %s. Delete it under Applications — it holds a live token until you do.', 'amphibee-mcp-connector'),
-                    $this->clientId
+                    $this->clientId,
                 ),
             'ms' => (int) round((microtime(true) - $started) * 1000),
         ];
@@ -765,9 +765,12 @@ final class ConnectionTest
                 continue;
             }
 
-            // Read raw: this value is a signature over its own contents, and
-            // sanitising it would break the signature it exists to carry.
-            $pairs[] = $name . '=' . $_COOKIE[$name]; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            // Unslashed but not sanitised, and both halves of that matter. This
+            // value is a signature over its own contents, so a sanitiser would
+            // break the very thing it exists to carry — but WordPress slashes
+            // $_COOKIE on every request, and the point here is to replay what
+            // the browser actually sent, byte for byte.
+            $pairs[] = $name . '=' . wp_unslash($_COOKIE[$name]); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         }
 
         return implode('; ', $pairs);
@@ -803,7 +806,7 @@ final class ConnectionTest
                     /* translators: 1: HTTP status code, 2: the message returned by the server. */
                     __('%1$d — %2$s', 'amphibee-mcp-connector'),
                     $status,
-                    $description
+                    $description,
                 );
             }
         }
@@ -815,7 +818,7 @@ final class ConnectionTest
         return sprintf(
             /* translators: %d: HTTP status code. */
             __('%d, with nothing usable in the body.', 'amphibee-mcp-connector'),
-            $status
+            $status,
         );
     }
 }

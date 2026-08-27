@@ -210,7 +210,7 @@ final class Diagnostics
                 : sprintf(
                     /* translators: %s: the Settings → Permalinks screen URL. */
                     __('Disabled. The REST API still answers through its ?rest_route= form, which no client will guess, and the discovery documents would advertise URLs that 404. Set any structure but "Plain" under %s.', 'amphibee-mcp-connector'),
-                    admin_url('options-permalink.php')
+                    admin_url('options-permalink.php'),
                 ),
         ];
     }
@@ -258,7 +258,7 @@ final class Diagnostics
                 'detail' => sprintf(
                     /* translators: %s: capability name. */
                     __('No role on this site grants %s, so nobody can approve a client or reach the endpoint. Either the capability is misspelt, or it is granted per-user by a plugin this check cannot see.', 'amphibee-mcp-connector'),
-                    $capability
+                    $capability,
                 ),
             ];
         }
@@ -272,13 +272,13 @@ final class Diagnostics
                     /* translators: 1: capability name, 2: comma-separated role names. */
                     __('You hold %1$s. Granted by: %2$s.', 'amphibee-mcp-connector'),
                     $capability,
-                    implode(', ', $granted)
+                    implode(', ', $granted),
                 )
                 : sprintf(
                     /* translators: 1: capability name, 2: comma-separated role names. */
                     __('You do not hold %1$s, so you can configure the connector but not authorise a client against your own account. Granted by: %2$s.', 'amphibee-mcp-connector'),
                     $capability,
-                    implode(', ', $granted)
+                    implode(', ', $granted),
                 ),
         ];
     }
@@ -324,7 +324,7 @@ final class Diagnostics
                 'detail' => sprintf(
                     /* translators: %s: the discovery document URL. */
                     __('Could not reach %s from the site itself. That may only mean the server has no route back to its own hostname; open the URL in a browser to settle it. A client will need it to answer with JSON.', 'amphibee-mcp-connector'),
-                    $url
+                    $url,
                 ),
             ];
         }
@@ -337,7 +337,7 @@ final class Diagnostics
                 /* translators: 1: HTTP status code, 2: the discovery document URL. */
                 __('%1$d from %2$s, where a client expects JSON. The web server is almost certainly blocking /.well-known/: the near-universal rule against hidden files catches it too, and refuses the request before PHP is reached — which is why nothing appears in any WordPress log. On Apache, look for a RedirectMatch or a Files rule on names beginning with a dot.', 'amphibee-mcp-connector'),
                 $status,
-                $url
+                $url,
             ),
             'fix' => [
                 'title' => __('In the nginx site configuration', 'amphibee-mcp-connector'),
@@ -402,9 +402,9 @@ final class Diagnostics
                         '%d ability registered in this request.',
                         '%d abilities registered in this request.',
                         $registered,
-                        'amphibee-mcp-connector'
+                        'amphibee-mcp-connector',
                     ),
-                    $registered
+                    $registered,
                 )
                 : sprintf(
                     /* translators: %d: number of enabled ability groups. */
@@ -412,9 +412,9 @@ final class Diagnostics
                         '%d ability group enabled. Abilities register on demand, so the live count comes from the endpoint rather than from this screen.',
                         '%d ability groups enabled. Abilities register on demand, so the live count comes from the endpoint rather than from this screen.',
                         count($settings->enabledGroups),
-                        'amphibee-mcp-connector'
+                        'amphibee-mcp-connector',
                     ),
-                    count($settings->enabledGroups)
+                    count($settings->enabledGroups),
                 ),
         ];
     }

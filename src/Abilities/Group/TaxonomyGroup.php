@@ -11,8 +11,6 @@ use Pollora\McpConnector\Abilities\Annotations;
 use Pollora\McpConnector\Abilities\Input;
 use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Support\Failure;
-use WP_Error;
-use WP_Term;
 
 defined('ABSPATH') || exit;
 
@@ -56,7 +54,7 @@ final class TaxonomyGroup implements AbilityGroup
     {
         return __(
             'List taxonomies, read their terms, and create or delete terms.',
-            'amphibee-mcp-connector'
+            'amphibee-mcp-connector',
         );
     }
 
@@ -99,7 +97,7 @@ final class TaxonomyGroup implements AbilityGroup
                         'hierarchical' => $taxonomy->hierarchical,
                         'post_types' => array_values($taxonomy->object_type),
                     ],
-                    array_values(get_taxonomies($args, 'objects'))
+                    array_values(get_taxonomies($args, 'objects')),
                 );
 
                 return ['taxonomies' => $taxonomies];
@@ -127,13 +125,13 @@ final class TaxonomyGroup implements AbilityGroup
                 'hide_empty' => Schema::boolean('Skip terms that are not assigned to any post.', false),
                 'number' => Schema::integer('How many terms to return, at most 200.', 50, 1, 200),
             ]),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $taxonomy = $input->string('taxonomy', 'category');
 
                 if (! taxonomy_exists($taxonomy)) {
                     return Failure::invalid(sprintf(
                         'Unknown taxonomy "%s". Call get-taxonomies to see what this site registers.',
-                        $taxonomy
+                        $taxonomy,
                     ));
                 }
 
@@ -156,7 +154,7 @@ final class TaxonomyGroup implements AbilityGroup
                 return [
                     'taxonomy' => $taxonomy,
                     'terms' => array_map(
-                        static fn (WP_Term $term): array => [
+                        static fn (\WP_Term $term): array => [
                             'id' => $term->term_id,
                             'name' => $term->name,
                             'slug' => $term->slug,
@@ -164,7 +162,7 @@ final class TaxonomyGroup implements AbilityGroup
                             'parent' => $term->parent,
                             'count' => $term->count,
                         ],
-                        array_values($terms)
+                        array_values($terms),
                     ),
                 ];
             },
@@ -192,13 +190,13 @@ final class TaxonomyGroup implements AbilityGroup
                 'description' => Schema::string('Term description.'),
                 'parent' => Schema::integer('Parent term ID, for hierarchical taxonomies.', minimum: 0),
             ], ['name']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $taxonomy = $input->string('taxonomy', 'category');
 
                 if (! taxonomy_exists($taxonomy)) {
                     return Failure::invalid(sprintf(
                         'Unknown taxonomy "%s". Call get-taxonomies to see what this site registers.',
-                        $taxonomy
+                        $taxonomy,
                     ));
                 }
 
@@ -224,7 +222,7 @@ final class TaxonomyGroup implements AbilityGroup
 
                 $term = get_term((int) $created['term_id'], $taxonomy);
 
-                return $term instanceof WP_Term
+                return $term instanceof \WP_Term
                     ? [
                         'id' => $term->term_id,
                         'name' => $term->name,
@@ -259,11 +257,11 @@ final class TaxonomyGroup implements AbilityGroup
                 'id' => Schema::integer('ID of the term to delete.', minimum: 1),
                 'taxonomy' => Schema::string('Taxonomy the term belongs to.', 'category'),
             ], ['id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $termId = $input->id('id');
                 $taxonomy = $input->string('taxonomy', 'category');
 
-                if (! get_term($termId, $taxonomy) instanceof WP_Term) {
+                if (! get_term($termId, $taxonomy) instanceof \WP_Term) {
                     return Failure::notFound('term', $termId);
                 }
 

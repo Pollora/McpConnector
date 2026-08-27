@@ -68,13 +68,18 @@ final class AuthorizationController
      */
     public function handle(): HttpResponse
     {
-        $isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+        $isPost = strtoupper(sanitize_text_field(wp_unslash((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')))) === 'POST';
 
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- The
-        // GET branch only reads parameters to render a form; the POST branch
-        // verifies the nonce below, before anything is issued.
+        // phpcs:disable WordPress.Security.NonceVerification -- The GET branch
+        // only reads parameters to render a form; the POST branch verifies the
+        // nonce below, before anything is issued. Neither sniff can see that
+        // far. The raw array goes straight to readParams(), which reads only a
+        // fixed list of names, unslashes and trims each one, and hands them on
+        // to the checks above: the client must be registered, the redirect URI
+        // must match exactly, and the response type and PKCE method must be the
+        // supported ones.
         $source = $isPost ? $_POST : $_GET;
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        // phpcs:enable WordPress.Security.NonceVerification
 
         $params = $this->readParams($source);
 
@@ -84,7 +89,7 @@ final class AuthorizationController
         if (! $client instanceof Client) {
             return $this->screen->failure(
                 __('Unknown application', 'amphibee-mcp-connector'),
-                __('The application that sent you here is not registered on this site. Nothing has been granted.', 'amphibee-mcp-connector')
+                __('The application that sent you here is not registered on this site. Nothing has been granted.', 'amphibee-mcp-connector'),
             );
         }
 
@@ -94,7 +99,7 @@ final class AuthorizationController
         if (! $client->allowsRedirectUri($params['redirect_uri'])) {
             return $this->screen->failure(
                 __('Invalid redirect address', 'amphibee-mcp-connector'),
-                __('The address the application asked to be returned to is not one it registered. Nothing has been granted.', 'amphibee-mcp-connector')
+                __('The address the application asked to be returned to is not one it registered. Nothing has been granted.', 'amphibee-mcp-connector'),
             );
         }
 
@@ -109,7 +114,7 @@ final class AuthorizationController
             return $this->deny(
                 $params,
                 'invalid_request',
-                'A PKCE code_challenge with code_challenge_method=S256 is required.'
+                'A PKCE code_challenge with code_challenge_method=S256 is required.',
             );
         }
 
@@ -117,7 +122,7 @@ final class AuthorizationController
             // Back here afterwards, with every parameter intact — `scope` holds
             // a space, so it has to be encoded on the way through as well.
             return HttpResponse::redirect(
-                wp_login_url(self::withQuery(Endpoints::authorize(), $params))
+                wp_login_url(self::withQuery(Endpoints::authorize(), $params)),
             );
         }
 
@@ -125,7 +130,7 @@ final class AuthorizationController
             return $this->deny(
                 $params,
                 'access_denied',
-                'The signed-in user does not have permission to connect applications to this site.'
+                'The signed-in user does not have permission to connect applications to this site.',
             );
         }
 
@@ -144,7 +149,7 @@ final class AuthorizationController
             return $this->screen->failure(
                 __('Expired request', 'amphibee-mcp-connector'),
                 __('This authorisation request has expired or was not started here. Return to the application and try connecting again.', 'amphibee-mcp-connector'),
-                403
+                403,
             );
         }
 
@@ -223,7 +228,7 @@ final class AuthorizationController
     {
         return self::withQuery($params['redirect_uri'], array_filter(
             $arguments,
-            static fn (string $value): bool => $value !== ''
+            static fn (string $value): bool => $value !== '',
         ));
     }
 

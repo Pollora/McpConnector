@@ -83,7 +83,7 @@ final class Wizard
     {
         return add_query_arg(
             ['page' => self::MENU_SLUG, 'step' => $step],
-            admin_url('options-general.php')
+            admin_url('options-general.php'),
         );
     }
 
@@ -131,7 +131,7 @@ final class Wizard
     {
         // Selects which step to draw and changes nothing; the value is reduced
         // to [a-z0-9_-] and then has to match a known step.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitize_key() on the next line.
         $raw = isset($_GET['step']) ? wp_unslash($_GET['step']) : '';
         $requested = is_string($raw) ? sanitize_key($raw) : '';
 
@@ -168,12 +168,12 @@ final class Wizard
             // A hardcoded SVG literal: no input reaches it, and escaping it
             // would print the markup instead of drawing it.
             SettingsPage::mark(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            esc_html__('MCP Connector', 'amphibee-mcp-connector')
+            esc_html__('MCP Connector', 'amphibee-mcp-connector'),
         );
 
         printf(
             '<ol class="mcpc-setup__rail" aria-label="%s">',
-            esc_attr__('Setup steps', 'amphibee-mcp-connector')
+            esc_attr__('Setup steps', 'amphibee-mcp-connector'),
         );
 
         foreach (self::STEPS as $index => $step) {
@@ -197,14 +197,14 @@ final class Wizard
                 esc_attr($class),
                 esc_url(self::url($step)),
                 $step === $current ? ' aria-current="step"' : '',
-                esc_html($labels[$step])
+                esc_html($labels[$step]),
             );
         }
 
         printf(
             '</ol><a class="mcpc-setup__exit" href="%s">%s</a></div></header>',
             esc_url(SettingsPage::url('dashboard')),
-            esc_html__('Leave the assistant', 'amphibee-mcp-connector')
+            esc_html__('Leave the assistant', 'amphibee-mcp-connector'),
         );
     }
 
@@ -227,10 +227,10 @@ final class Wizard
                 /* translators: 1: current step number, 2: total number of steps. */
                 __('Step %1$d of %2$d', 'amphibee-mcp-connector'),
                 $position,
-                count(self::STEPS)
+                count(self::STEPS),
             )),
             esc_html($title),
-            esc_html($lede)
+            esc_html($lede),
         );
     }
 
@@ -247,7 +247,7 @@ final class Wizard
             // Both are literals built by the calling method from translated
             // strings and escaped URLs; escaping again would print the markup.
             $primary, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            $secondary // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            $secondary, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         );
     }
 
@@ -286,7 +286,7 @@ final class Wizard
                 : __('The site is ready', 'amphibee-mcp-connector'),
             $blocked
                 ? __('Not one client will connect until this is fixed, whatever it is and however it is configured. Each failure below states the change that fixes it.', 'amphibee-mcp-connector')
-                : __('Nothing here would stop a client from connecting. Anything marked as needing attention is worth a look, but the chain holds.', 'amphibee-mcp-connector')
+                : __('Nothing here would stop a client from connecting. Anything marked as needing attention is worth a look, but the chain holds.', 'amphibee-mcp-connector'),
         );
 
         echo '<div class="mcpc-setup__content">';
@@ -294,7 +294,7 @@ final class Wizard
 
         printf(
             '<p class="mcpc-note">%s</p>',
-            esc_html__('The discovery documents are the link that fails most often, and the only one that leaves no trace: a web server blocking /.well-known/ refuses the request before PHP is reached. The answer is cached for five minutes, so change the server, then ask again.', 'amphibee-mcp-connector')
+            esc_html__('The discovery documents are the link that fails most often, and the only one that leaves no trace: a web server blocking /.well-known/ refuses the request before PHP is reached. The answer is cached for five minutes, so change the server, then ask again.', 'amphibee-mcp-connector'),
         );
         echo '</div>';
 
@@ -302,13 +302,13 @@ final class Wizard
             '<a class="mcpc-button mcpc-button--%s" href="%s">%s</a>',
             $blocked ? 'primary' : 'quiet',
             esc_url(add_query_arg('probe', '1', self::url('check'))),
-            esc_html__('Ask the server again', 'amphibee-mcp-connector')
+            esc_html__('Ask the server again', 'amphibee-mcp-connector'),
         );
 
         $next = sprintf(
             '<a class="mcpc-button mcpc-button--primary" href="%s">%s</a>',
             esc_url(self::url('expose')),
-            esc_html__('Continue', 'amphibee-mcp-connector')
+            esc_html__('Continue', 'amphibee-mcp-connector'),
         );
 
         // A failing check can be wrong — a container with no route back to its
@@ -318,7 +318,7 @@ final class Wizard
         $anyway = sprintf(
             '<a class="mcpc-link" href="%s">%s</a>',
             esc_url(self::url('expose')),
-            esc_html__('Continue anyway', 'amphibee-mcp-connector')
+            esc_html__('Continue anyway', 'amphibee-mcp-connector'),
         );
 
         $this->foot($blocked ? $again : $next, $blocked ? $anyway : '');
@@ -332,7 +332,7 @@ final class Wizard
         $this->head(
             'expose',
             __('How far it may reach', 'amphibee-mcp-connector'),
-            __('Two decisions worth making before anything connects. Everything else — which ability groups, which post types, which third-party abilities — has a working default and can wait.', 'amphibee-mcp-connector')
+            __('Two decisions worth making before anything connects. Everything else — which ability groups, which post types, which third-party abilities — has a working default and can wait.', 'amphibee-mcp-connector'),
         );
 
         echo '<div class="mcpc-setup__content">';
@@ -346,14 +346,14 @@ final class Wizard
             'read_only_mode',
             __('Start read-only', 'amphibee-mcp-connector'),
             __('Abilities that would change the site are not registered at all, so they are absent from the tool list rather than refused when called. The safe way to bring a connector up on a live site: prove the transport and the authentication first, then come back and turn it off.', 'amphibee-mcp-connector'),
-            $this->settings->readOnlyMode
+            $this->settings->readOnlyMode,
         );
 
         Field::toggle(
             'dynamic_registration_open',
             __('Let clients register themselves', 'amphibee-mcp-connector'),
             __('What makes a one-click connection possible: the client introduces itself and gets an identifier. It grants nothing on its own — a user still has to approve the request, holding the capability below. Turned off, every application has to be created by hand first.', 'amphibee-mcp-connector'),
-            $this->settings->dynamicRegistrationOpen
+            $this->settings->dynamicRegistrationOpen,
         );
 
         echo '</div></form>';
@@ -364,8 +364,8 @@ final class Wizard
                 /* translators: 1: capability name, 2: number of addressable post types. */
                 __('A user needs the %1$s capability to approve a client and to reach the endpoint, and %2$d post types are currently addressable. Both are adjustable afterwards, under Security and Tools.', 'amphibee-mcp-connector'),
                 $this->settings->requiredCapability,
-                count(PostTypes::addressable())
-            ))
+                count(PostTypes::addressable()),
+            )),
         );
 
         echo '</div>';
@@ -373,7 +373,7 @@ final class Wizard
         $this->foot(sprintf(
             '<button type="submit" name="mcp_connector_wizard_save" value="1" form="mcpc-wizard-form" '
             . 'class="mcpc-button mcpc-button--primary">%s</button>',
-            esc_html__('Save and continue', 'amphibee-mcp-connector')
+            esc_html__('Save and continue', 'amphibee-mcp-connector'),
         ));
     }
 
@@ -387,7 +387,7 @@ final class Wizard
         $this->head(
             'connect',
             __('Hand over the URL', 'amphibee-mcp-connector'),
-            __('This is the only thing the client needs. It reads the authorization server, the token endpoint and the tool list from it.', 'amphibee-mcp-connector')
+            __('This is the only thing the client needs. It reads the authorization server, the token endpoint and the tool list from it.', 'amphibee-mcp-connector'),
         );
 
         echo '<div class="mcpc-setup__content">';
@@ -396,7 +396,7 @@ final class Wizard
             'mcpc-wizard-url',
             __('MCP server URL', 'amphibee-mcp-connector'),
             $url,
-            __('Paste this into the client. Nothing else has to be copied across, unless the client cannot register itself.', 'amphibee-mcp-connector')
+            __('Paste this into the client. Nothing else has to be copied across, unless the client cannot register itself.', 'amphibee-mcp-connector'),
         );
 
         printf('<h2 class="mcpc-subhead">%s</h2>', esc_html__('Then, in the client', 'amphibee-mcp-connector'));
@@ -411,10 +411,10 @@ final class Wizard
                         '%d application has already registered against this site but holds no live token, which means it introduced itself and the approval never completed.',
                         '%d applications have already registered against this site but hold no live token, which means they introduced themselves and the approval never completed.',
                         count($this->clients),
-                        'amphibee-mcp-connector'
+                        'amphibee-mcp-connector',
                     ),
-                    count($this->clients)
-                ))
+                    count($this->clients),
+                )),
             );
         }
 
@@ -423,7 +423,7 @@ final class Wizard
         $this->foot(sprintf(
             '<a class="mcpc-button mcpc-button--primary" href="%s">%s</a>',
             esc_url(self::url('verify')),
-            esc_html__('Continue', 'amphibee-mcp-connector')
+            esc_html__('Continue', 'amphibee-mcp-connector'),
         ));
     }
 
@@ -439,7 +439,7 @@ final class Wizard
             $connected ? __('Something is connected', 'amphibee-mcp-connector') : __('See it work', 'amphibee-mcp-connector'),
             $connected
                 ? __('An application holds a live token, which means the whole chain completed at least once. The test below re-walks it under its own throwaway credentials, which is the way to find out whether it still works.', 'amphibee-mcp-connector')
-                : __('Nothing holds a live token yet. Either the approval has not been made in the client, or something in the chain refuses it — the test below walks the same path a client does and reports where it stops.', 'amphibee-mcp-connector')
+                : __('Nothing holds a live token yet. Either the approval has not been made in the client, or something in the chain refuses it — the test below walks the same path a client does and reports where it stops.', 'amphibee-mcp-connector'),
         );
 
         echo '<div class="mcpc-setup__content">';
@@ -450,7 +450,7 @@ final class Wizard
             '<a class="mcpc-button mcpc-button--%s" href="%s">%s</a>',
             $connected ? 'primary' : 'quiet',
             esc_url(SettingsPage::url('dashboard')),
-            esc_html__('Finish', 'amphibee-mcp-connector')
+            esc_html__('Finish', 'amphibee-mcp-connector'),
         ));
     }
 }

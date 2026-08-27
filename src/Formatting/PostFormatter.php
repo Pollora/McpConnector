@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Formatting;
 
-use WP_Post;
-
 defined('ABSPATH') || exit;
 
 /**
@@ -28,11 +26,11 @@ final class PostFormatter
     /**
      * Summarise a post, without its body.
      *
-     * @param WP_Post $post The post to render.
+     * @param \WP_Post $post The post to render.
      *
      * @return array<string, mixed> The summary record.
      */
-    public static function summary(WP_Post $post): array
+    public static function summary(\WP_Post $post): array
     {
         return [
             'id' => $post->ID,
@@ -54,11 +52,11 @@ final class PostFormatter
     /**
      * Render a post in full, body and taxonomy terms included.
      *
-     * @param WP_Post $post The post to render.
+     * @param \WP_Post $post The post to render.
      *
      * @return array<string, mixed> The complete record.
      */
-    public static function full(WP_Post $post): array
+    public static function full(\WP_Post $post): array
     {
         return self::summary($post) + [
             'content' => $post->post_content,
@@ -75,11 +73,11 @@ final class PostFormatter
     /**
      * Summarise an attachment.
      *
-     * @param WP_Post $attachment The attachment to render.
+     * @param \WP_Post $attachment The attachment to render.
      *
      * @return array<string, mixed> The attachment record.
      */
-    public static function attachment(WP_Post $attachment): array
+    public static function attachment(\WP_Post $attachment): array
     {
         $metadata = wp_get_attachment_metadata($attachment->ID);
 
@@ -104,11 +102,11 @@ final class PostFormatter
      * accept: a model can read a post, copy its terms onto another, and never
      * need a lookup in between.
      *
-     * @param WP_Post $post The post whose terms to collect.
+     * @param \WP_Post $post The post whose terms to collect.
      *
      * @return array<string, list<string>> Taxonomy name to list of term slugs.
      */
-    private static function terms(WP_Post $post): array
+    private static function terms(\WP_Post $post): array
     {
         $grouped = [];
 
@@ -121,7 +119,7 @@ final class PostFormatter
 
             $grouped[$taxonomy] = array_values(array_map(
                 static fn (\WP_Term $term): string => $term->slug,
-                $terms
+                $terms,
             ));
         }
 

@@ -1,0 +1,44 @@
+version: 2
+
+updates:
+  # Development dependencies only — the plugin has no runtime dependencies, so
+  # every bump here affects CI and never a user's site.
+  - package-ecosystem: composer
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:20'
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    groups:
+      quality-tools:
+        patterns:
+          - 'phpstan/*'
+          - 'szepeviktor/phpstan-wordpress'
+          - 'squizlabs/php_codesniffer'
+          - 'wp-coding-standards/*'
+          - 'phpcompatibility/*'
+          - 'phpcsstandards/*'
+          - 'laravel/pint'
+          - 'php-parallel-lint/*'
+      test-tools:
+        patterns:
+          - 'pestphp/*'
+          - 'brain/monkey'
+          - 'mockery/*'
+
+  # Third-party actions run with access to the repository; a stale one is a
+  # supply-chain risk, not just an out-of-date pin.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:20'
+    commit-message:
+      prefix: 'chore(ci)'
+    groups:
+      actions:
+        patterns: ['*']

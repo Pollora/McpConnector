@@ -10,8 +10,6 @@ use Pollora\McpConnector\Abilities\AbilityGroup;
 use Pollora\McpConnector\Abilities\Input;
 use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Support\Failure;
-use WP_Error;
-use WP_User;
 
 defined('ABSPATH') || exit;
 
@@ -57,7 +55,7 @@ final class UserGroup implements AbilityGroup
     {
         return __(
             'Read the user list and individual profiles. Never writes: no account creation, role change or password reset.',
-            'amphibee-mcp-connector'
+            'amphibee-mcp-connector',
         );
     }
 
@@ -124,10 +122,10 @@ final class UserGroup implements AbilityGroup
             inputSchema: Schema::object([
                 'id' => Schema::integer('ID of the user to read.', minimum: 1),
             ], ['id']),
-            execute: static function (Input $input): array|WP_Error {
+            execute: static function (Input $input): array|\WP_Error {
                 $user = get_userdata($input->id('id'));
 
-                return $user instanceof WP_User
+                return $user instanceof \WP_User
                     ? self::format($user)
                     : Failure::notFound('user', $input->id('id'));
             },
@@ -138,11 +136,11 @@ final class UserGroup implements AbilityGroup
     /**
      * Render a user, withholding the email address from callers who may not see it.
      *
-     * @param WP_User $user The user to render.
+     * @param \WP_User $user The user to render.
      *
      * @return array<string, mixed> The user record.
      */
-    private static function format(WP_User $user): array
+    private static function format(\WP_User $user): array
     {
         $record = [
             'id' => $user->ID,

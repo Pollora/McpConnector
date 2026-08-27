@@ -1,0 +1,194 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so a newly published advisory against a dependency surfaces even
+    # when nobody has pushed. Monday 06:23 UTC — off the hour to avoid the
+    # scheduling stampede GitHub warns about, and off the sibling plugin's slot.
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Known vulnerabilities in the dependency tree. roave/security-advisories
+  # blocks a vulnerable package at install time; this catches advisories
+  # published after the lock file was written.
+  # ---------------------------------------------------------------------------
+  dependencies:
+    name: Dependency advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Audit the lock file
+        run: composer audit --locked --abandoned=report
+
+  # ---------------------------------------------------------------------------
+  # The WordPress security sniffs: unescaped output, unsanitised input, missing
+  # nonce checks, unprepared SQL. Split out from CI so a security regression is
+  # legible in the checks list rather than buried in a generic "analyse" job.
+  #
+  # This plugin is an authorisation server, so the sniffs are run again here
+  # rather than being taken as covered by the CI run of the same ruleset: a job
+  # named "security" that goes red is the signal that gets read.
+  # ---------------------------------------------------------------------------
+  wordpress-sniffs:
+    name: WordPress security sniffs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Run the security ruleset
+        run: >
+          vendor/bin/phpcs
+          --standard=phpcs.xml.dist
+          --sniffs=WordPress.Security.EscapeOutput,WordPress.Security.NonceVerification,WordPress.Security.ValidatedSanitizedInput,WordPress.Security.SafeRedirect,WordPress.Security.PluginMenuSlug,WordPress.DB.PreparedSQL,WordPress.DB.PreparedSQLPlaceholders,Squiz.PHP.Eval
+          --report=full
+
+  # ---------------------------------------------------------------------------
+  # Invariants specific to being an OAuth provider. A linter models none of
+  # these, and each one is a way the plugin would stop being trustworthy without
+  # anything looking broken.
+  # ---------------------------------------------------------------------------
+  oauth-invariants:
+    name: OAuth invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PKCE must stay mandatory and S256-only
+        run: |
+          # `plain` is neither advertised in the server metadata nor accepted at
+          # the token endpoint. A future refactor that reintroduces it would be
+          # spec-compliant and a downgrade.
+          #
+          # Scoped to src/OAuth/ on purpose: the word appears elsewhere as a
+          # rendering hint for the diagnostics fix blocks, where it means a line
+          # of plain text and has nothing to do with PKCE.
+          if grep -rn "'plain'" src/OAuth/; then
+            echo '::error::a plain PKCE method appears in src/OAuth/'
+            exit 1
+          fi
+
+          grep -q "'S256'" src/OAuth/Pkce.php || {
+            echo '::error::src/OAuth/Pkce.php no longer names S256'
+            exit 1
+          }
+
+          echo 'PKCE is S256-only.'
+
+      - name: Nothing sensitive may be stored in the clear
+        run: |
+          # Client secrets are password hashes; tokens and authorization codes
+          # are SHA-256 digests. A repository that stopped hashing would still
+          # work perfectly, and a database dump would then confer the ability to
+          # act as any connected client.
+          failed=0
+
+          for pair in \
+            'src/OAuth/TokenRepository.php:hash(' \
+            'src/OAuth/AuthorizationCodeRepository.php:hash(' \
+            'src/OAuth/ClientRepository.php:wp_hash_password'
+          do
+            file="${pair%%:*}"
+            needle="${pair#*:}"
+
+            if ! grep -qF "$needle" "$file"; then
+              echo "::error file=${file}::no longer calls ${needle} — is something being stored in the clear?"
+              failed=1
+            fi
+          done
+
+          exit $failed
+
+      - name: The never-publish list must still be a constant
+        run: |
+          # ExternalAbilities::NEVER_PUBLISH keeps mcp-adapter's own abilities
+          # off the server. execute-ability invokes any registered ability by
+          # name, so a filterable list would make every curation decision
+          # decorative.
+          if ! grep -q 'private const NEVER_PUBLISH' src/Server/ExternalAbilities.php; then
+            echo '::error::NEVER_PUBLISH is no longer a private constant'
+            exit 1
+          fi
+
+          echo 'The never-publish list is not configurable.'
+
+  # ---------------------------------------------------------------------------
+  # Pattern-based scanning for the things a linter does not model: injection
+  # sinks, dangerous deserialisation, hard-coded secrets.
+  # ---------------------------------------------------------------------------
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan
+        run: >
+          semgrep scan
+          --config=p/php
+          --config=p/security-audit
+          --config=p/secrets
+          --error
+          --skip-unknown-extensions
+          --exclude=vendor
+          --exclude=tests
+
+  # ---------------------------------------------------------------------------
+  # Third-party actions are code running with access to the repository. Pinning
+  # is checked so a compromised tag cannot silently change what CI executes.
+  # ---------------------------------------------------------------------------
+  workflow-hygiene:
+    name: Workflow hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every workflow must declare a permissions block
+        run: |
+          missing=0
+          for file in .github/workflows/*.yml; do
+            if ! grep -q '^permissions:' "$file"; then
+              echo "::error file=$file::no top-level permissions block; defaults to write access"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: No action may be used without a version
+        run: |
+          if grep -rnE 'uses: +[^ ]+@(main|master) *$' .github/workflows/; then
+            echo '::error::an action is pinned to a moving branch'
+            exit 1
+          fi
+          echo 'All actions are pinned to a tag.'

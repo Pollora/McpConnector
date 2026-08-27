@@ -57,7 +57,7 @@ final class ConsentScreen
             $hidden .= sprintf(
                 '<input type="hidden" name="%s" value="%s">',
                 esc_attr($name),
-                esc_attr($value)
+                esc_attr($value),
             );
         }
 
@@ -82,14 +82,14 @@ final class ConsentScreen
                 /* translators: 1: client application name, 2: site name. */
                 esc_html__('%1$s is asking to connect to %2$s on your behalf. It will be able to:', 'amphibee-mcp-connector'),
                 '<strong>' . esc_html($client->name) . '</strong>',
-                '<strong>' . esc_html(get_bloginfo('name')) . '</strong>'
+                '<strong>' . esc_html(get_bloginfo('name')) . '</strong>',
             ),
             $permissions,
             sprintf(
                 /* translators: 1: user display name, 2: user login. */
                 esc_html__('Acting as %1$s (%2$s). Everything it does will be recorded as done by you.', 'amphibee-mcp-connector'),
                 '<strong>' . esc_html($user->display_name) . '</strong>',
-                esc_html($user->user_login)
+                esc_html($user->user_login),
             ),
             esc_url(Endpoints::authorize()),
             $hidden,
@@ -99,8 +99,8 @@ final class ConsentScreen
             sprintf(
                 /* translators: %s: the redirect URI the authorization code will be sent to. */
                 esc_html__('You will be returned to %s.', 'amphibee-mcp-connector'),
-                '<code>' . esc_html($params['redirect_uri'] ?? '') . '</code>'
-            )
+                '<code>' . esc_html($params['redirect_uri'] ?? '') . '</code>',
+            ),
         );
 
         return HttpResponse::html($this->document(__('Authorise access', 'amphibee-mcp-connector'), $body));
@@ -136,9 +136,9 @@ final class ConsentScreen
                 sprintf(
                     /* translators: %s: site name. */
                     __('Back to %s', 'amphibee-mcp-connector'),
-                    get_bloginfo('name')
-                )
-            )
+                    get_bloginfo('name'),
+                ),
+            ),
         );
 
         return HttpResponse::html($this->document($title, $body), $status);
@@ -170,7 +170,7 @@ final class ConsentScreen
             esc_attr(get_bloginfo('charset')),
             esc_html($title . ' — ' . get_bloginfo('name')),
             $this->styles(),
-            $body
+            $body,
         );
     }
 

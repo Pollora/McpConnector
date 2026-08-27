@@ -9,7 +9,6 @@ use Pollora\McpConnector\OAuth\Pkce;
 use Pollora\McpConnector\OAuth\Scope;
 use Pollora\McpConnector\Server\ServerRegistry;
 use Pollora\McpConnector\Settings;
-use WP_REST_Response;
 
 defined('ABSPATH') || exit;
 
@@ -38,9 +37,9 @@ final class DiscoveryController
      * Names the MCP endpoint being protected and points at the authorization
      * server that guards it.
      *
-     * @return WP_REST_Response The metadata document.
+     * @return \WP_REST_Response The metadata document.
      */
-    public function protectedResource(): WP_REST_Response
+    public function protectedResource(): \WP_REST_Response
     {
         return self::respond([
             'resource' => ServerRegistry::endpointUrl(),
@@ -54,9 +53,9 @@ final class DiscoveryController
     /**
      * The authorization server metadata document, per RFC 8414.
      *
-     * @return WP_REST_Response The metadata document.
+     * @return \WP_REST_Response The metadata document.
      */
-    public function authorizationServer(): WP_REST_Response
+    public function authorizationServer(): \WP_REST_Response
     {
         $metadata = [
             'issuer' => Endpoints::issuer(),
@@ -96,11 +95,11 @@ final class DiscoveryController
      *
      * @param array<string, mixed> $metadata The document.
      *
-     * @return WP_REST_Response The response.
+     * @return \WP_REST_Response The response.
      */
-    private static function respond(array $metadata): WP_REST_Response
+    private static function respond(array $metadata): \WP_REST_Response
     {
-        $response = new WP_REST_Response($metadata, 200);
+        $response = new \WP_REST_Response($metadata, 200);
 
         $response->header('Cache-Control', 'no-store');
         // These are read cross-origin by browser-based clients.

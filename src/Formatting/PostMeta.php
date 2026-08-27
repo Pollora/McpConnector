@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Pollora\McpConnector\Formatting;
 
 use Pollora\McpConnector\Support\Failure;
-use WP_Error;
-use WP_Post;
 
 defined('ABSPATH') || exit;
 
@@ -63,11 +61,11 @@ final class PostMeta
     /**
      * Read a post's declared meta.
      *
-     * @param WP_Post $post The post.
+     * @param \WP_Post $post The post.
      *
      * @return array<string, mixed> Meta key to value; empty when the type declares nothing.
      */
-    public static function read(WP_Post $post): array
+    public static function read(\WP_Post $post): array
     {
         $values = [];
 
@@ -119,9 +117,9 @@ final class PostMeta
      * @param int                  $postId Post to write to.
      * @param array<string, mixed> $values Meta key to value.
      *
-     * @return true|WP_Error True on success, or an error naming the keys that were refused.
+     * @return true|\WP_Error True on success, or an error naming the keys that were refused.
      */
-    public static function write(int $postId, array $values): true|WP_Error
+    public static function write(int $postId, array $values): true|\WP_Error
     {
         if ($values === []) {
             return true;
@@ -159,7 +157,7 @@ final class PostMeta
             return Failure::forbidden(sprintf(
                 'write the field(s) %s on post %d',
                 implode(', ', $refused),
-                $postId
+                $postId,
             ));
         }
 
@@ -172,7 +170,7 @@ final class PostMeta
                 implode(', ', $undeclared),
                 $available === []
                     ? 'It declares no custom fields at all; fields managed by a framework such as Meta Box are reachable through that plugin\'s own tools.'
-                    : 'Declared fields are: ' . implode(', ', $available) . '.'
+                    : 'Declared fields are: ' . implode(', ', $available) . '.',
             ));
         }
 

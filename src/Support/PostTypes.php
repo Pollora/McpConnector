@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pollora\McpConnector\Support;
 
 use Pollora\McpConnector\Settings;
-use WP_Post_Type;
 
 defined('ABSPATH') || exit;
 
@@ -80,7 +79,7 @@ final class PostTypes
 
         return array_values(array_filter(
             array_unique(array_map('strval', $types)),
-            static fn (string $type): bool => post_type_exists($type) && ! in_array($type, self::NEVER, true)
+            static fn (string $type): bool => post_type_exists($type) && ! in_array($type, self::NEVER, true),
         ));
     }
 
@@ -110,13 +109,13 @@ final class PostTypes
     /**
      * Every post type that could be offered on the settings screen.
      *
-     * @return list<WP_Post_Type> The post type objects, excluding the never-offered ones.
+     * @return list<\WP_Post_Type> The post type objects, excluding the never-offered ones.
      */
     public static function offerable(): array
     {
         return array_values(array_filter(
             get_post_types([], 'objects'),
-            static fn (WP_Post_Type $type): bool => ! in_array($type->name, self::NEVER, true)
+            static fn (\WP_Post_Type $type): bool => ! in_array($type->name, self::NEVER, true),
         ));
     }
 
@@ -144,7 +143,7 @@ final class PostTypes
         $object = get_post_type_object($type);
 
         return self::isAddressable($type)
-            && $object instanceof WP_Post_Type
+            && $object instanceof \WP_Post_Type
             && current_user_can($object->cap->edit_posts);
     }
 
@@ -160,7 +159,7 @@ final class PostTypes
         $object = get_post_type_object($type);
 
         return self::isAddressable($type)
-            && $object instanceof WP_Post_Type
+            && $object instanceof \WP_Post_Type
             && current_user_can($object->cap->create_posts);
     }
 
@@ -233,7 +232,7 @@ final class PostTypes
                 ? 'The post type "%1$s" is not exposed through this connector. Available types: %2$s.'
                 : 'There is no post type "%1$s" on this site. Available types: %2$s.',
             $type,
-            implode(', ', self::addressable())
+            implode(', ', self::addressable()),
         ));
     }
 }

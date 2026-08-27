@@ -90,7 +90,7 @@ add_action('init', static function (): void {
     load_plugin_textdomain(
         'amphibee-mcp-connector',
         false,
-        dirname(plugin_basename(__FILE__)) . '/languages'
+        dirname(plugin_basename(__FILE__)) . '/languages',
     );
 });
 
