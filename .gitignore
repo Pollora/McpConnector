@@ -1,0 +1,13 @@
+# Built by `composer install`, and rebuilt by the release workflow into the
+# distributed zip. Committing it would mean reviewing a vendor diff on every
+# dependency bump, for a tree that has no runtime dependencies at all.
+/vendor/
+
+/node_modules/
+/build/
+.DS_Store
+*.log
+
+# Generated from the .po files by `wp i18n make-php`. Regenerating them is a
+# build step, not a source change — the .po and .mo are what is committed.
+languages/*.l10n.php

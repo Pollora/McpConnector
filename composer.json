@@ -1,0 +1,51 @@
+{
+    "name": "pollora/mcp-connector",
+    "description": "Expose WordPress content management as MCP tools, with a built-in OAuth 2.1 provider so remote clients such as Claude can connect.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "keywords": [
+        "wordpress",
+        "wordpress-plugin",
+        "mcp",
+        "model-context-protocol",
+        "abilities-api",
+        "oauth2",
+        "ai"
+    ],
+    "homepage": "https://github.com/Pollora/McpConnector",
+    "support": {
+        "issues": "https://github.com/Pollora/McpConnector/issues",
+        "source": "https://github.com/Pollora/McpConnector"
+    },
+    "authors": [
+        {
+            "name": "AmphiBee",
+            "homepage": "https://amphibee.fr"
+        }
+    ],
+    "require": {
+        "php": ">=8.3"
+    },
+    "require-dev": {
+        "php-parallel-lint/php-parallel-lint": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pollora\\McpConnector\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3.0"
+        }
+    },
+    "scripts": {
+        "lint": "parallel-lint --colors --exclude vendor ."
+    },
+    "extra": {
+        "installer-name": "mcp-connector"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

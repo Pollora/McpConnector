@@ -1,0 +1,1463 @@
+# Copyright (C) 2026 AmphiBee
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: AmphiBee MCP Connector 1.2.0\n"
+"Report-Msgid-Bugs-To: https://amphibee.fr\n"
+"Last-Translator: AmphiBee\n"
+"Language-Team: AmphiBee\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-08-27T14:25:12+02:00\n"
+"PO-Revision-Date: 2026-08-27 12:00+0000\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: amphibee-mcp-connector\n"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Plugin Name of the plugin
+#: mcp-connector.php
+msgid "AmphiBee MCP Connector"
+msgstr "AmphiBee MCP Connector"
+
+#. Description of the plugin
+#: mcp-connector.php
+msgid "Exposes WordPress content management as Model Context Protocol tools, with a built-in OAuth 2.1 provider so remote clients such as Claude can connect to the site."
+msgstr "Stellt die WordPress-Inhaltsverwaltung als Model-Context-Protocol-Werkzeuge bereit, mit einem eingebauten OAuth-2.1-Provider, damit sich entfernte Clients wie Claude mit der Website verbinden können."
+
+#. Author of the plugin
+#: mcp-connector.php
+msgid "AmphiBee"
+msgstr "AmphiBee"
+
+#. Author URI of the plugin
+#: mcp-connector.php
+msgid "https://amphibee.fr"
+msgstr "https://amphibee.fr"
+
+#: src/Abilities/AbilityCategory.php:47
+msgid "Content"
+msgstr "Inhalte"
+
+#: src/Abilities/AbilityCategory.php:48
+msgid "Taxonomy"
+msgstr "Taxonomie"
+
+#: src/Abilities/AbilityCategory.php:49
+msgid "Media"
+msgstr "Medien"
+
+#: src/Abilities/AbilityCategory.php:50
+msgid "Navigation"
+msgstr "Navigation"
+
+#: src/Abilities/AbilityCategory.php:51
+#: src/Abilities/Group/UserGroup.php:50
+msgid "Users"
+msgstr "Benutzer"
+
+#: src/Abilities/AbilityCategory.php:52
+msgid "Site"
+msgstr "Website"
+
+#: src/Abilities/AbilityCategory.php:64
+msgid "Read and write posts, pages and other post types."
+msgstr "Beiträge, Seiten und andere Inhaltstypen lesen und schreiben."
+
+#: src/Abilities/AbilityCategory.php:65
+msgid "Read and write categories, tags and custom taxonomy terms."
+msgstr "Kategorien, Schlagwörter und Begriffe eigener Taxonomien lesen und schreiben."
+
+#: src/Abilities/AbilityCategory.php:66
+msgid "Read and write media library attachments."
+msgstr "Dateien der Mediathek lesen und schreiben."
+
+#: src/Abilities/AbilityCategory.php:67
+msgid "Read and write navigation menus and their items."
+msgstr "Navigationsmenüs und ihre Einträge lesen und schreiben."
+
+#: src/Abilities/AbilityCategory.php:68
+msgid "Read user accounts."
+msgstr "Benutzerkonten lesen."
+
+#: src/Abilities/AbilityCategory.php:69
+msgid "Read site information and update a restricted set of options."
+msgstr "Website-Informationen lesen und eine begrenzte Auswahl an Einstellungen ändern."
+
+#: src/Abilities/Group/ContentGroup.php:55
+msgid "Posts and pages"
+msgstr "Beiträge und Seiten"
+
+#: src/Abilities/Group/ContentGroup.php:63
+msgid "List, read, create, update and delete posts, pages and custom post types, and assign their terms."
+msgstr "Beiträge, Seiten und eigene Inhaltstypen auflisten, lesen, anlegen, ändern und löschen sowie ihre Begriffe zuweisen."
+
+#: src/Abilities/Group/ContentGroup.php:94
+msgid "List posts"
+msgstr "Beiträge auflisten"
+
+#: src/Abilities/Group/ContentGroup.php:177
+msgid "Read a post"
+msgstr "Einen Beitrag lesen"
+
+#: src/Abilities/Group/ContentGroup.php:205
+msgid "List pages"
+msgstr "Seiten auflisten"
+
+#: src/Abilities/Group/ContentGroup.php:250
+msgid "Create a post"
+msgstr "Einen Beitrag anlegen"
+
+#: src/Abilities/Group/ContentGroup.php:334
+msgid "Update a post"
+msgstr "Einen Beitrag ändern"
+
+#: src/Abilities/Group/ContentGroup.php:422
+msgid "Delete a post"
+msgstr "Einen Beitrag löschen"
+
+#: src/Abilities/Group/ContentGroup.php:464
+msgid "Set post terms"
+msgstr "Begriffe zuweisen"
+
+#: src/Abilities/Group/MediaGroup.php:55
+msgid "Media library"
+msgstr "Mediathek"
+
+#: src/Abilities/Group/MediaGroup.php:63
+msgid "List attachments, import files from a URL, edit attachment metadata, and delete attachments."
+msgstr "Dateien auflisten, von einer URL importieren, ihre Metadaten bearbeiten und sie löschen."
+
+#: src/Abilities/Group/MediaGroup.php:97
+msgid "Set a featured image"
+msgstr "Ein Beitragsbild festlegen"
+
+#: src/Abilities/Group/MediaGroup.php:157
+msgid "List media"
+msgstr "Dateien auflisten"
+
+#: src/Abilities/Group/MediaGroup.php:206
+msgid "Import media from a URL"
+msgstr "Eine Datei von einer URL importieren"
+
+#: src/Abilities/Group/MediaGroup.php:309
+msgid "Update media metadata"
+msgstr "Metadaten einer Datei ändern"
+
+#: src/Abilities/Group/MediaGroup.php:371
+msgid "Delete media"
+msgstr "Eine Datei löschen"
+
+#: src/Abilities/Group/NavigationGroup.php:51
+msgid "Navigation menus"
+msgstr "Navigationsmenüs"
+
+#: src/Abilities/Group/NavigationGroup.php:59
+msgid "Read and edit classic navigation menus, their items and their theme locations."
+msgstr "Klassische Navigationsmenüs, ihre Einträge und ihre Theme-Positionen lesen und bearbeiten."
+
+#: src/Abilities/Group/NavigationGroup.php:91
+msgid "List menus"
+msgstr "Menüs auflisten"
+
+#: src/Abilities/Group/NavigationGroup.php:126
+msgid "Read menu items"
+msgstr "Menüeinträge lesen"
+
+#: src/Abilities/Group/NavigationGroup.php:172
+msgid "List menu locations"
+msgstr "Menüpositionen auflisten"
+
+#: src/Abilities/Group/NavigationGroup.php:209
+msgid "Create a menu"
+msgstr "Ein Menü anlegen"
+
+#: src/Abilities/Group/NavigationGroup.php:244
+msgid "Add a menu item"
+msgstr "Einen Menüeintrag hinzufügen"
+
+#: src/Abilities/Group/NavigationGroup.php:322
+msgid "Update a menu item"
+msgstr "Einen Menüeintrag ändern"
+
+#: src/Abilities/Group/NavigationGroup.php:394
+msgid "Delete a menu item"
+msgstr "Einen Menüeintrag löschen"
+
+#: src/Abilities/Group/NavigationGroup.php:435
+msgid "Assign a menu to a location"
+msgstr "Ein Menü einer Position zuweisen"
+
+#: src/Abilities/Group/SiteGroup.php:60
+msgid "Site information"
+msgstr "Website-Informationen"
+
+#: src/Abilities/Group/SiteGroup.php:68
+msgid "Read site information, registered post types and the active theme, and update the site title and tagline."
+msgstr "Website-Informationen, registrierte Inhaltstypen und das aktive Theme lesen sowie Titel und Untertitel der Website ändern."
+
+#: src/Abilities/Group/SiteGroup.php:108
+msgid "Read site information"
+msgstr "Website-Informationen lesen"
+
+#: src/Abilities/Group/SiteGroup.php:147
+msgid "List post types"
+msgstr "Inhaltstypen auflisten"
+
+#: src/Abilities/Group/SiteGroup.php:200
+msgid "Update a site option"
+msgstr "Eine Website-Einstellung ändern"
+
+#: src/Abilities/Group/TaxonomyGroup.php:49
+msgid "Taxonomies and terms"
+msgstr "Taxonomien und Begriffe"
+
+#: src/Abilities/Group/TaxonomyGroup.php:57
+msgid "List taxonomies, read their terms, and create or delete terms."
+msgstr "Taxonomien auflisten, ihre Begriffe lesen und Begriffe anlegen oder löschen."
+
+#: src/Abilities/Group/TaxonomyGroup.php:85
+msgid "List taxonomies"
+msgstr "Taxonomien auflisten"
+
+#: src/Abilities/Group/TaxonomyGroup.php:120
+msgid "List terms"
+msgstr "Begriffe auflisten"
+
+#: src/Abilities/Group/TaxonomyGroup.php:184
+msgid "Create a term"
+msgstr "Einen Begriff anlegen"
+
+#: src/Abilities/Group/TaxonomyGroup.php:254
+msgid "Delete a term"
+msgstr "Einen Begriff löschen"
+
+#: src/Abilities/Group/UserGroup.php:58
+msgid "Read the user list and individual profiles. Never writes: no account creation, role change or password reset."
+msgstr "Die Benutzerliste und einzelne Profile lesen. Schreibt nie: kein Anlegen von Konten, keine Rollenänderung, kein Zurücksetzen von Passwörtern."
+
+#: src/Abilities/Group/UserGroup.php:84
+msgid "List users"
+msgstr "Benutzer auflisten"
+
+#: src/Abilities/Group/UserGroup.php:121
+msgid "Read a user"
+msgstr "Einen Benutzer lesen"
+
+#: src/Admin/ClientGuides.php:59
+msgid "Registers itself on first contact, so there is nothing to create here and nothing to paste back."
+msgstr "Registriert sich beim ersten Kontakt selbst — hier ist nichts anzulegen und nichts zurückzukopieren."
+
+#: src/Admin/ClientGuides.php:60
+msgid "This client registers itself, but self-registration is currently turned off — create a client by hand under Applications first, and add its redirect URIs."
+msgstr "Dieser Client registriert sich selbst, aber die Selbstregistrierung ist derzeit ausgeschaltet — legen Sie zuerst unter Anwendungen einen Client von Hand an und tragen Sie seine Redirect-URIs ein."
+
+#: src/Admin/ClientGuides.php:66
+msgid "Claude — web and desktop"
+msgstr "Claude — Web und Desktop"
+
+#: src/Admin/ClientGuides.php:67
+msgid "registers itself"
+msgstr "registriert sich selbst"
+
+#: src/Admin/ClientGuides.php:69
+msgid "Open Claude's settings and find the connectors section. Choose to add a custom or remote connector — the wording moves between releases, but it is the one that asks for a URL rather than offering a directory of ready-made integrations."
+msgstr "Öffnen Sie die Einstellungen von Claude und suchen Sie den Bereich für Connectors. Wählen Sie das Hinzufügen eines eigenen oder entfernten Connectors — die Bezeichnung ändert sich von Version zu Version, gemeint ist die Option, die nach einer URL fragt, statt ein Verzeichnis fertiger Integrationen anzubieten."
+
+#: src/Admin/ClientGuides.php:70
+msgid "Paste the MCP server URL above as the only value it asks for. Claude finds the authorization server from it."
+msgstr "Fügen Sie die obige MCP-Server-URL als einzigen abgefragten Wert ein. Claude ermittelt daraus den Autorisierungsserver."
+
+#: src/Admin/ClientGuides.php:71
+msgid "Claude opens this site in a browser tab. Sign in if you are not already, then approve the request on the consent screen."
+msgstr "Claude öffnet diese Website in einem Browser-Tab. Melden Sie sich an, falls noch nicht geschehen, und bestätigen Sie die Anfrage auf der Zustimmungsseite."
+
+#: src/Admin/ClientGuides.php:72
+msgid "The tab closes itself and the connector appears as connected. Its tools are then offered in a conversation, one per published ability."
+msgstr "Der Tab schließt sich von selbst und der Connector erscheint als verbunden. Seine Werkzeuge stehen dann im Gespräch zur Verfügung, eines je veröffentlichter Fähigkeit."
+
+#: src/Admin/ClientGuides.php:78
+msgid "Claude Code"
+msgstr "Claude Code"
+
+#: src/Admin/ClientGuides.php:79
+msgid "one command"
+msgstr "ein Befehl"
+
+#: src/Admin/ClientGuides.php:81
+msgid "Run the add command in a terminal, naming the server whatever you will want to see in the tool list:"
+msgstr "Führen Sie den Hinzufügen-Befehl in einem Terminal aus und benennen Sie den Server so, wie Sie ihn in der Werkzeugliste sehen möchten:"
+
+#: src/Admin/ClientGuides.php:82
+msgid "Start Claude Code and type /mcp. The server is listed as needing authentication; choose it and a browser opens on the consent screen."
+msgstr "Starten Sie Claude Code und geben Sie /mcp ein. Der Server wird als authentifizierungsbedürftig aufgeführt; wählen Sie ihn aus, und ein Browser öffnet die Zustimmungsseite."
+
+#: src/Admin/ClientGuides.php:83
+msgid "Approve there, and the terminal picks the session up. The authorisation is kept, so this is a first-connection step rather than a daily one."
+msgstr "Bestätigen Sie dort, und das Terminal übernimmt die Sitzung. Die Autorisierung bleibt bestehen: Das ist ein Schritt der ersten Verbindung, keine tägliche Pflicht."
+
+#: src/Admin/ClientGuides.php:89
+msgid "ChatGPT"
+msgstr "ChatGPT"
+
+#: src/Admin/ClientGuides.php:90
+msgid "availability varies by plan"
+msgstr "Verfügbarkeit je nach Tarif"
+
+#: src/Admin/ClientGuides.php:92
+msgid "Open the connectors section of ChatGPT's settings and add a custom connector. Custom MCP connectors are not offered on every plan; if the option is absent, that is the reason."
+msgstr "Öffnen Sie den Connector-Bereich in den Einstellungen von ChatGPT und fügen Sie einen eigenen Connector hinzu. Eigene MCP-Connectors werden nicht in jedem Tarif angeboten; fehlt die Option, ist das der Grund."
+
+#: src/Admin/ClientGuides.php:93
+msgid "Paste the MCP server URL and choose OAuth as the authentication method."
+msgstr "Fügen Sie die MCP-Server-URL ein und wählen Sie OAuth als Authentifizierungsmethode."
+
+#: src/Admin/ClientGuides.php:94
+msgid "Approve the request on the consent screen this site opens."
+msgstr "Bestätigen Sie die Anfrage auf der Zustimmungsseite, die diese Website öffnet."
+
+#: src/Admin/ClientGuides.php:96
+msgid "If it will not accept a self-registering connector, create a client by hand under Applications and give ChatGPT the identifier and secret shown there once."
+msgstr "Wird ein sich selbst registrierender Connector nicht akzeptiert, legen Sie unter Anwendungen einen Client von Hand an und geben Sie ChatGPT die dort einmalig angezeigte Kennung und das Geheimnis."
+
+#: src/Admin/ClientGuides.php:100
+msgid "Cursor, VS Code and other editors"
+msgstr "Cursor, VS Code und andere Editoren"
+
+#: src/Admin/ClientGuides.php:101
+msgid "a JSON entry"
+msgstr "ein JSON-Eintrag"
+
+#: src/Admin/ClientGuides.php:103
+msgid "These clients keep their MCP servers in a JSON configuration file, reachable from the MCP section of their settings."
+msgstr "Diese Clients führen ihre MCP-Server in einer JSON-Konfigurationsdatei, erreichbar über den MCP-Bereich ihrer Einstellungen."
+
+#: src/Admin/ClientGuides.php:104
+msgid "Add one entry with the MCP server URL and an HTTP transport:"
+msgstr "Fügen Sie einen Eintrag mit der MCP-Server-URL und einem HTTP-Transport hinzu:"
+
+#: src/Admin/ClientGuides.php:105
+msgid "Reload the window. The server appears in the MCP list, and the first call opens the consent screen in a browser."
+msgstr "Laden Sie das Fenster neu. Der Server erscheint in der MCP-Liste, und der erste Aufruf öffnet die Zustimmungsseite im Browser."
+
+#: src/Admin/ClientGuides.php:107
+msgid "Editors differ on the key naming — some want \"type\": \"http\", some \"transport\": \"http\". If the server never appears, that key is the first thing to check."
+msgstr "Die Editoren unterscheiden sich in der Benennung des Schlüssels — manche wollen \"type\": \"http\", andere \"transport\": \"http\". Erscheint der Server nie, ist dieser Schlüssel das Erste, was zu prüfen ist."
+
+#: src/Admin/ClientGuides.php:131
+msgid "In a terminal"
+msgstr "In einem Terminal"
+
+#: src/Admin/ClientGuides.php:140
+msgid "In the MCP configuration file"
+msgstr "In der MCP-Konfigurationsdatei"
+
+#: src/Admin/ConnectionTest.php:136
+msgid "You are not allowed to run this test."
+msgstr "Sie dürfen diesen Test nicht ausführen."
+
+#: src/Admin/ConnectionTest.php:147
+msgid "The built-in OAuth provider is turned off, so there is no chain to walk. Turn it on under Security, or authenticate some other way."
+msgstr "Der eingebaute OAuth-Provider ist ausgeschaltet, es gibt also keine Kette abzugehen. Schalten Sie ihn unter Sicherheit ein oder authentifizieren Sie sich anders."
+
+#: src/Admin/ConnectionTest.php:167
+msgid "The whole chain works. A client given the URL will connect."
+msgstr "Die gesamte Kette funktioniert. Ein Client, dem man die URL gibt, wird sich verbinden."
+
+#. translators: %s: the label of the first failing step.
+#: src/Admin/ConnectionTest.php:170
+#, php-format
+msgid "Stopped at: %s."
+msgstr "Angehalten bei: %s."
+
+#: src/Admin/ConnectionTest.php:190
+msgid "Discovery documents answer"
+msgstr "Discovery-Dokumente antworten"
+
+#: src/Admin/ConnectionTest.php:191
+msgid "Application registers"
+msgstr "Anwendung registriert sich"
+
+#: src/Admin/ConnectionTest.php:192
+msgid "Consent screen renders"
+msgstr "Zustimmungsseite wird angezeigt"
+
+#: src/Admin/ConnectionTest.php:193
+msgid "Approval issues a code"
+msgstr "Bestätigung liefert einen Code"
+
+#: src/Admin/ConnectionTest.php:194
+msgid "Code exchanges for a token"
+msgstr "Code wird gegen ein Token getauscht"
+
+#: src/Admin/ConnectionTest.php:195
+msgid "MCP transport accepts the token"
+msgstr "MCP-Transport akzeptiert das Token"
+
+#: src/Admin/ConnectionTest.php:196
+msgid "Tool list comes back"
+msgstr "Werkzeugliste kommt zurück"
+
+#: src/Admin/ConnectionTest.php:207
+msgid "Not reached."
+msgstr "Nicht erreicht."
+
+#: src/Admin/ConnectionTest.php:248
+msgid "Both are served at their well-known paths."
+msgstr "Beide werden unter ihren Well-known-Pfaden ausgeliefert."
+
+#. translators: %s: the discovery document URL.
+#: src/Admin/ConnectionTest.php:259
+#, php-format
+msgid "%s could not be reached from the site itself, so the rest of this test cannot run either. That may only mean the server has no route back to its own hostname."
+msgstr "%s war von der Website selbst aus nicht erreichbar, daher kann auch der Rest dieses Tests nicht laufen. Das kann schlicht bedeuten, dass der Server keinen Weg zurück zu seinem eigenen Hostnamen hat."
+
+#. translators: 1: HTTP status, 2: the discovery document URL.
+#: src/Admin/ConnectionTest.php:264
+#, php-format
+msgid "%1$d from %2$s. The web server is blocking /.well-known/; see the fix on the dashboard."
+msgstr "%1$d von %2$s. Der Webserver blockiert /.well-known/; die Korrektur steht im Dashboard."
+
+#: src/Admin/ConnectionTest.php:287
+#: src/Admin/ConnectionTest.php:303
+msgid "Connection test (temporary)"
+msgstr "Verbindungstest (temporär)"
+
+#: src/Admin/ConnectionTest.php:296
+msgid "Self-registration is closed, so the test created the client directly — which is what you would do by hand for a client that cannot register itself."
+msgstr "Die Selbstregistrierung ist geschlossen, deshalb hat der Test den Client direkt angelegt — genau das, was Sie für einen Client, der sich nicht selbst registrieren kann, von Hand tun würden."
+
+#. translators: %s: the client identifier.
+#: src/Admin/ConnectionTest.php:327
+#, php-format
+msgid "Registered as %s. It is deleted at the end of this run."
+msgstr "Registriert als %s. Er wird am Ende dieses Durchlaufs gelöscht."
+
+#. translators: %s: the URL the endpoint redirected to.
+#: src/Admin/ConnectionTest.php:375
+#, php-format
+msgid "The endpoint redirected to %s instead of rendering the form. The forwarded session was not recognised, which usually means a cache or a proxy in front of the site stripped the cookies."
+msgstr "Der Endpunkt hat auf %s weitergeleitet, statt das Formular anzuzeigen. Die weitergereichte Sitzung wurde nicht erkannt, was meist heißt, dass ein Cache oder ein Proxy vor der Website die Cookies entfernt hat."
+
+#: src/Admin/ConnectionTest.php:388
+msgid "The endpoint answered, but the response carries no approval form. Something is rendering a page other than the consent screen at that address."
+msgstr "Der Endpunkt hat geantwortet, aber die Antwort enthält kein Bestätigungsformular. An dieser Adresse wird etwas anderes als die Zustimmungsseite ausgeliefert."
+
+#: src/Admin/ConnectionTest.php:394
+msgid "The form rendered, and the forwarded session was recognised."
+msgstr "Das Formular wurde angezeigt, und die weitergereichte Sitzung wurde erkannt."
+
+#. translators: %d: HTTP status code.
+#: src/Admin/ConnectionTest.php:421
+#, php-format
+msgid "The approval answered %d with no redirect. An expired form nonce reports itself this way."
+msgstr "Die Bestätigung hat mit %d und ohne Weiterleitung geantwortet. Ein abgelaufener Formular-Nonce meldet sich auf diese Weise."
+
+#. translators: 1: OAuth error code, 2: the description returned with it.
+#: src/Admin/ConnectionTest.php:435
+#, php-format
+msgid "The endpoint refused with %1$s: %2$s"
+msgstr "Der Endpunkt hat mit %1$s abgelehnt: %2$s"
+
+#: src/Admin/ConnectionTest.php:443
+msgid "The redirect carries no authorization code."
+msgstr "Die Weiterleitung enthält keinen Autorisierungscode."
+
+#: src/Admin/ConnectionTest.php:450
+msgid "The state parameter came back altered."
+msgstr "Der State-Parameter kam verändert zurück."
+
+#: src/Admin/ConnectionTest.php:455
+msgid "A single-use code was issued and returned on the redirect."
+msgstr "Ein Einmalcode wurde ausgestellt und mit der Weiterleitung zurückgegeben."
+
+#. translators: %d: token lifetime in seconds.
+#: src/Admin/ConnectionTest.php:494
+#, php-format
+msgid "A bearer token was issued, valid for %d seconds."
+msgstr "Ein Bearer-Token wurde ausgestellt, gültig für %d Sekunden."
+
+#. translators: %d: HTTP status code.
+#: src/Admin/ConnectionTest.php:524
+#, php-format
+msgid "%d from the MCP endpoint with a token that was just issued. The user this grant belongs to does not hold the required capability, or a security layer is stripping the Authorization header before PHP sees it."
+msgstr "%d vom MCP-Endpunkt mit einem gerade erst ausgestellten Token. Entweder hat der Benutzer, dem diese Genehmigung gehört, nicht die erforderliche Berechtigung, oder eine Sicherheitsschicht entfernt den Authorization-Header, bevor PHP ihn sieht."
+
+#: src/Admin/ConnectionTest.php:533
+msgid "404 from the MCP endpoint. No server is mounted there: either the MCP Adapter is inactive, or every ability group is turned off, in which case no server is created at all."
+msgstr "404 vom MCP-Endpunkt. Dort ist kein Server eingehängt: Entweder ist das Plugin MCP Adapter inaktiv, oder alle Fähigkeitsgruppen sind ausgeschaltet — dann wird überhaupt kein Server angelegt."
+
+#. translators: %s: the MCP server name.
+#: src/Admin/ConnectionTest.php:557
+#, php-format
+msgid "Handshake completed with %s."
+msgstr "Handshake mit %s abgeschlossen."
+
+#: src/Admin/ConnectionTest.php:560
+msgid "Handshake completed."
+msgstr "Handshake abgeschlossen."
+
+#: src/Admin/ConnectionTest.php:587
+msgid "The answer carries no tool list."
+msgstr "Die Antwort enthält keine Werkzeugliste."
+
+#: src/Admin/ConnectionTest.php:593
+msgid "The endpoint answered with an empty tool list. A client would connect and find nothing to call."
+msgstr "Der Endpunkt hat mit einer leeren Werkzeugliste geantwortet. Ein Client würde sich verbinden und nichts zum Aufrufen finden."
+
+#. translators: %d: number of tools.
+#: src/Admin/ConnectionTest.php:601
+#, php-format
+msgid "%d tool published."
+msgid_plural "%d tools published."
+msgstr[0] "%d Werkzeug veröffentlicht."
+msgstr[1] "%d Werkzeuge veröffentlicht."
+
+#: src/Admin/ConnectionTest.php:621
+#: src/Admin/ConnectionTest.php:636
+msgid "Temporary application removed"
+msgstr "Temporäre Anwendung entfernt"
+
+#: src/Admin/ConnectionTest.php:623
+msgid "Nothing was created, so there is nothing to remove."
+msgstr "Es wurde nichts angelegt, also gibt es nichts zu entfernen."
+
+#: src/Admin/ConnectionTest.php:639
+msgid "The client and every token issued to it during this run are gone."
+msgstr "Der Client und jedes ihm während dieses Durchlaufs ausgestellte Token sind weg."
+
+#. translators: %s: the client identifier.
+#: src/Admin/ConnectionTest.php:642
+#, php-format
+msgid "Could not remove %s. Delete it under Applications — it holds a live token until you do."
+msgstr "%s konnte nicht entfernt werden. Löschen Sie ihn unter Anwendungen — bis dahin hält er ein gültiges Token."
+
+#. translators: 1: HTTP status code, 2: the message returned by the server.
+#: src/Admin/ConnectionTest.php:804
+#, php-format
+msgid "%1$d — %2$s"
+msgstr "%1$d — %2$s"
+
+#: src/Admin/ConnectionTest.php:812
+msgid "The request did not complete. The site could not reach itself over HTTP."
+msgstr "Die Anfrage wurde nicht abgeschlossen. Die Website konnte sich selbst nicht über HTTP erreichen."
+
+#. translators: %d: HTTP status code.
+#: src/Admin/ConnectionTest.php:817
+#, php-format
+msgid "%d, with nothing usable in the body."
+msgstr "%d, ohne Brauchbares im Rumpf der Antwort."
+
+#: src/Admin/Diagnostics.php:151
+msgid "Abilities API"
+msgstr "Abilities API"
+
+#: src/Admin/Diagnostics.php:153
+msgid "Available. Abilities can be registered and published as tools."
+msgstr "Verfügbar. Fähigkeiten können registriert und als Werkzeuge veröffentlicht werden."
+
+#: src/Admin/Diagnostics.php:154
+msgid "Unavailable. It ships with WordPress 6.9 and later; on an older install, activate the Abilities API feature plugin. Nothing is published until it is there."
+msgstr "Nicht verfügbar. Sie wird mit WordPress 6.9 und neuer ausgeliefert; auf einer älteren Installation aktivieren Sie das Feature-Plugin Abilities API. Bis dahin wird nichts veröffentlicht."
+
+#: src/Admin/Diagnostics.php:169
+#: src/Admin/Diagnostics.php:177
+msgid "MCP Adapter"
+msgstr "MCP Adapter"
+
+#: src/Admin/Diagnostics.php:170
+msgid "Active. It turns the registered abilities into MCP tools and serves the transport."
+msgstr "Aktiv. Es macht aus den registrierten Fähigkeiten MCP-Werkzeuge und liefert den Transport."
+
+#: src/Admin/Diagnostics.php:178
+msgid "Not active, so no MCP endpoint is served. Everything else on this screen keeps working — the OAuth provider, the abilities — but a client would have nothing to connect to. It is distributed from GitHub rather than wordpress.org, so it cannot be installed from the plugin screen."
+msgstr "Nicht aktiv, es wird also kein MCP-Endpunkt ausgeliefert. Alles andere auf dieser Seite funktioniert weiter — der OAuth-Provider, die Fähigkeiten —, aber ein Client hätte nichts, womit er sich verbinden könnte. Es wird über GitHub verteilt und nicht über wordpress.org, lässt sich also nicht über die Plugin-Seite installieren."
+
+#: src/Admin/Diagnostics.php:180
+msgid "Install it by hand"
+msgstr "Von Hand installieren"
+
+#: src/Admin/Diagnostics.php:207
+msgid "Pretty permalinks"
+msgstr "Sprechende Permalinks"
+
+#: src/Admin/Diagnostics.php:209
+msgid "A permalink structure is set, so the advertised URLs resolve."
+msgstr "Eine Permalink-Struktur ist gesetzt, die angekündigten URLs lösen also auf."
+
+#. translators: %s: the Settings → Permalinks screen URL.
+#: src/Admin/Diagnostics.php:212
+#, php-format
+msgid "Disabled. The REST API still answers through its ?rest_route= form, which no client will guess, and the discovery documents would advertise URLs that 404. Set any structure but \"Plain\" under %s."
+msgstr "Deaktiviert. Die REST-API antwortet zwar noch über ihre Form ?rest_route=, die kein Client erraten wird, und die Discovery-Dokumente würden URLs ankündigen, die mit 404 antworten. Wählen Sie unter %s irgendeine Struktur außer „Einfach“."
+
+#: src/Admin/Diagnostics.php:230
+msgid "HTTPS"
+msgstr "HTTPS"
+
+#: src/Admin/Diagnostics.php:232
+msgid "The site is served over TLS."
+msgstr "Die Website wird über TLS ausgeliefert."
+
+#: src/Admin/Diagnostics.php:233
+msgid "The site is served over plain HTTP. A remote client will refuse the endpoint outright; this is only workable for local development."
+msgstr "Die Website wird über einfaches HTTP ausgeliefert. Ein entfernter Client wird den Endpunkt rundweg ablehnen; das trägt nur in der lokalen Entwicklung."
+
+#: src/Admin/Diagnostics.php:257
+#: src/Admin/Diagnostics.php:269
+#: src/Admin/SettingsPage.php:1244
+msgid "Required capability"
+msgstr "Erforderliche Berechtigung"
+
+#. translators: %s: capability name.
+#: src/Admin/Diagnostics.php:260
+#, php-format
+msgid "No role on this site grants %s, so nobody can approve a client or reach the endpoint. Either the capability is misspelt, or it is granted per-user by a plugin this check cannot see."
+msgstr "Keine Rolle auf dieser Website gewährt %s, niemand kann also einen Client bestätigen oder den Endpunkt erreichen. Entweder ist die Berechtigung falsch geschrieben, oder sie wird von einem Plugin pro Benutzer vergeben, das diese Prüfung nicht sieht."
+
+#. translators: 1: capability name, 2: comma-separated role names.
+#: src/Admin/Diagnostics.php:273
+#, php-format
+msgid "You hold %1$s. Granted by: %2$s."
+msgstr "Sie besitzen %1$s. Gewährt von: %2$s."
+
+#. translators: 1: capability name, 2: comma-separated role names.
+#: src/Admin/Diagnostics.php:279
+#, php-format
+msgid "You do not hold %1$s, so you can configure the connector but not authorise a client against your own account. Granted by: %2$s."
+msgstr "Sie besitzen %1$s nicht: Sie können den Connector konfigurieren, aber keinen Client für Ihr eigenes Konto autorisieren. Gewährt von: %2$s."
+
+#: src/Admin/Diagnostics.php:307
+#: src/Admin/Diagnostics.php:323
+#: src/Admin/Diagnostics.php:335
+msgid "Discovery documents"
+msgstr "Discovery-Dokumente"
+
+#: src/Admin/Diagnostics.php:308
+msgid "Both documents answer with JSON at their well-known paths, which is where RFC 8414 and RFC 9728 pin them."
+msgstr "Beide Dokumente antworten mit JSON unter ihren Well-known-Pfaden, wo RFC 8414 und RFC 9728 sie festlegen."
+
+#. translators: %s: the discovery document URL.
+#: src/Admin/Diagnostics.php:326
+#, php-format
+msgid "Could not reach %s from the site itself. That may only mean the server has no route back to its own hostname; open the URL in a browser to settle it. A client will need it to answer with JSON."
+msgstr "%s war von der Website selbst aus nicht erreichbar. Das kann schlicht bedeuten, dass der Server keinen Weg zurück zu seinem eigenen Hostnamen hat; öffnen Sie die URL im Browser, um Gewissheit zu haben. Ein Client wird darauf JSON erwarten."
+
+#. translators: 1: HTTP status code, 2: the discovery document URL.
+#: src/Admin/Diagnostics.php:338
+#, php-format
+msgid "%1$d from %2$s, where a client expects JSON. The web server is almost certainly blocking /.well-known/: the near-universal rule against hidden files catches it too, and refuses the request before PHP is reached — which is why nothing appears in any WordPress log. On Apache, look for a RedirectMatch or a Files rule on names beginning with a dot."
+msgstr "%1$d von %2$s, wo ein Client JSON erwartet. Der Webserver blockiert mit an Sicherheit grenzender Wahrscheinlichkeit /.well-known/: Die nahezu überall verwendete Regel gegen versteckte Dateien erfasst es mit und weist die Anfrage ab, bevor sie PHP erreicht — deshalb steht in keinem WordPress-Log etwas davon. Unter Apache suchen Sie nach einer RedirectMatch- oder einer Files-Regel auf Namen, die mit einem Punkt beginnen."
+
+#: src/Admin/Diagnostics.php:343
+msgid "In the nginx site configuration"
+msgstr "In der nginx-Site-Konfiguration"
+
+#: src/Admin/Diagnostics.php:362
+msgid "OAuth provider"
+msgstr "OAuth-Provider"
+
+#: src/Admin/Diagnostics.php:363
+msgid "Disabled, so no discovery, authorization or token endpoint is served. Remote clients such as Claude cannot connect unless something else on the site handles authentication."
+msgstr "Deaktiviert, es wird also kein Discovery-, Autorisierungs- oder Token-Endpunkt ausgeliefert. Entfernte Clients wie Claude können sich nicht verbinden, sofern nicht etwas anderes auf der Website die Authentifizierung übernimmt."
+
+#: src/Admin/Diagnostics.php:389
+#: src/Admin/Diagnostics.php:397
+msgid "Published tools"
+msgstr "Veröffentlichte Werkzeuge"
+
+#: src/Admin/Diagnostics.php:390
+msgid "No ability group is enabled and no third-party ability is selected, so a client would connect successfully and find nothing to call."
+msgstr "Es ist keine Fähigkeitsgruppe aktiviert und keine Fähigkeit eines anderen Plugins ausgewählt: Ein Client würde sich erfolgreich verbinden und nichts zum Aufrufen finden."
+
+#. translators: %d: number of abilities registered so far in this request.
+#: src/Admin/Diagnostics.php:401
+#, php-format
+msgid "%d ability registered in this request."
+msgid_plural "%d abilities registered in this request."
+msgstr[0] "%d Fähigkeit in dieser Anfrage registriert."
+msgstr[1] "%d Fähigkeiten in dieser Anfrage registriert."
+
+#. translators: %d: number of enabled ability groups.
+#: src/Admin/Diagnostics.php:411
+#, php-format
+msgid "%d ability group enabled. Abilities register on demand, so the live count comes from the endpoint rather than from this screen."
+msgid_plural "%d ability groups enabled. Abilities register on demand, so the live count comes from the endpoint rather than from this screen."
+msgstr[0] "%d Fähigkeitsgruppe aktiviert. Fähigkeiten registrieren sich bei Bedarf, die tatsächliche Zahl kommt daher vom Endpunkt und nicht von dieser Seite."
+msgstr[1] "%d Fähigkeitsgruppen aktiviert. Fähigkeiten registrieren sich bei Bedarf, die tatsächliche Zahl kommt daher vom Endpunkt und nicht von dieser Seite."
+
+#: src/Admin/Field.php:195
+#: src/Admin/Parts.php:127
+#: src/Admin/Parts.php:169
+msgid "Copy"
+msgstr "Kopieren"
+
+#: src/Admin/Field.php:277
+msgid "recommended"
+msgstr "empfohlen"
+
+#: src/Admin/Parts.php:150
+msgid "Protected resource metadata"
+msgstr "Metadaten der geschützten Ressource"
+
+#: src/Admin/Parts.php:151
+msgid "Authorization server metadata"
+msgstr "Metadaten des Autorisierungsservers"
+
+#: src/Admin/Parts.php:152
+msgid "Authorization endpoint"
+msgstr "Autorisierungs-Endpunkt"
+
+#: src/Admin/Parts.php:153
+msgid "Token endpoint"
+msgstr "Token-Endpunkt"
+
+#: src/Admin/Parts.php:154
+msgid "Registration endpoint"
+msgstr "Registrierungs-Endpunkt"
+
+#: src/Admin/Parts.php:155
+msgid "Revocation endpoint"
+msgstr "Widerrufs-Endpunkt"
+
+#: src/Admin/Parts.php:191
+msgid "Test the connection"
+msgstr "Verbindung testen"
+
+#: src/Admin/Parts.php:198
+msgid "The test walks the whole chain the way a client does: it registers a throwaway application, authorises it as you, exchanges the code for a token, and calls the MCP endpoint with it. Everything it creates is deleted when the run ends, whether the run succeeded or not."
+msgstr "Der Test geht die gesamte Kette so ab, wie ein Client es täte: Er registriert eine Wegwerf-Anwendung, autorisiert sie in Ihrem Namen, tauscht den Code gegen ein Token und ruft damit den MCP-Endpunkt auf. Alles, was er anlegt, wird am Ende des Durchlaufs gelöscht, ob er nun geglückt ist oder nicht."
+
+#: src/Admin/Parts.php:203
+msgid "The test needs JavaScript. The checks above are established without it."
+msgstr "Der Test braucht JavaScript. Die Prüfungen oben kommen ohne aus."
+
+#: src/Admin/SettingsPage.php:138
+#: src/Admin/SettingsPage.php:139
+#: src/Admin/SettingsPage.php:718
+#: src/Admin/Wizard.php:171
+msgid "MCP Connector"
+msgstr "MCP Connector"
+
+#: src/Admin/SettingsPage.php:147
+#: src/Admin/SettingsPage.php:148
+msgid "Set up MCP Connector"
+msgstr "MCP Connector einrichten"
+
+#: src/Admin/SettingsPage.php:239
+msgid "Settings"
+msgstr "Einstellungen"
+
+#: src/Admin/SettingsPage.php:283
+msgid "Running the whole chain…"
+msgstr "Die gesamte Kette wird abgegangen …"
+
+#: src/Admin/SettingsPage.php:284
+msgid "The test could not be completed."
+msgstr "Der Test konnte nicht abgeschlossen werden."
+
+#: src/Admin/SettingsPage.php:285
+msgid "Copied"
+msgstr "Kopiert"
+
+#: src/Admin/SettingsPage.php:286
+msgid "Press Ctrl+C"
+msgstr "Strg+C drücken"
+
+#: src/Admin/SettingsPage.php:464
+msgid "Manually created client"
+msgstr "Von Hand angelegter Client"
+
+#: src/Admin/SettingsPage.php:535
+#: src/Admin/SettingsPage.php:936
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: src/Admin/SettingsPage.php:536
+msgid "Health, and what is wrong"
+msgstr "Zustand, und was nicht stimmt"
+
+#: src/Admin/SettingsPage.php:539
+#: src/Admin/SettingsPage.php:995
+msgid "Connect"
+msgstr "Verbinden"
+
+#: src/Admin/SettingsPage.php:540
+msgid "The URL, and what to do with it"
+msgstr "Die URL, und was damit zu tun ist"
+
+#: src/Admin/SettingsPage.php:543
+#: src/Admin/SettingsPage.php:1030
+msgid "Tools"
+msgstr "Werkzeuge"
+
+#: src/Admin/SettingsPage.php:544
+msgid "What a client may call"
+msgstr "Was ein Client aufrufen darf"
+
+#: src/Admin/SettingsPage.php:547
+#: src/Admin/SettingsPage.php:1238
+msgid "Security"
+msgstr "Sicherheit"
+
+#: src/Admin/SettingsPage.php:548
+msgid "Who gets in, and how far"
+msgstr "Wer hereinkommt, und wie weit"
+
+#: src/Admin/SettingsPage.php:551
+#: src/Admin/SettingsPage.php:1297
+msgid "Applications"
+msgstr "Anwendungen"
+
+#: src/Admin/SettingsPage.php:552
+msgid "Connected clients and tokens"
+msgstr "Verbundene Clients und Token"
+
+#: src/Admin/SettingsPage.php:555
+#: src/Admin/SettingsPage.php:1429
+msgid "Advanced"
+msgstr "Erweitert"
+
+#: src/Admin/SettingsPage.php:556
+msgid "Names and addresses"
+msgstr "Namen und Adressen"
+
+#: src/Admin/SettingsPage.php:701
+msgid "Ready to connect"
+msgstr "Bereit zur Verbindung"
+
+#: src/Admin/SettingsPage.php:702
+msgid "Needs attention"
+msgstr "Braucht Aufmerksamkeit"
+
+#: src/Admin/SettingsPage.php:703
+msgid "Nothing can connect"
+msgstr "Nichts kann sich verbinden"
+
+#: src/Admin/SettingsPage.php:719
+msgid "What this site lets an AI client read, write and call — and who is allowed to."
+msgstr "Was diese Website einen KI-Client lesen, schreiben und aufrufen lässt — und wer das darf."
+
+#: src/Admin/SettingsPage.php:756
+msgid "Settings saved."
+msgstr "Einstellungen gespeichert."
+
+#: src/Admin/SettingsPage.php:760
+msgid "Application removed and its tokens revoked."
+msgstr "Anwendung entfernt und ihre Token widerrufen."
+
+#: src/Admin/SettingsPage.php:764
+msgid "At least one valid redirect URI is required."
+msgstr "Mindestens eine gültige Redirect-URI ist erforderlich."
+
+#: src/Admin/SettingsPage.php:797
+msgid "Application created — copy these now"
+msgstr "Anwendung angelegt — kopieren Sie dies jetzt"
+
+#: src/Admin/SettingsPage.php:798
+msgid "The secret is stored only as a hash. This is the one time it can be read."
+msgstr "Das Geheimnis wird nur als Hash gespeichert. Dies ist das einzige Mal, dass es gelesen werden kann."
+
+#: src/Admin/SettingsPage.php:803
+msgid "Client ID"
+msgstr "Client-ID"
+
+#: src/Admin/SettingsPage.php:805
+msgid "Identifies the application. Not secret."
+msgstr "Bezeichnet die Anwendung. Kein Geheimnis."
+
+#: src/Admin/SettingsPage.php:810
+msgid "Client secret"
+msgstr "Client-Geheimnis"
+
+#: src/Admin/SettingsPage.php:812
+msgid "Proves the application is itself. Treat it as a password; it will not be shown again."
+msgstr "Belegt, dass die Anwendung sie selbst ist. Behandeln Sie es wie ein Passwort; es wird nicht wieder angezeigt."
+
+#: src/Admin/SettingsPage.php:835
+msgid "Settings sections"
+msgstr "Bereiche der Einstellungen"
+
+#: src/Admin/SettingsPage.php:880
+msgid "Saving writes every panel at once, including the ones you have not opened."
+msgstr "Speichern schreibt alle Bereiche auf einmal, auch die, die Sie nicht geöffnet haben."
+
+#: src/Admin/SettingsPage.php:881
+msgid "Save settings"
+msgstr "Einstellungen speichern"
+
+#: src/Admin/SettingsPage.php:937
+msgid "Whether a client can connect right now, and if not, which link of the chain is broken."
+msgstr "Ob sich ein Client jetzt verbinden kann, und falls nicht, welches Glied der Kette gebrochen ist."
+
+#: src/Admin/SettingsPage.php:950
+msgid "Connected"
+msgstr "Verbunden"
+
+#: src/Admin/SettingsPage.php:952
+#: src/Admin/SettingsPage.php:1357
+msgid "Registered"
+msgstr "Registriert"
+
+#: src/Admin/SettingsPage.php:954
+#: src/Admin/SettingsPage.php:1355
+msgid "Live tokens"
+msgstr "Gültige Token"
+
+#: src/Admin/SettingsPage.php:956
+msgid "Post types"
+msgstr "Inhaltstypen"
+
+#: src/Admin/SettingsPage.php:960
+msgid "Checks"
+msgstr "Prüfungen"
+
+#: src/Admin/SettingsPage.php:967
+msgid "The discovery answer is cached for five minutes, since the usual sequence is to read this, change the server, and come back."
+msgstr "Die Discovery-Antwort wird fünf Minuten zwischengespeichert, weil der übliche Ablauf ist: das hier lesen, den Server ändern, zurückkommen."
+
+#: src/Admin/SettingsPage.php:969
+#: src/Admin/Wizard.php:305
+msgid "Ask the server again"
+msgstr "Den Server erneut fragen"
+
+#: src/Admin/SettingsPage.php:972
+msgid "End-to-end test"
+msgstr "Test über die gesamte Kette"
+
+#: src/Admin/SettingsPage.php:978
+msgid "Run the setup assistant again"
+msgstr "Einrichtungsassistenten erneut ausführen"
+
+#: src/Admin/SettingsPage.php:996
+msgid "One address is all a client needs. It reads everything else — the authorization server, the token endpoint, the tool list — from there."
+msgstr "Eine einzige Adresse genügt einem Client. Alles Weitere liest er daraus ab — den Autorisierungsserver, den Token-Endpunkt, die Werkzeugliste."
+
+#: src/Admin/SettingsPage.php:1001
+#: src/Admin/Wizard.php:397
+msgid "MCP server URL"
+msgstr "MCP-Server-URL"
+
+#: src/Admin/SettingsPage.php:1003
+msgid "This is the only value to hand over. Anything a client asks for beyond it, it can already work out."
+msgstr "Das ist der einzige Wert, der weiterzugeben ist. Alles, was ein Client darüber hinaus verlangt, kann er sich bereits selbst herleiten."
+
+#: src/Admin/SettingsPage.php:1006
+msgid "Client by client"
+msgstr "Client für Client"
+
+#: src/Admin/SettingsPage.php:1009
+msgid "The other addresses"
+msgstr "Die übrigen Adressen"
+
+#: src/Admin/SettingsPage.php:1012
+msgid "Nothing needs to be given these; they are here because when a connection fails, the next question is which of them answers."
+msgstr "Keine davon muss weitergegeben werden; sie stehen hier, weil bei einer gescheiterten Verbindung die nächste Frage lautet, welche von ihnen antwortet."
+
+#: src/Admin/SettingsPage.php:1031
+msgid "Every published ability becomes one tool in the client. What is not here is refused, whatever a client asks for."
+msgstr "Jede veröffentlichte Fähigkeit wird im Client zu einem Werkzeug. Was hier nicht steht, wird abgelehnt, gleich was ein Client verlangt."
+
+#: src/Admin/SettingsPage.php:1034
+msgid "Ability groups"
+msgstr "Fähigkeitsgruppen"
+
+#: src/Admin/SettingsPage.php:1060
+msgid "Addressable post types"
+msgstr "Adressierbare Inhaltstypen"
+
+#: src/Admin/SettingsPage.php:1063
+msgid "Which types a client may list, read and write. A site accumulates types that are storage rather than content, and those have no business being offered to a model."
+msgstr "Welche Typen ein Client auflisten, lesen und schreiben darf. Eine Website sammelt Typen an, die eher Speicher als Inhalt sind, und die haben in der Hand eines Modells nichts verloren."
+
+#: src/Admin/SettingsPage.php:1081
+msgid "not public"
+msgstr "nicht öffentlich"
+
+#: src/Admin/SettingsPage.php:1108
+msgid "Abilities from other plugins"
+msgstr "Fähigkeiten aus anderen Plugins"
+
+#: src/Admin/SettingsPage.php:1113
+msgid "No other active plugin publishes abilities for MCP."
+msgstr "Kein anderes aktives Plugin veröffentlicht Fähigkeiten für MCP."
+
+#: src/Admin/SettingsPage.php:1121
+msgid "Publishing these here puts them in the same connector, so a client sees one set of tools rather than one server per plugin. Each keeps its own permission checks. They are grouped by what their provider says about them, which is the only thing that separates reading a field from deleting a field group."
+msgstr "Werden sie hier veröffentlicht, liegen sie im selben Connector: Ein Client sieht einen Satz Werkzeuge statt eines Servers je Plugin. Jede behält ihre eigenen Rechteprüfungen. Sie sind danach gruppiert, was ihr Anbieter über sie sagt — das Einzige, was das Lesen eines Feldes vom Löschen einer Feldgruppe unterscheidet."
+
+#: src/Admin/SettingsPage.php:1132
+msgid "These are the recommended defaults, in force until you save this screen. Reading is selected wherever a plugin declares it; anything a shipped profile marks as structural is not."
+msgstr "Das sind die empfohlenen Voreinstellungen, gültig bis Sie diese Seite speichern. Lesen ist überall dort ausgewählt, wo ein Plugin es erklärt; was ein mitgeliefertes Profil als strukturell kennzeichnet, ist es nicht."
+
+#. translators: %d: number of abilities offered by one plugin.
+#: src/Admin/SettingsPage.php:1146
+#, php-format
+msgid "%d ability offered"
+msgid_plural "%d abilities offered"
+msgstr[0] "%d Fähigkeit angeboten"
+msgstr[1] "%d Fähigkeiten angeboten"
+
+#: src/Admin/SettingsPage.php:1189
+#: src/Server/ExternalAbility.php:97
+msgid "Reads only"
+msgstr "Liest nur"
+
+#: src/Admin/SettingsPage.php:1190
+msgid "The provider declares these read-only."
+msgstr "Der Anbieter erklärt sie als nur lesend."
+
+#: src/Admin/SettingsPage.php:1194
+#: src/Server/ExternalAbility.php:105
+msgid "Writes"
+msgstr "Schreibt"
+
+#: src/Admin/SettingsPage.php:1195
+msgid "Declared as changing something, without claiming to destroy anything."
+msgstr "Erklärt als etwas ändernd, ohne zu beanspruchen, etwas zu zerstören."
+
+#: src/Admin/SettingsPage.php:1199
+msgid "Writes, and may delete or overwrite"
+msgstr "Schreibt und kann löschen oder überschreiben"
+
+#: src/Admin/SettingsPage.php:1200
+msgid "The provider marks these destructive."
+msgstr "Der Anbieter kennzeichnet sie als destruktiv."
+
+#: src/Admin/SettingsPage.php:1204
+msgid "Undeclared"
+msgstr "Nicht erklärt"
+
+#: src/Admin/SettingsPage.php:1205
+msgid "The provider says nothing about what these do. Silence is not a claim of harmlessness."
+msgstr "Der Anbieter sagt nichts darüber, was sie tun. Schweigen ist keine Zusicherung von Harmlosigkeit."
+
+#: src/Admin/SettingsPage.php:1239
+msgid "Three decisions: who may authorise a client, how far a client may reach, and whether a client may introduce itself."
+msgstr "Drei Entscheidungen: wer einen Client autorisieren darf, wie weit ein Client reichen darf, und ob ein Client sich selbst vorstellen darf."
+
+#: src/Admin/SettingsPage.php:1245
+msgid "A user needs this to authorise a client and to reach the endpoint. It is checked again on every token refresh, so demoting a user disconnects them rather than merely stopping them from reconnecting."
+msgstr "Ein Benutzer braucht sie, um einen Client zu bestätigen und den Endpunkt zu erreichen. Sie wird bei jeder Token-Erneuerung erneut geprüft: Wer herabgestuft wird, verliert die Verbindung — und nicht bloß die Möglichkeit, sich neu zu verbinden."
+
+#: src/Admin/SettingsPage.php:1254
+msgid "Read-only mode"
+msgstr "Nur-Lese-Modus"
+
+#: src/Admin/SettingsPage.php:1255
+msgid "Abilities that would change the site are not registered at all — not refused at call time, absent from the tool list. This is the safe way to bring a connector up on a live site: prove the transport and the authentication first."
+msgstr "Fähigkeiten, die die Website ändern würden, werden gar nicht erst registriert — nicht beim Aufruf abgelehnt, sondern in der Werkzeugliste nicht vorhanden. Das ist der sichere Weg, einen Connector auf einer Live-Website in Betrieb zu nehmen: erst Transport und Authentifizierung belegen."
+
+#: src/Admin/SettingsPage.php:1261
+msgid "Built-in OAuth 2.1 provider"
+msgstr "Eingebauter OAuth-2.1-Provider"
+
+#: src/Admin/SettingsPage.php:1262
+msgid "Serves the discovery, authorization, token and registration endpoints. Required for a remote client such as Claude. Turn it off only if something else on the site handles authentication."
+msgstr "Liefert die Discovery-, Autorisierungs-, Token- und Registrierungs-Endpunkte. Für einen entfernten Client wie Claude erforderlich. Schalten Sie ihn nur ab, wenn etwas anderes auf der Website die Authentifizierung übernimmt."
+
+#: src/Admin/SettingsPage.php:1268
+#: src/Admin/Wizard.php:354
+msgid "Let clients register themselves"
+msgstr "Clients dürfen sich selbst registrieren"
+
+#: src/Admin/SettingsPage.php:1269
+msgid "RFC 7591, and what makes a one-click connection possible. Registering grants nothing on its own: a user still has to approve the request on the consent screen, holding the capability above. Turn it off to require that every application be created by hand."
+msgstr "RFC 7591, und das, was eine Verbindung mit einem Klick möglich macht. Die Registrierung allein gewährt nichts: Ein Benutzer muss die Anfrage weiterhin auf der Zustimmungsseite bestätigen und dabei die Berechtigung von oben besitzen. Schalten Sie es ab, um zu verlangen, dass jede Anwendung von Hand angelegt wird."
+
+#: src/Admin/SettingsPage.php:1278
+msgid "Read-only mode is on, so the write-side tools are absent from the tool list whatever the Tools panel says."
+msgstr "Der Nur-Lese-Modus ist an, die schreibenden Werkzeuge fehlen also in der Liste, gleich was der Bereich Werkzeuge sagt."
+
+#: src/Admin/SettingsPage.php:1298
+msgid "Every client that has registered against this site. Removing one revokes its tokens with it, and the application is disconnected on its next call."
+msgstr "Jeder Client, der sich bei dieser Website registriert hat. Einen zu entfernen widerruft zugleich seine Token, und die Anwendung ist beim nächsten Aufruf getrennt."
+
+#: src/Admin/SettingsPage.php:1304
+msgid "Nothing registered yet. Connecting from a client registers it automatically, or create one below."
+msgstr "Bisher nichts registriert. Eine Verbindung von einem Client aus registriert ihn automatisch, oder legen Sie unten einen an."
+
+#: src/Admin/SettingsPage.php:1353
+msgid "self-registered"
+msgstr "selbst registriert"
+
+#: src/Admin/SettingsPage.php:1359
+msgid "Token last issued"
+msgstr "Letztes Token ausgestellt"
+
+#: src/Admin/SettingsPage.php:1363
+msgid "never"
+msgstr "nie"
+
+#: src/Admin/SettingsPage.php:1368
+msgid "Remove this application and revoke its tokens?"
+msgstr "Diese Anwendung entfernen und ihre Token widerrufen?"
+
+#: src/Admin/SettingsPage.php:1370
+msgid "Remove"
+msgstr "Entfernen"
+
+#: src/Admin/SettingsPage.php:1382
+msgid "Create an application by hand"
+msgstr "Eine Anwendung von Hand anlegen"
+
+#: src/Admin/SettingsPage.php:1385
+msgid "For a client that will not register itself, or for a site that keeps self-registration closed. The secret is shown once, at creation."
+msgstr "Für einen Client, der sich nicht selbst registriert, oder für eine Website, die die Selbstregistrierung geschlossen hält. Das Geheimnis wird einmal angezeigt, beim Anlegen."
+
+#: src/Admin/SettingsPage.php:1393
+msgid "Name"
+msgstr "Name"
+
+#: src/Admin/SettingsPage.php:1394
+msgid "Shown in this list and on the consent screen the user approves."
+msgstr "Wird in dieser Liste und auf der Zustimmungsseite angezeigt, die der Benutzer bestätigt."
+
+#: src/Admin/SettingsPage.php:1402
+msgid "Redirect URIs"
+msgstr "Redirect-URIs"
+
+#: src/Admin/SettingsPage.php:1403
+msgid "One per line, matched exactly — a URI differing by so much as a trailing slash is refused. The values below are the ones the Claude applications use."
+msgstr "Eine je Zeile, exakt verglichen — eine URI, die sich auch nur um einen abschließenden Schrägstrich unterscheidet, wird abgelehnt. Die Werte unten sind die der Claude-Anwendungen."
+
+#: src/Admin/SettingsPage.php:1414
+msgid "Create application"
+msgstr "Anwendung anlegen"
+
+#: src/Admin/SettingsPage.php:1430
+msgid "Both of these are baked into what a connected client already knows. Changing either is a reconnection, not a setting."
+msgstr "Beides ist in dem festgeschrieben, was ein verbundener Client bereits kennt. Eines davon zu ändern ist eine Neuverbindung, keine Einstellung."
+
+#: src/Admin/SettingsPage.php:1435
+msgid "Ability namespace"
+msgstr "Namensraum der Fähigkeiten"
+
+#: src/Admin/SettingsPage.php:1436
+msgid "Prefixes every ability, and with it every MCP tool name. Changing it renames the tools a connected client has already learned, which reads to it as the old ones disappearing."
+msgstr "Steht vor jeder Fähigkeit und damit vor jedem MCP-Werkzeugnamen. Ihn zu ändern benennt die Werkzeuge um, die ein verbundener Client bereits gelernt hat — für ihn liest sich das, als seien die alten verschwunden."
+
+#: src/Admin/SettingsPage.php:1443
+msgid "Server route"
+msgstr "Server-Route"
+
+#: src/Admin/SettingsPage.php:1444
+msgid "The last segment of the MCP endpoint URL. Changing it invalidates the address already handed to every client."
+msgstr "Das letzte Segment der MCP-Endpunkt-URL. Es zu ändern macht die Adresse ungültig, die bereits an jeden Client gegangen ist."
+
+#: src/Admin/SettingsPage.php:1451
+msgid "The endpoint currently answers at:"
+msgstr "Der Endpunkt antwortet derzeit unter:"
+
+#. translators: %s: number of published entries.
+#: src/Admin/SettingsPage.php:1475
+#, php-format
+msgid "%s published"
+msgid_plural "%s published"
+msgstr[0] "%s veröffentlicht"
+msgstr[1] "%s veröffentlicht"
+
+#: src/Admin/Wizard.php:157
+msgid "Preparation"
+msgstr "Vorbereitung"
+
+#: src/Admin/Wizard.php:158
+msgid "Reach"
+msgstr "Reichweite"
+
+#: src/Admin/Wizard.php:159
+msgid "The URL"
+msgstr "Die URL"
+
+#: src/Admin/Wizard.php:160
+msgid "Verify"
+msgstr "Prüfen"
+
+#: src/Admin/Wizard.php:176
+msgid "Setup steps"
+msgstr "Schritte der Einrichtung"
+
+#: src/Admin/Wizard.php:207
+msgid "Leave the assistant"
+msgstr "Assistenten verlassen"
+
+#. translators: 1: current step number, 2: total number of steps.
+#: src/Admin/Wizard.php:228
+#, php-format
+msgid "Step %1$d of %2$d"
+msgstr "Schritt %1$d von %2$d"
+
+#: src/Admin/Wizard.php:285
+msgid "Something here blocks every client"
+msgstr "Etwas hier blockiert jeden Client"
+
+#: src/Admin/Wizard.php:286
+msgid "The site is ready"
+msgstr "Die Website ist bereit"
+
+#: src/Admin/Wizard.php:288
+msgid "Not one client will connect until this is fixed, whatever it is and however it is configured. Each failure below states the change that fixes it."
+msgstr "Kein einziger Client wird sich verbinden, solange das nicht behoben ist — gleich welcher und gleich wie eingerichtet. Jeder Fehlschlag unten nennt die Änderung, die ihn behebt."
+
+#: src/Admin/Wizard.php:289
+msgid "Nothing here would stop a client from connecting. Anything marked as needing attention is worth a look, but the chain holds."
+msgstr "Nichts hier würde einen Client an der Verbindung hindern. Was als aufmerksamkeitsbedürftig gekennzeichnet ist, lohnt einen Blick, aber die Kette hält."
+
+#: src/Admin/Wizard.php:297
+msgid "The discovery documents are the link that fails most often, and the only one that leaves no trace: a web server blocking /.well-known/ refuses the request before PHP is reached. The answer is cached for five minutes, so change the server, then ask again."
+msgstr "Die Discovery-Dokumente sind das Glied, das am häufigsten bricht, und das einzige, das keine Spur hinterlässt: Ein Webserver, der /.well-known/ blockiert, weist die Anfrage ab, bevor sie PHP erreicht. Die Antwort wird fünf Minuten zwischengespeichert — ändern Sie also den Server und fragen Sie dann erneut."
+
+#: src/Admin/Wizard.php:311
+#: src/Admin/Wizard.php:426
+msgid "Continue"
+msgstr "Weiter"
+
+#: src/Admin/Wizard.php:321
+msgid "Continue anyway"
+msgstr "Trotzdem weiter"
+
+#: src/Admin/Wizard.php:334
+msgid "How far it may reach"
+msgstr "Wie weit er reichen darf"
+
+#: src/Admin/Wizard.php:335
+msgid "Two decisions worth making before anything connects. Everything else — which ability groups, which post types, which third-party abilities — has a working default and can wait."
+msgstr "Zwei Entscheidungen, die vor jeder Verbindung zu treffen sind. Alles Übrige — welche Fähigkeitsgruppen, welche Inhaltstypen, welche Fähigkeiten anderer Plugins — hat eine brauchbare Voreinstellung und kann warten."
+
+#: src/Admin/Wizard.php:347
+msgid "Start read-only"
+msgstr "Nur lesend starten"
+
+#: src/Admin/Wizard.php:348
+msgid "Abilities that would change the site are not registered at all, so they are absent from the tool list rather than refused when called. The safe way to bring a connector up on a live site: prove the transport and the authentication first, then come back and turn it off."
+msgstr "Fähigkeiten, die die Website ändern würden, werden gar nicht erst registriert: Sie fehlen in der Werkzeugliste, statt beim Aufruf abgelehnt zu werden. Das ist der sichere Weg, einen Connector auf einer Live-Website in Betrieb zu nehmen: erst Transport und Authentifizierung belegen, dann zurückkommen und es abschalten."
+
+#: src/Admin/Wizard.php:355
+msgid "What makes a one-click connection possible: the client introduces itself and gets an identifier. It grants nothing on its own — a user still has to approve the request, holding the capability below. Turned off, every application has to be created by hand first."
+msgstr "Das, was eine Verbindung mit einem Klick möglich macht: Der Client stellt sich vor und erhält eine Kennung. Das allein gewährt nichts — ein Benutzer muss die Anfrage weiterhin bestätigen und dabei die Berechtigung von unten besitzen. Ausgeschaltet muss jede Anwendung zuerst von Hand angelegt werden."
+
+#. translators: 1: capability name, 2: number of addressable post types.
+#: src/Admin/Wizard.php:365
+#, php-format
+msgid "A user needs the %1$s capability to approve a client and to reach the endpoint, and %2$d post types are currently addressable. Both are adjustable afterwards, under Security and Tools."
+msgstr "Ein Benutzer braucht die Berechtigung %1$s, um einen Client zu bestätigen und den Endpunkt zu erreichen, und %2$d Inhaltstypen sind derzeit adressierbar. Beides lässt sich später unter Sicherheit und Werkzeuge anpassen."
+
+#: src/Admin/Wizard.php:376
+msgid "Save and continue"
+msgstr "Speichern und weiter"
+
+#: src/Admin/Wizard.php:389
+msgid "Hand over the URL"
+msgstr "Die URL weitergeben"
+
+#: src/Admin/Wizard.php:390
+msgid "This is the only thing the client needs. It reads the authorization server, the token endpoint and the tool list from it."
+msgstr "Das ist das Einzige, was der Client braucht. Autorisierungsserver, Token-Endpunkt und Werkzeugliste liest er daraus ab."
+
+#: src/Admin/Wizard.php:399
+msgid "Paste this into the client. Nothing else has to be copied across, unless the client cannot register itself."
+msgstr "Fügen Sie dies im Client ein. Nichts sonst muss übertragen werden, es sei denn, der Client kann sich nicht selbst registrieren."
+
+#: src/Admin/Wizard.php:402
+msgid "Then, in the client"
+msgstr "Dann, im Client"
+
+#. translators: %d: number of registered clients.
+#: src/Admin/Wizard.php:410
+#, php-format
+msgid "%d application has already registered against this site but holds no live token, which means it introduced itself and the approval never completed."
+msgid_plural "%d applications have already registered against this site but hold no live token, which means they introduced themselves and the approval never completed."
+msgstr[0] "%d Anwendung hat sich bereits bei dieser Website registriert, hält aber kein gültiges Token — sie hat sich also vorgestellt, und die Bestätigung kam nie zustande."
+msgstr[1] "%d Anwendungen haben sich bereits bei dieser Website registriert, halten aber kein gültiges Token — sie haben sich also vorgestellt, und die Bestätigung kam nie zustande."
+
+#: src/Admin/Wizard.php:439
+msgid "Something is connected"
+msgstr "Etwas ist verbunden"
+
+#: src/Admin/Wizard.php:439
+msgid "See it work"
+msgstr "Sehen, dass es läuft"
+
+#: src/Admin/Wizard.php:441
+msgid "An application holds a live token, which means the whole chain completed at least once. The test below re-walks it under its own throwaway credentials, which is the way to find out whether it still works."
+msgstr "Eine Anwendung hält ein gültiges Token, die gesamte Kette ist also mindestens einmal durchgelaufen. Der Test unten geht sie mit eigenen Wegwerf-Zugangsdaten erneut ab — die Art, herauszufinden, ob sie noch funktioniert."
+
+#: src/Admin/Wizard.php:442
+msgid "Nothing holds a live token yet. Either the approval has not been made in the client, or something in the chain refuses it — the test below walks the same path a client does and reports where it stops."
+msgstr "Noch hält nichts ein gültiges Token. Entweder wurde die Bestätigung im Client nicht vorgenommen, oder etwas in der Kette weist sie ab — der Test unten geht denselben Weg wie ein Client und meldet, wo er stehen bleibt."
+
+#: src/Admin/Wizard.php:453
+msgid "Finish"
+msgstr "Fertig"
+
+#: src/OAuth/ConsentScreen.php:80
+#: src/OAuth/ConsentScreen.php:106
+msgid "Authorise access"
+msgstr "Zugriff autorisieren"
+
+#. translators: 1: client application name, 2: site name.
+#: src/OAuth/ConsentScreen.php:83
+#, php-format
+msgid "%1$s is asking to connect to %2$s on your behalf. It will be able to:"
+msgstr "%1$s bittet darum, sich in Ihrem Namen mit %2$s zu verbinden. Die Anwendung wird Folgendes können:"
+
+#. translators: 1: user display name, 2: user login.
+#: src/OAuth/ConsentScreen.php:90
+#, php-format
+msgid "Acting as %1$s (%2$s). Everything it does will be recorded as done by you."
+msgstr "Handelt als %1$s (%2$s). Alles, was sie tut, wird als von Ihnen getan aufgezeichnet."
+
+#: src/OAuth/ConsentScreen.php:97
+msgid "Allow access"
+msgstr "Zugriff erlauben"
+
+#: src/OAuth/ConsentScreen.php:98
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#. translators: %s: the redirect URI the authorization code will be sent to.
+#: src/OAuth/ConsentScreen.php:101
+#, php-format
+msgid "You will be returned to %s."
+msgstr "Sie werden zu %s zurückgeführt."
+
+#. translators: %s: site name.
+#: src/OAuth/ConsentScreen.php:138
+#, php-format
+msgid "Back to %s"
+msgstr "Zurück zu %s"
+
+#: src/OAuth/Controller/AuthorizationController.php:86
+msgid "Unknown application"
+msgstr "Unbekannte Anwendung"
+
+#: src/OAuth/Controller/AuthorizationController.php:87
+msgid "The application that sent you here is not registered on this site. Nothing has been granted."
+msgstr "Die Anwendung, die Sie hierher geschickt hat, ist auf dieser Website nicht registriert. Es wurde nichts gewährt."
+
+#: src/OAuth/Controller/AuthorizationController.php:96
+msgid "Invalid redirect address"
+msgstr "Ungültige Redirect-Adresse"
+
+#: src/OAuth/Controller/AuthorizationController.php:97
+msgid "The address the application asked to be returned to is not one it registered. Nothing has been granted."
+msgstr "Die Adresse, zu der die Anwendung zurückgeführt werden wollte, ist keine der von ihr registrierten. Es wurde nichts gewährt."
+
+#: src/OAuth/Controller/AuthorizationController.php:145
+msgid "Expired request"
+msgstr "Abgelaufene Anfrage"
+
+#: src/OAuth/Controller/AuthorizationController.php:146
+msgid "This authorisation request has expired or was not started here. Return to the application and try connecting again."
+msgstr "Diese Autorisierungsanfrage ist abgelaufen oder wurde nicht hier begonnen. Kehren Sie zur Anwendung zurück und versuchen Sie die Verbindung erneut."
+
+#: src/OAuth/Controller/RegistrationController.php:70
+msgid "This site does not accept self-registration. An administrator must create the client."
+msgstr "Diese Website akzeptiert keine Selbstregistrierung. Ein Administrator muss den Client anlegen."
+
+#: src/OAuth/Controller/RegistrationController.php:83
+msgid "At least one valid https redirect URI is required."
+msgstr "Mindestens eine gültige https-Redirect-URI ist erforderlich."
+
+#: src/OAuth/Controller/RegistrationController.php:174
+msgid "Unnamed MCP client"
+msgstr "Unbenannter MCP-Client"
+
+#: src/OAuth/Controller/TokenController.php:61
+msgid "Client authentication failed."
+msgstr "Die Authentifizierung des Clients ist fehlgeschlagen."
+
+#: src/OAuth/Controller/TokenController.php:69
+msgid "Supported grant types are authorization_code and refresh_token."
+msgstr "Unterstützte Grant-Typen sind authorization_code und refresh_token."
+
+#: src/OAuth/Controller/TokenController.php:108
+msgid "The authorization code is unknown, expired, or has already been used."
+msgstr "Der Autorisierungscode ist unbekannt, abgelaufen oder wurde bereits verwendet."
+
+#: src/OAuth/Controller/TokenController.php:115
+msgid "The authorization code was issued to a different client."
+msgstr "Der Autorisierungscode wurde einem anderen Client ausgestellt."
+
+#: src/OAuth/Controller/TokenController.php:124
+msgid "The redirect URI does not match the one used to obtain this code."
+msgstr "Die Redirect-URI stimmt nicht mit der überein, mit der dieser Code erlangt wurde."
+
+#: src/OAuth/Controller/TokenController.php:131
+msgid "The PKCE code verifier does not match the challenge."
+msgstr "Der PKCE-Code-Verifier passt nicht zur Challenge."
+
+#: src/OAuth/Controller/TokenController.php:153
+msgid "The refresh token is unknown, expired, or has already been used."
+msgstr "Das Refresh-Token ist unbekannt, abgelaufen oder wurde bereits verwendet."
+
+#: src/OAuth/Controller/TokenController.php:160
+msgid "The refresh token was issued to a different client."
+msgstr "Das Refresh-Token wurde einem anderen Client ausgestellt."
+
+#: src/OAuth/Controller/TokenController.php:185
+msgid "The user this grant belongs to no longer has permission to use this connector."
+msgstr "Der Benutzer, dem diese Genehmigung gehört, darf diesen Connector nicht mehr verwenden."
+
+#: src/OAuth/Scope.php:149
+msgid "Read your posts, pages, media and site settings."
+msgstr "Ihre Beiträge, Seiten, Medien und Website-Einstellungen lesen."
+
+#: src/OAuth/Scope.php:150
+msgid "Create, change and delete your posts, pages, media and menus."
+msgstr "Ihre Beiträge, Seiten, Medien und Menüs anlegen, ändern und löschen."
+
+#: src/Plugin.php:112
+msgid "MCP Connector:"
+msgstr "MCP Connector:"
+
+#: src/Server/ExternalAbility.php:101
+msgid "Writes — may delete or overwrite"
+msgstr "Schreibt — kann löschen oder überschreiben"
+
+#: src/Server/ExternalAbility.php:108
+msgid "Undeclared — the provider says nothing about what this does"
+msgstr "Nicht erklärt — der Anbieter sagt nichts darüber, was dies tut"
+
+#. translators: %s: the site title.
+#: src/Server/ServerRegistry.php:114
+#, php-format
+msgid "%s MCP server"
+msgstr "MCP-Server von %s"
+
+#. translators: %s: the site URL.
+#: src/Server/ServerRegistry.php:119
+#, php-format
+msgid "Manage content on the WordPress site at %s."
+msgstr "Inhalte der WordPress-Website unter %s verwalten."
+
+#: src/Support/Environment.php:161
+msgid "The Abilities API is unavailable. It ships with WordPress 6.9 and later; on older versions, install the Abilities API feature plugin."
+msgstr "Die Abilities API ist nicht verfügbar. Sie wird mit WordPress 6.9 und neuer ausgeliefert; auf älteren Versionen installieren Sie das Feature-Plugin Abilities API."
+
+#: src/Support/Environment.php:168
+msgid "The MCP Adapter plugin is not active, so no MCP endpoint is served. It is not on wordpress.org and cannot be installed from the plugin screen — download it from https://github.com/WordPress/mcp-adapter and unpack it into wp-content/plugins/mcp-adapter/."
+msgstr "Das Plugin MCP Adapter ist nicht aktiv, es wird also kein MCP-Endpunkt ausgeliefert. Es liegt nicht auf wordpress.org und lässt sich nicht über die Plugin-Seite installieren — laden Sie es unter https://github.com/WordPress/mcp-adapter herunter und entpacken Sie es nach wp-content/plugins/mcp-adapter/."
+
+#: src/Support/Environment.php:175
+msgid "Pretty permalinks are disabled. The MCP and OAuth endpoints are only reachable at the URLs advertised to clients when a permalink structure is set."
+msgstr "Sprechende Permalinks sind deaktiviert. Die MCP- und OAuth-Endpunkte sind unter den Clients angekündigten URLs nur erreichbar, wenn eine Permalink-Struktur gesetzt ist."
+
+#. translators: 1: kind of record, 2: identifier that was looked up.
+#: src/Support/Failure.php:45
+#, php-format
+msgid "No %1$s found for \"%2$s\"."
+msgstr "Kein %1$s für „%2$s“ gefunden."
+
+#. translators: %s: the attempted action.
+#: src/Support/Failure.php:66
+#, php-format
+msgid "The authenticated user is not allowed to %s."
+msgstr "Der authentifizierte Benutzer darf nicht %s."
+
+#. translators: 1: the attempted action, 2: the underlying error message.
+#: src/Support/Failure.php:105
+#, php-format
+msgid "Could not %1$s: %2$s"
+msgstr "%1$s nicht möglich: %2$s"

@@ -1,0 +1,2062 @@
+/* Hallmark · component: admin-settings-screen · genre: modern-minimal · theme: custom (teal)
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * contrast: pass — ink 12:1, ink-2 7:1, ink-3 4.6:1, accent 5:1 on paper, paper on accent 5:1
+ * pre-emit critique: P5 H5 E4 S5 R5 V4
+ *
+ * Sibling of the AI Visibility admin screen: same skeleton, same rhythm, same
+ * component vocabulary, one axis apart. That screen anchors on indigo (hue 264),
+ * this one on teal (hue 200) — far enough that two tabs of wp-admin are never
+ * confused for each other, close enough that they read as one author's work.
+ *
+ * Scoped entirely to .mcpc so nothing leaks into the rest of wp-admin. No web
+ * font: this plugin's whole subject is which outbound requests a site makes, and
+ * fetching a typeface from a CDN to say so would be absurd. Hierarchy comes from
+ * weight, size and tracking on the system stack.
+ *
+ * No dark mode, deliberately: wp-admin has none, and a plugin screen that
+ * flipped on its own would sit black inside a white page.
+ */
+
+.mcpc {
+	/* Paper and ink */
+	--mcpc-paper: oklch(100% 0 0);
+	--mcpc-paper-2: oklch(97.6% 0.004 220);
+	--mcpc-paper-3: oklch(95.4% 0.007 220);
+	--mcpc-ink: oklch(24% 0.019 220);
+	--mcpc-ink-2: oklch(45% 0.015 220);
+	--mcpc-ink-3: oklch(58% 0.013 220);
+	--mcpc-line: oklch(91% 0.007 220);
+	--mcpc-line-2: oklch(85% 0.010 220);
+
+	/* Accent */
+	--mcpc-accent: oklch(48% 0.115 200);
+	--mcpc-accent-hover: oklch(41% 0.115 200);
+	--mcpc-accent-soft: oklch(96.5% 0.022 200);
+	--mcpc-accent-line: oklch(84% 0.060 200);
+
+	/* Status */
+	--mcpc-pass: oklch(56% 0.13 155);
+	--mcpc-pass-soft: oklch(96% 0.035 155);
+	--mcpc-warn: oklch(64% 0.14 75);
+	--mcpc-warn-ink: oklch(48% 0.11 75);
+	--mcpc-warn-soft: oklch(96.5% 0.045 85);
+	--mcpc-fail: oklch(55% 0.20 27);
+	--mcpc-fail-soft: oklch(96.5% 0.035 27);
+
+	/* Type */
+	--mcpc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	--mcpc-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+	--mcpc-text-xs: 11px;
+	--mcpc-text-sm: 12px;
+	--mcpc-text-base: 13px;
+	--mcpc-text-md: 14px;
+	--mcpc-text-lg: 17px;
+	--mcpc-text-xl: 22px;
+	--mcpc-text-2xl: 27px;
+	/* Only the setup screen goes this large. wp-admin's own scale stops well
+	   below it, which is the point: that screen is not part of wp-admin. */
+	--mcpc-text-3xl: 34px;
+	--mcpc-text-4xl: 44px;
+
+	/* Ink for the coloured band, where the paper is dark. */
+	--mcpc-band: oklch(38% 0.088 200);
+	--mcpc-band-2: oklch(33% 0.088 200);
+	--mcpc-onband: oklch(100% 0 0);
+	--mcpc-onband-2: oklch(87% 0.030 200);
+	--mcpc-onband-line: oklch(52% 0.070 200);
+
+	/* 4pt spacing scale */
+	--mcpc-space-1: 4px;
+	--mcpc-space-2: 8px;
+	--mcpc-space-3: 12px;
+	--mcpc-space-4: 16px;
+	--mcpc-space-5: 20px;
+	--mcpc-space-6: 24px;
+	--mcpc-space-8: 32px;
+	--mcpc-space-10: 40px;
+
+	--mcpc-radius: 8px;
+	--mcpc-radius-sm: 5px;
+	--mcpc-radius-pill: 999px;
+
+	--mcpc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--mcpc-dur: 140ms;
+
+	max-width: 1180px;
+	margin-right: var(--mcpc-space-5);
+	color: var(--mcpc-ink);
+	font-family: var(--mcpc-font);
+	font-size: var(--mcpc-text-base);
+	line-height: 1.55;
+}
+
+.mcpc *,
+.mcpc *::before,
+.mcpc *::after {
+	box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------------- masthead */
+
+.mcpc__masthead {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: var(--mcpc-space-4);
+	padding: var(--mcpc-space-5) var(--mcpc-space-6);
+	border-bottom: 1px solid var(--mcpc-line);
+	background: var(--mcpc-paper);
+}
+
+.mcpc__identity {
+	display: flex;
+	align-items: center;
+	gap: var(--mcpc-space-3);
+	min-width: 0;
+}
+
+/* Drawn inline rather than shipped as a file: one plug, one socket, one wire
+   between them, at the only size it is ever used. */
+.mcpc__mark {
+	flex: none;
+	width: 44px;
+	height: 44px;
+	color: var(--mcpc-accent);
+}
+
+/* Lets the title and tagline shrink instead of pushing the pill off the row. */
+.mcpc__identitytext {
+	min-width: 0;
+}
+
+.mcpc__title {
+	margin: 0;
+	padding: 0;
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-2xl);
+	font-weight: 620;
+	font-style: normal;
+	letter-spacing: -0.021em;
+	line-height: 1.15;
+}
+
+.mcpc__tagline {
+	max-width: 62ch;
+	margin: var(--mcpc-space-1) 0 0;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-md);
+}
+
+.mcpc__meta {
+	display: flex;
+	align-items: center;
+	gap: var(--mcpc-space-3);
+}
+
+.mcpc__version {
+	color: var(--mcpc-ink-3);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-sm);
+	font-variant-numeric: tabular-nums;
+}
+
+.mcpc-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--mcpc-space-2);
+	padding: var(--mcpc-space-1) var(--mcpc-space-3);
+	border: 1px solid transparent;
+	border-radius: var(--mcpc-radius-pill);
+	font-size: var(--mcpc-text-sm);
+	font-weight: 560;
+	letter-spacing: -0.005em;
+	white-space: nowrap;
+}
+
+.mcpc-pill::before {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+	content: "";
+}
+
+.mcpc-pill--pass {
+	border-color: color-mix(in oklch, var(--mcpc-pass) 26%, transparent);
+	background: var(--mcpc-pass-soft);
+	color: var(--mcpc-pass);
+}
+
+.mcpc-pill--warn {
+	border-color: color-mix(in oklch, var(--mcpc-warn) 32%, transparent);
+	background: var(--mcpc-warn-soft);
+	color: var(--mcpc-warn-ink);
+}
+
+.mcpc-pill--fail {
+	border-color: color-mix(in oklch, var(--mcpc-fail) 26%, transparent);
+	background: var(--mcpc-fail-soft);
+	color: var(--mcpc-fail);
+}
+
+/* ----------------------------------------------------------------- notices */
+
+/* WordPress drops its own notices in after .wp-header-end. Sit them flush
+   inside the shell so a saved-settings message reads as part of the screen
+   rather than something pasted over it. */
+.mcpc .notice,
+.mcpc div.error,
+.mcpc div.updated {
+	margin: 0;
+	border: 0;
+	border-bottom: 1px solid var(--mcpc-line);
+	border-left: 3px solid var(--mcpc-accent);
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.mcpc .notice-success {
+	border-left-color: var(--mcpc-pass);
+}
+
+.mcpc .notice-error {
+	border-left-color: var(--mcpc-fail);
+}
+
+.mcpc .notice-warning {
+	border-left-color: var(--mcpc-warn);
+}
+
+/* -------------------------------------------------------------------- body */
+
+/* The surface the whole screen sits on. Without it the panels float directly
+   on the admin's grey and the screen reads as unfinished. */
+.mcpc__shell {
+	margin-top: var(--mcpc-space-4);
+	border: 1px solid var(--mcpc-line);
+	border-radius: 12px;
+	background: var(--mcpc-paper);
+	box-shadow: 0 1px 2px oklch(24% 0.02 220 / 0.04), 0 8px 24px -16px oklch(24% 0.02 220 / 0.18);
+	overflow: hidden;
+}
+
+.mcpc__body {
+	display: grid;
+	grid-template-columns: 258px minmax(0, 1fr);
+	align-items: stretch;
+}
+
+/* ---------------------------------------------------------------------- nav */
+
+.mcpc__nav {
+	padding: var(--mcpc-space-3);
+	border-right: 1px solid var(--mcpc-line);
+	background: var(--mcpc-paper-2);
+}
+
+.mcpc__navlist {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.mcpc__navrow {
+	margin: 0;
+}
+
+.mcpc__navitem {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--mcpc-space-3);
+	width: 100%;
+	padding: var(--mcpc-space-3);
+	border: 0;
+	border-radius: var(--mcpc-radius);
+	background: transparent;
+	color: var(--mcpc-ink-2);
+	font-family: inherit;
+	text-align: left;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out), color var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc__navicon {
+	flex: none;
+	margin-top: 1px;
+	color: var(--mcpc-ink-3);
+	transition: color var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc__navtext {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+}
+
+.mcpc__navlabel {
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 560;
+	letter-spacing: -0.006em;
+	overflow-wrap: anywhere;
+}
+
+.mcpc__navdesc {
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-sm);
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.mcpc__navitem:hover,
+.mcpc__navitem.is-hover {
+	background: var(--mcpc-paper-3);
+}
+
+.mcpc__navitem:hover .mcpc__navicon,
+.mcpc__navitem.is-hover .mcpc__navicon {
+	color: var(--mcpc-ink-2);
+}
+
+.mcpc__navitem:focus-visible,
+.mcpc__navitem.is-focus {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: -1px;
+}
+
+.mcpc__navitem:active,
+.mcpc__navitem.is-active {
+	background: var(--mcpc-line);
+}
+
+.mcpc__navitem[aria-selected="true"] {
+	background: var(--mcpc-paper);
+	box-shadow: inset 0 0 0 1px var(--mcpc-accent-line);
+}
+
+.mcpc__navitem[aria-selected="true"] .mcpc__navicon,
+.mcpc__navitem[aria-selected="true"] .mcpc__navlabel {
+	color: var(--mcpc-accent);
+}
+
+.mcpc__navitem[aria-selected="true"] .mcpc__navlabel {
+	font-weight: 620;
+}
+
+/* A count riding on a nav row: connected applications, published tools. */
+.mcpc__navcount {
+	margin-left: auto;
+	padding-left: var(--mcpc-space-2);
+	color: var(--mcpc-ink-3);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-sm);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ panels */
+
+.mcpc__panels {
+	min-width: 0;
+	padding: var(--mcpc-space-6);
+}
+
+.mcpc__panel[hidden] {
+	display: none;
+}
+
+.mcpc__panel:focus-visible {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: 4px;
+}
+
+.mcpc__panelhead {
+	margin-bottom: var(--mcpc-space-6);
+}
+
+.mcpc__paneltitle {
+	margin: 0;
+	padding: 0;
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-xl);
+	font-weight: 600;
+	font-style: normal;
+	letter-spacing: -0.017em;
+	line-height: 1.2;
+}
+
+.mcpc__panelintro {
+	max-width: 68ch;
+	margin: var(--mcpc-space-2) 0 0;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-md);
+}
+
+.mcpc-subhead {
+	margin: var(--mcpc-space-8) 0 var(--mcpc-space-3);
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 620;
+	font-style: normal;
+	letter-spacing: -0.008em;
+}
+
+.mcpc-subhead:first-child {
+	margin-top: 0;
+}
+
+.mcpc-note {
+	max-width: 72ch;
+	margin: var(--mcpc-space-5) 0 0;
+	padding-left: var(--mcpc-space-3);
+	border-left: 2px solid var(--mcpc-line-2);
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-empty {
+	margin: 0;
+	padding: var(--mcpc-space-6);
+	border: 1px dashed var(--mcpc-line-2);
+	border-radius: var(--mcpc-radius);
+	background: var(--mcpc-paper-2);
+	color: var(--mcpc-ink-2);
+	text-align: center;
+}
+
+/* A compact row of counts. Numbers, not tiles: four large figures in coloured
+   boxes would claim more importance than "three post types are addressable"
+   deserves. */
+.mcpc-figures {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--mcpc-space-6);
+	margin: 0 0 var(--mcpc-space-5);
+	padding: var(--mcpc-space-4);
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	background: var(--mcpc-paper-2);
+}
+
+.mcpc-figures div {
+	min-width: 0;
+}
+
+.mcpc-figures dt {
+	margin: 0;
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-xs);
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.mcpc-figures dd {
+	margin: 2px 0 0;
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-lg);
+	font-variant-numeric: tabular-nums;
+	font-weight: 560;
+}
+
+/* ------------------------------------------------------------------ checks */
+
+.mcpc-checks {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	list-style: none;
+	overflow: hidden;
+}
+
+.mcpc-check {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--mcpc-space-3);
+	margin: 0;
+	padding: var(--mcpc-space-3) var(--mcpc-space-4);
+	border-top: 1px solid var(--mcpc-line);
+}
+
+.mcpc-check:first-child {
+	border-top: 0;
+}
+
+.mcpc-check--fail {
+	background: var(--mcpc-fail-soft);
+}
+
+.mcpc-check--warn {
+	background: var(--mcpc-warn-soft);
+}
+
+.mcpc-check__body {
+	display: block;
+	min-width: 0;
+}
+
+.mcpc-check__label {
+	display: block;
+	color: var(--mcpc-ink);
+	font-weight: 560;
+}
+
+.mcpc-check__detail {
+	display: block;
+	max-width: 78ch;
+	color: var(--mcpc-ink-2);
+	overflow-wrap: anywhere;
+}
+
+.mcpc-dot {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	margin-top: 7px;
+	border-radius: 50%;
+	background: var(--mcpc-ink-3);
+}
+
+.mcpc-dot--pass {
+	background: var(--mcpc-pass);
+}
+
+.mcpc-dot--warn {
+	background: var(--mcpc-warn);
+}
+
+.mcpc-dot--fail {
+	background: var(--mcpc-fail);
+}
+
+/* --------------------------------------------------------------- the fix */
+
+/* A check that fails states its remedy verbatim: the nginx line to change, the
+   directory to unpack an archive into, the setting to flip. Prose describing a
+   configuration change is a riddle; the change itself is not. */
+/* Drawn as spans rather than divs: a remedy appears inside a check's body and
+   inside a numbered step, both of which are inline contexts where a div would
+   not be valid. */
+.mcpc-fix {
+	display: block;
+	max-width: 72ch;
+	margin: var(--mcpc-space-3) 0 0;
+	border: 1px solid var(--mcpc-line-2);
+	border-radius: var(--mcpc-radius-sm);
+	background: var(--mcpc-paper);
+	overflow: hidden;
+}
+
+.mcpc-fix__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mcpc-space-2);
+	padding: var(--mcpc-space-2) var(--mcpc-space-3);
+	border-bottom: 1px solid var(--mcpc-line);
+	background: var(--mcpc-paper-2);
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-xs);
+	font-weight: 560;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+/* The head is set in small caps; a button borrowing that would shout. */
+.mcpc-fix__head .mcpc-button {
+	min-height: 22px;
+	padding: 0 var(--mcpc-space-2);
+	font-size: var(--mcpc-text-xs);
+	font-weight: 560;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.mcpc-fix__code {
+	display: block;
+	margin: 0;
+	padding: var(--mcpc-space-3);
+	overflow-x: auto;
+	color: var(--mcpc-ink);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-base);
+	line-height: 1.6;
+	tab-size: 4;
+	white-space: pre;
+}
+
+/* The line being replaced, struck through, above the line that replaces it. */
+.mcpc-fix__wrong {
+	color: var(--mcpc-ink-3);
+	text-decoration: line-through;
+	text-decoration-color: var(--mcpc-fail);
+}
+
+.mcpc-fix__right {
+	color: var(--mcpc-ink);
+	font-weight: 600;
+}
+
+/* ----------------------------------------------------------------- actions */
+
+.mcpc-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--mcpc-space-3);
+	margin-top: var(--mcpc-space-6);
+}
+
+.mcpc-actions__status {
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-actions__status[data-state="error"] {
+	color: var(--mcpc-fail);
+	font-weight: 560;
+}
+
+.mcpc-actions__status[data-state="success"] {
+	color: var(--mcpc-pass);
+	font-weight: 560;
+}
+
+/* ----------------------------------------------------------------- buttons */
+
+.mcpc-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--mcpc-space-2);
+	min-height: 34px;
+	padding: 0 var(--mcpc-space-4);
+	border: 1px solid transparent;
+	border-radius: var(--mcpc-radius-sm);
+	font-family: inherit;
+	font-size: var(--mcpc-text-md);
+	font-weight: 560;
+	line-height: 1;
+	white-space: nowrap;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out), border-color var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-button--primary {
+	background: var(--mcpc-accent);
+	color: oklch(100% 0 0);
+}
+
+.mcpc-button--primary:hover,
+.mcpc-button--primary.is-hover {
+	background: var(--mcpc-accent-hover);
+	color: oklch(100% 0 0);
+}
+
+.mcpc-button--primary:active,
+.mcpc-button--primary.is-active {
+	background: var(--mcpc-accent-hover);
+	transform: translateY(1px);
+}
+
+.mcpc-button--quiet {
+	min-height: 28px;
+	padding: 0 var(--mcpc-space-3);
+	border-color: var(--mcpc-line-2);
+	background: var(--mcpc-paper);
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-button--quiet:hover,
+.mcpc-button--quiet.is-hover {
+	border-color: var(--mcpc-ink-3);
+	background: var(--mcpc-paper-3);
+	color: var(--mcpc-ink);
+}
+
+.mcpc-button--quiet:active,
+.mcpc-button--quiet.is-active {
+	background: var(--mcpc-line);
+}
+
+/* Revoking a client disconnects somebody. It should not look like Cancel. */
+.mcpc-button--danger {
+	min-height: 28px;
+	padding: 0 var(--mcpc-space-3);
+	border-color: color-mix(in oklch, var(--mcpc-fail) 34%, transparent);
+	background: var(--mcpc-paper);
+	color: var(--mcpc-fail);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-button--danger:hover,
+.mcpc-button--danger.is-hover {
+	border-color: var(--mcpc-fail);
+	background: var(--mcpc-fail-soft);
+}
+
+.mcpc-button--danger:active,
+.mcpc-button--danger.is-active {
+	background: color-mix(in oklch, var(--mcpc-fail) 12%, var(--mcpc-paper));
+}
+
+.mcpc-button:focus-visible,
+.mcpc-button.is-focus {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: 2px;
+}
+
+.mcpc-button[disabled],
+.mcpc-button.is-disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.mcpc-button[data-state="loading"] {
+	cursor: progress;
+}
+
+.mcpc-button[data-state="loading"]::before {
+	width: 12px;
+	height: 12px;
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 50%;
+	animation: mcpc-spin 640ms linear infinite;
+	content: "";
+}
+
+@keyframes mcpc-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.mcpc-link {
+	color: var(--mcpc-accent);
+	font-weight: 560;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.mcpc-link:hover,
+.mcpc-link.is-hover {
+	color: var(--mcpc-accent-hover);
+}
+
+.mcpc-link:focus-visible,
+.mcpc-link.is-focus {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+/* ----------------------------------------------------------------- toggles */
+
+.mcpc-stack {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	overflow: hidden;
+}
+
+.mcpc-toggle {
+	position: relative;
+	border-top: 1px solid var(--mcpc-line);
+}
+
+.mcpc-toggle:first-child {
+	border-top: 0;
+}
+
+.mcpc-toggle__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.mcpc-toggle__label {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--mcpc-space-4);
+	padding: var(--mcpc-space-4);
+	cursor: pointer;
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-toggle__label:hover,
+.mcpc-toggle.is-hover .mcpc-toggle__label {
+	background: var(--mcpc-paper-2);
+}
+
+.mcpc-toggle__input:focus-visible + .mcpc-toggle__label,
+.mcpc-toggle.is-focus .mcpc-toggle__label {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: -2px;
+}
+
+.mcpc-toggle__input:disabled + .mcpc-toggle__label {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.mcpc-toggle__track {
+	position: relative;
+	flex: none;
+	width: 38px;
+	height: 22px;
+	margin-top: 1px;
+	border-radius: var(--mcpc-radius-pill);
+	background: var(--mcpc-line-2);
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-toggle__knob {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: var(--mcpc-paper);
+	box-shadow: 0 1px 2px oklch(24% 0.02 220 / 0.28);
+	transition: transform var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-toggle__input:checked + .mcpc-toggle__label .mcpc-toggle__track {
+	background: var(--mcpc-accent);
+}
+
+.mcpc-toggle__input:checked + .mcpc-toggle__label .mcpc-toggle__knob {
+	transform: translateX(16px);
+}
+
+.mcpc-toggle__input:active + .mcpc-toggle__label .mcpc-toggle__knob {
+	width: 19px;
+}
+
+.mcpc-toggle__text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.mcpc-toggle__title {
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 560;
+	overflow-wrap: anywhere;
+}
+
+.mcpc-toggle__help {
+	max-width: 72ch;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+/* ------------------------------------------------------------------ fields */
+
+.mcpc-field {
+	margin-bottom: var(--mcpc-space-6);
+}
+
+.mcpc-field--narrow {
+	max-width: 320px;
+}
+
+.mcpc-field__label {
+	display: block;
+	margin-bottom: var(--mcpc-space-2);
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 560;
+}
+
+.mcpc-field__control {
+	display: block;
+	width: 100%;
+	max-width: 640px;
+	padding: var(--mcpc-space-2) var(--mcpc-space-3);
+	border: 1px solid var(--mcpc-line-2);
+	border-radius: var(--mcpc-radius-sm);
+	background: var(--mcpc-paper);
+	color: var(--mcpc-ink);
+	font-family: inherit;
+	font-size: var(--mcpc-text-md);
+	line-height: 1.5;
+	transition: border-color var(--mcpc-dur) var(--mcpc-ease-out), box-shadow var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-field__control--mono {
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-field__control--area {
+	max-width: 720px;
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-base);
+	resize: vertical;
+}
+
+.mcpc-field__control:hover,
+.mcpc-field__control.is-hover {
+	border-color: var(--mcpc-ink-3);
+}
+
+.mcpc-field__control:focus,
+.mcpc-field__control:focus-visible,
+.mcpc-field__control.is-focus {
+	outline: none;
+	border-color: var(--mcpc-accent);
+	box-shadow: 0 0 0 3px var(--mcpc-accent-soft);
+}
+
+.mcpc-field__control:disabled,
+.mcpc-field__control.is-disabled {
+	background: var(--mcpc-paper-3);
+	color: var(--mcpc-ink-3);
+	cursor: not-allowed;
+}
+
+.mcpc-field__control[aria-invalid="true"] {
+	border-color: var(--mcpc-fail);
+}
+
+.mcpc-field__control::placeholder {
+	color: var(--mcpc-ink-3);
+	opacity: 1;
+}
+
+.mcpc-field__help {
+	max-width: 640px;
+	margin: var(--mcpc-space-2) 0 0;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-columns {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+	gap: var(--mcpc-space-6);
+}
+
+/* ------------------------------------------------------------- copy fields */
+
+/* The one thing that has to reach the client. Given its own weight, because a
+   URL buried in a table of six other URLs is a URL nobody finds. */
+.mcpc-address {
+	margin: 0;
+	padding: var(--mcpc-space-4);
+	border: 1px solid var(--mcpc-accent-line);
+	border-radius: var(--mcpc-radius);
+	background: var(--mcpc-accent-soft);
+}
+
+.mcpc-address__label {
+	display: block;
+	margin-bottom: var(--mcpc-space-2);
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 620;
+}
+
+.mcpc-address__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--mcpc-space-2);
+}
+
+.mcpc-address__value {
+	flex: 1 1 320px;
+	min-width: 0;
+	padding: var(--mcpc-space-2) var(--mcpc-space-3);
+	border: 1px solid var(--mcpc-accent-line);
+	border-radius: var(--mcpc-radius-sm);
+	background: var(--mcpc-paper);
+	color: var(--mcpc-ink);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-md);
+	line-height: 1.5;
+}
+
+.mcpc-address__value:focus,
+.mcpc-address__value:focus-visible {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: 1px;
+}
+
+.mcpc-address__help {
+	max-width: 72ch;
+	margin: var(--mcpc-space-3) 0 0;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+/* The remaining endpoints: present, secondary, copyable. */
+.mcpc-endpoints {
+	display: grid;
+	grid-template-columns: minmax(0, 14rem) minmax(0, 1fr) auto;
+	gap: 0;
+	margin: 0;
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	overflow: hidden;
+}
+
+.mcpc-endpoints dt,
+.mcpc-endpoints dd {
+	margin: 0;
+	padding: var(--mcpc-space-2) var(--mcpc-space-3);
+	border-top: 1px solid var(--mcpc-line);
+}
+
+.mcpc-endpoints > :nth-child(-n + 3) {
+	border-top: 0;
+}
+
+.mcpc-endpoints dt {
+	background: var(--mcpc-paper-2);
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+	font-weight: 560;
+}
+
+.mcpc-endpoints__url {
+	min-width: 0;
+	color: var(--mcpc-ink);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-sm);
+	overflow-wrap: anywhere;
+}
+
+.mcpc-endpoints__action {
+	text-align: right;
+	white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- type cards */
+
+.mcpc-typegrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr));
+	gap: var(--mcpc-space-2);
+	margin-top: var(--mcpc-space-3);
+}
+
+.mcpc-card-check {
+	position: relative;
+	min-width: 0;
+}
+
+.mcpc-card-check__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.mcpc-card-check__label {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	height: 100%;
+	padding: var(--mcpc-space-3);
+	border: 1px solid var(--mcpc-line-2);
+	border-radius: var(--mcpc-radius-sm);
+	background: var(--mcpc-paper);
+	cursor: pointer;
+	transition: border-color var(--mcpc-dur) var(--mcpc-ease-out), background var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-card-check__label:hover,
+.mcpc-card-check.is-hover .mcpc-card-check__label {
+	border-color: var(--mcpc-ink-3);
+	background: var(--mcpc-paper-2);
+}
+
+.mcpc-card-check__input:focus-visible + .mcpc-card-check__label,
+.mcpc-card-check.is-focus .mcpc-card-check__label {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: 1px;
+}
+
+.mcpc-card-check__input:checked + .mcpc-card-check__label {
+	border-color: var(--mcpc-accent);
+	background: var(--mcpc-accent-soft);
+	box-shadow: inset 0 0 0 1px var(--mcpc-accent);
+}
+
+.mcpc-card-check__input:disabled + .mcpc-card-check__label {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.mcpc-card-check__name {
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 560;
+	overflow-wrap: anywhere;
+}
+
+.mcpc-card-check__slug {
+	padding: 0;
+	background: none;
+	color: var(--mcpc-ink-2);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-xs);
+	overflow-wrap: anywhere;
+}
+
+.mcpc-card-check__note {
+	margin-top: auto;
+	padding-top: var(--mcpc-space-1);
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-xs);
+}
+
+.mcpc-card-check__note--warn {
+	color: var(--mcpc-warn-ink);
+}
+
+/* ------------------------------------------------------------- ability rows */
+
+.mcpc-provider {
+	margin-top: var(--mcpc-space-6);
+}
+
+.mcpc-provider__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--mcpc-space-2) var(--mcpc-space-3);
+	margin-bottom: var(--mcpc-space-2);
+}
+
+.mcpc-provider__name {
+	margin: 0;
+	color: var(--mcpc-ink);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-md);
+	font-weight: 620;
+	font-style: normal;
+}
+
+.mcpc-provider__count {
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-base);
+}
+
+/* Abilities are grouped by what their provider claims about them, because that
+   claim — not the plugin they came from — is what the decision turns on. */
+.mcpc-claim {
+	margin-top: var(--mcpc-space-3);
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	overflow: hidden;
+}
+
+.mcpc-claim__head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mcpc-space-2) var(--mcpc-space-3);
+	padding: var(--mcpc-space-2) var(--mcpc-space-3);
+	border-bottom: 1px solid var(--mcpc-line);
+	background: var(--mcpc-paper-2);
+}
+
+.mcpc-claim__title {
+	margin: 0;
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-base);
+	font-weight: 620;
+	font-style: normal;
+}
+
+.mcpc-claim__note {
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-ability {
+	position: relative;
+	border-top: 1px solid var(--mcpc-line);
+}
+
+.mcpc-ability:first-child {
+	border-top: 0;
+}
+
+.mcpc-ability__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.mcpc-ability__label {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 2px var(--mcpc-space-3);
+	padding: var(--mcpc-space-3);
+	cursor: pointer;
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-ability__label:hover,
+.mcpc-ability.is-hover .mcpc-ability__label {
+	background: var(--mcpc-paper-2);
+}
+
+.mcpc-ability__input:focus-visible + .mcpc-ability__label,
+.mcpc-ability.is-focus .mcpc-ability__label {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: -2px;
+}
+
+/* A checkbox drawn as a box, since a row of switches would read as six settings
+   rather than one multiple-choice list. */
+.mcpc-ability__box {
+	grid-row: 1 / span 3;
+	flex: none;
+	width: 16px;
+	height: 16px;
+	margin-top: 3px;
+	border: 1px solid var(--mcpc-line-2);
+	border-radius: 4px;
+	background: var(--mcpc-paper);
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out), border-color var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-ability__input:checked + .mcpc-ability__label .mcpc-ability__box {
+	border-color: var(--mcpc-accent);
+	background: var(--mcpc-accent);
+}
+
+.mcpc-ability__input:checked + .mcpc-ability__label .mcpc-ability__box::after {
+	display: block;
+	width: 4px;
+	height: 8px;
+	margin: 1px 0 0 4px;
+	border: solid oklch(100% 0 0);
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg);
+	content: "";
+}
+
+.mcpc-ability__name {
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 560;
+	overflow-wrap: anywhere;
+}
+
+.mcpc-ability__slug {
+	padding: 0;
+	background: none;
+	color: var(--mcpc-ink-3);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-xs);
+	overflow-wrap: anywhere;
+}
+
+.mcpc-ability__desc {
+	max-width: 78ch;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-badge {
+	display: inline-flex;
+	align-items: center;
+	margin-left: var(--mcpc-space-2);
+	padding: 1px var(--mcpc-space-2);
+	border: 1px solid transparent;
+	border-radius: var(--mcpc-radius-pill);
+	font-size: var(--mcpc-text-xs);
+	font-weight: 560;
+	letter-spacing: 0.01em;
+	vertical-align: 1px;
+	white-space: nowrap;
+}
+
+.mcpc-badge--recommended {
+	border-color: var(--mcpc-accent-line);
+	background: var(--mcpc-accent-soft);
+	color: var(--mcpc-accent);
+}
+
+.mcpc-badge--quiet {
+	border-color: var(--mcpc-line-2);
+	background: var(--mcpc-paper-2);
+	color: var(--mcpc-ink-2);
+}
+
+/* ------------------------------------------------------- connected clients */
+
+.mcpc-apps {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+	gap: var(--mcpc-space-3);
+}
+
+.mcpc-app {
+	display: flex;
+	flex-direction: column;
+	padding: var(--mcpc-space-4);
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	background: var(--mcpc-paper);
+}
+
+/* A client that holds no live token is registered, not connected. Drawn as an
+   outline so the difference is visible without reading the token count. */
+.mcpc-app.is-idle {
+	border-style: dashed;
+	background: var(--mcpc-paper-2);
+}
+
+.mcpc-app__head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--mcpc-space-2);
+}
+
+.mcpc-app__name {
+	margin: 0;
+	min-width: 0;
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 620;
+	font-style: normal;
+	overflow-wrap: anywhere;
+}
+
+.mcpc-app__id {
+	display: block;
+	margin-top: 2px;
+	color: var(--mcpc-ink-3);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-xs);
+	overflow-wrap: anywhere;
+}
+
+.mcpc-app__stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--mcpc-space-5);
+	margin: var(--mcpc-space-4) 0 0;
+}
+
+.mcpc-app__stats div {
+	min-width: 0;
+}
+
+.mcpc-app__stats dt {
+	margin: 0;
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-xs);
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.mcpc-app__stats dd {
+	margin: 2px 0 0;
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-base);
+	font-variant-numeric: tabular-nums;
+}
+
+.mcpc-app__uris {
+	margin: var(--mcpc-space-3) 0 0;
+	color: var(--mcpc-ink-3);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-xs);
+	overflow-wrap: anywhere;
+}
+
+.mcpc-app__foot {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--mcpc-space-2);
+	margin-top: var(--mcpc-space-4);
+	padding-top: var(--mcpc-space-3);
+	border-top: 1px solid var(--mcpc-line);
+}
+
+/* The client secret, shown once and never again. */
+.mcpc-secret {
+	margin: 0 0 var(--mcpc-space-5);
+	padding: var(--mcpc-space-4);
+	border: 1px solid var(--mcpc-warn);
+	border-radius: var(--mcpc-radius);
+	background: var(--mcpc-warn-soft);
+}
+
+.mcpc-secret__title {
+	margin: 0 0 var(--mcpc-space-1);
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 620;
+	font-style: normal;
+}
+
+.mcpc-secret__help {
+	margin: 0 0 var(--mcpc-space-3);
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-secret .mcpc-address + .mcpc-address {
+	margin-top: var(--mcpc-space-3);
+}
+
+/* ---------------------------------------------------- the setup screen */
+
+/* The assistant is not a panel of wp-admin; it is the whole window. Setting up a
+   connector is a sequence somebody does once, with an end, and the surrounding
+   menu offers nothing but ways to abandon it halfway. So the screen takes the
+   window, and the only way out is a link that says so.
+   The suppression is in three places on purpose. The admin bar's renderer and
+   the notices are unhooked in PHP; this hides what is left. */
+
+/* WordPress writes `wp-toolbar` onto <html> and reserves 32px for a bar that is
+   no longer rendered. Both are derived from is_admin_bar_showing(), which
+   returns true for any admin request before it reaches its own filter, so there
+   is nothing to hook — the space has to be taken back here. :has() is doing the
+   work of a body class the <html> element cannot carry; where it is unsupported
+   the rule is skipped and the screen simply keeps a 32px gap at the top. */
+html.wp-toolbar:has(body.mcpc-setup-screen) {
+	padding-top: 0 !important;
+}
+
+body.mcpc-setup-screen {
+	background: var(--mcpc-paper-2, oklch(97.6% 0.004 220));
+}
+
+body.mcpc-setup-screen #wpadminbar,
+body.mcpc-setup-screen #adminmenumain,
+body.mcpc-setup-screen #wpfooter,
+body.mcpc-setup-screen #screen-meta,
+body.mcpc-setup-screen #screen-meta-links,
+body.mcpc-setup-screen .update-nag,
+body.mcpc-setup-screen .notice {
+	display: none !important;
+}
+
+body.mcpc-setup-screen #wpcontent,
+body.mcpc-setup-screen #wpbody-content {
+	margin: 0;
+	padding: 0;
+}
+
+body.mcpc-setup-screen #wpbody {
+	padding-top: 0;
+}
+
+.mcpc-setup {
+	max-width: none;
+	margin: 0;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--mcpc-paper-2);
+}
+
+/* ----------------------------------------------------------------- band */
+
+/* The colour field. It carries identity, progress and the way out — everything
+   that is true of the whole sequence rather than of one step. */
+.mcpc-setup__band {
+	background: var(--mcpc-band);
+	background-image: linear-gradient(160deg, var(--mcpc-band) 0%, var(--mcpc-band-2) 100%);
+	color: var(--mcpc-onband);
+}
+
+.mcpc-setup__bandinner {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mcpc-space-4) var(--mcpc-space-6);
+	max-width: 1080px;
+	margin: 0 auto;
+	padding: var(--mcpc-space-5) var(--mcpc-space-6);
+}
+
+.mcpc-setup__brand {
+	display: flex;
+	align-items: center;
+	gap: var(--mcpc-space-3);
+	min-width: 0;
+	color: var(--mcpc-onband);
+	font-size: var(--mcpc-text-md);
+	font-weight: 620;
+	letter-spacing: -0.008em;
+}
+
+.mcpc-setup__brand .mcpc__mark {
+	width: 30px;
+	height: 30px;
+	color: var(--mcpc-onband);
+}
+
+.mcpc-setup__exit {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--mcpc-space-2);
+	color: var(--mcpc-onband-2);
+	font-size: var(--mcpc-text-base);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.mcpc-setup__exit:hover,
+.mcpc-setup__exit:focus {
+	color: var(--mcpc-onband);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.mcpc-setup__exit:focus-visible {
+	outline: 2px solid var(--mcpc-onband);
+	outline-offset: 3px;
+	border-radius: 3px;
+}
+
+/* ----------------------------------------------------------------- rail */
+
+.mcpc-setup__rail {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--mcpc-space-2) var(--mcpc-space-4);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: mcpc-step;
+}
+
+.mcpc-setup__step {
+	margin: 0;
+}
+
+.mcpc-setup__steplink {
+	display: flex;
+	align-items: center;
+	gap: var(--mcpc-space-2);
+	color: var(--mcpc-onband-2);
+	font-size: var(--mcpc-text-base);
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.mcpc-setup__steplink::before {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 24px;
+	height: 24px;
+	border: 1px solid var(--mcpc-onband-line);
+	border-radius: 50%;
+	counter-increment: mcpc-step;
+	content: counter(mcpc-step);
+	font-size: var(--mcpc-text-sm);
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+}
+
+.mcpc-setup__steplink:hover {
+	color: var(--mcpc-onband);
+}
+
+.mcpc-setup__steplink:focus-visible {
+	outline: 2px solid var(--mcpc-onband);
+	outline-offset: 3px;
+	border-radius: var(--mcpc-radius-pill);
+}
+
+.mcpc-setup__step.is-current .mcpc-setup__steplink {
+	color: var(--mcpc-onband);
+	font-weight: 620;
+}
+
+.mcpc-setup__step.is-current .mcpc-setup__steplink::before {
+	border-color: var(--mcpc-onband);
+	background: var(--mcpc-onband);
+	color: var(--mcpc-band);
+}
+
+.mcpc-setup__step.is-done .mcpc-setup__steplink {
+	color: var(--mcpc-onband);
+}
+
+.mcpc-setup__step.is-done .mcpc-setup__steplink::before {
+	border-color: var(--mcpc-onband-2);
+	content: "\2713";
+	font-size: var(--mcpc-text-md);
+}
+
+/* The labels are the first thing to go when the band runs out of room; the
+   numbered discs still say where the sequence is. */
+@media (max-width: 960px) {
+	.mcpc-setup__steptext {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+}
+
+/* ---------------------------------------------------------------- stage */
+
+.mcpc-setup__stage {
+	flex: 1 1 auto;
+	width: 100%;
+	max-width: 1080px;
+	margin: 0 auto;
+	padding: var(--mcpc-space-10) var(--mcpc-space-6) var(--mcpc-space-8);
+}
+
+.mcpc-setup__eyebrow {
+	margin: 0 0 var(--mcpc-space-3);
+	color: var(--mcpc-accent);
+	font-size: var(--mcpc-text-sm);
+	font-weight: 620;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.mcpc-setup__title {
+	max-width: 20ch;
+	margin: 0;
+	padding: 0;
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-4xl);
+	font-weight: 640;
+	font-style: normal;
+	letter-spacing: -0.028em;
+	line-height: 1.06;
+	overflow-wrap: anywhere;
+}
+
+.mcpc-setup__lede {
+	max-width: 60ch;
+	margin: var(--mcpc-space-4) 0 0;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-lg);
+	line-height: 1.5;
+}
+
+/* A hairline between the argument and the apparatus. The step reads as a
+   statement followed by its evidence, not as a form with a caption. */
+.mcpc-setup__content {
+	margin-top: var(--mcpc-space-8);
+	padding-top: var(--mcpc-space-6);
+	border-top: 1px solid var(--mcpc-line-2);
+}
+
+.mcpc-setup__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mcpc-space-4);
+	margin-top: var(--mcpc-space-8);
+	padding-top: var(--mcpc-space-5);
+	border-top: 1px solid var(--mcpc-line-2);
+}
+
+.mcpc-setup__actionside {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--mcpc-space-4);
+}
+
+/* One action per screen, and it should look like it. */
+.mcpc-setup .mcpc-button--primary {
+	min-height: 44px;
+	padding: 0 var(--mcpc-space-6);
+	font-size: var(--mcpc-text-lg);
+}
+
+.mcpc-setup .mcpc-button--quiet {
+	min-height: 44px;
+	padding: 0 var(--mcpc-space-5);
+	font-size: var(--mcpc-text-md);
+}
+
+/* The address is the payload of the whole sequence; give it the room. */
+.mcpc-setup .mcpc-address__value {
+	font-size: var(--mcpc-text-lg);
+	padding: var(--mcpc-space-3) var(--mcpc-space-4);
+}
+
+@media (max-width: 782px) {
+	.mcpc-setup__bandinner,
+	.mcpc-setup__stage {
+		padding-left: var(--mcpc-space-4);
+		padding-right: var(--mcpc-space-4);
+	}
+
+	.mcpc-setup__stage {
+		padding-top: var(--mcpc-space-6);
+	}
+
+	.mcpc-setup__title {
+		font-size: var(--mcpc-text-3xl);
+	}
+
+	.mcpc-setup__lede {
+		font-size: var(--mcpc-text-md);
+	}
+}
+
+/* ------------------------------------------------------------ client guide */
+
+/* One walkthrough per client, because the walkthroughs genuinely differ: Claude
+   registers itself and needs nothing pasted back, others want a client ID and
+   secret created here first. */
+.mcpc-guide {
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	overflow: hidden;
+}
+
+.mcpc-guide__client {
+	border-top: 1px solid var(--mcpc-line);
+}
+
+.mcpc-guide__client:first-child {
+	border-top: 0;
+}
+
+.mcpc-guide__summary {
+	display: flex;
+	align-items: center;
+	gap: var(--mcpc-space-3);
+	padding: var(--mcpc-space-3) var(--mcpc-space-4);
+	background: var(--mcpc-paper-2);
+	color: var(--mcpc-ink);
+	font-size: var(--mcpc-text-md);
+	font-weight: 560;
+	cursor: pointer;
+	list-style: none;
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-guide__summary::-webkit-details-marker {
+	display: none;
+}
+
+.mcpc-guide__summary::after {
+	margin-left: auto;
+	color: var(--mcpc-ink-3);
+	content: "+";
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-md);
+}
+
+.mcpc-guide__client[open] > .mcpc-guide__summary::after {
+	content: "\2212";
+}
+
+.mcpc-guide__summary:hover {
+	background: var(--mcpc-paper-3);
+}
+
+.mcpc-guide__summary:focus-visible {
+	outline: 2px solid var(--mcpc-accent);
+	outline-offset: -2px;
+}
+
+.mcpc-guide__tag {
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-base);
+	font-weight: 400;
+}
+
+.mcpc-guide__body {
+	padding: var(--mcpc-space-4);
+	border-top: 1px solid var(--mcpc-line);
+}
+
+.mcpc-guide__steps {
+	max-width: 78ch;
+	margin: 0;
+	padding-left: var(--mcpc-space-5);
+	color: var(--mcpc-ink-2);
+}
+
+.mcpc-guide__steps li {
+	margin-bottom: var(--mcpc-space-2);
+}
+
+.mcpc-guide__steps li::marker {
+	color: var(--mcpc-ink-3);
+	font-variant-numeric: tabular-nums;
+}
+
+.mcpc-guide__steps code,
+.mcpc-guide__body code {
+	padding: 1px 4px;
+	border-radius: 3px;
+	background: var(--mcpc-paper-3);
+	color: var(--mcpc-ink);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-sm);
+	overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------- connection test */
+
+.mcpc-test {
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	list-style: none;
+	overflow: hidden;
+}
+
+.mcpc-test__step {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: baseline;
+	gap: var(--mcpc-space-3);
+	margin: 0;
+	padding: var(--mcpc-space-3) var(--mcpc-space-4);
+	border-top: 1px solid var(--mcpc-line);
+	color: var(--mcpc-ink-3);
+	transition: background var(--mcpc-dur) var(--mcpc-ease-out);
+}
+
+.mcpc-test__step:first-child {
+	border-top: 0;
+}
+
+.mcpc-test__marker {
+	width: 1.4em;
+	color: var(--mcpc-ink-3);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-base);
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.mcpc-test__label {
+	min-width: 0;
+	color: var(--mcpc-ink-2);
+	overflow-wrap: anywhere;
+}
+
+.mcpc-test__detail {
+	display: block;
+	color: var(--mcpc-ink-3);
+	font-size: var(--mcpc-text-base);
+}
+
+.mcpc-test__timing {
+	color: var(--mcpc-ink-3);
+	font-family: var(--mcpc-mono);
+	font-size: var(--mcpc-text-xs);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.mcpc-test__step[data-state="running"] {
+	background: var(--mcpc-accent-soft);
+}
+
+.mcpc-test__step[data-state="running"] .mcpc-test__label {
+	color: var(--mcpc-accent);
+	font-weight: 560;
+}
+
+.mcpc-test__step[data-state="pass"] .mcpc-test__marker {
+	color: var(--mcpc-pass);
+}
+
+.mcpc-test__step[data-state="pass"] .mcpc-test__label {
+	color: var(--mcpc-ink);
+}
+
+.mcpc-test__step[data-state="fail"] {
+	background: var(--mcpc-fail-soft);
+}
+
+.mcpc-test__step[data-state="fail"] .mcpc-test__marker {
+	color: var(--mcpc-fail);
+}
+
+.mcpc-test__step[data-state="fail"] .mcpc-test__label {
+	color: var(--mcpc-ink);
+	font-weight: 560;
+}
+
+.mcpc-test__step[data-state="fail"] .mcpc-test__detail {
+	color: var(--mcpc-fail);
+}
+
+/* A step the run never reached, because an earlier one failed. Greyed rather
+   than hidden: the point is showing how far the chain got. */
+.mcpc-test__step[data-state="skipped"] {
+	opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------- save bar */
+
+.mcpc__savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--mcpc-space-3);
+	margin-top: var(--mcpc-space-8);
+	padding: var(--mcpc-space-3) var(--mcpc-space-4);
+	border: 1px solid var(--mcpc-line);
+	border-radius: var(--mcpc-radius);
+	background: color-mix(in oklch, var(--mcpc-paper) 88%, transparent);
+	backdrop-filter: blur(8px);
+}
+
+.mcpc__savebar[hidden] {
+	display: none;
+}
+
+.mcpc__savenote {
+	max-width: 72ch;
+	margin: 0;
+	color: var(--mcpc-ink-2);
+	font-size: var(--mcpc-text-base);
+}
+
+/* --------------------------------------------------------------- responsive */
+
+@media (max-width: 782px) {
+	.mcpc {
+		margin-right: 0;
+		font-size: var(--mcpc-text-md);
+	}
+
+	.mcpc__body {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.mcpc__nav {
+		padding: var(--mcpc-space-2);
+		border-right: 0;
+		border-bottom: 1px solid var(--mcpc-line);
+		overflow-x: auto;
+		scrollbar-width: thin;
+	}
+
+	.mcpc__navlist {
+		flex-direction: row;
+		gap: var(--mcpc-space-1);
+		width: max-content;
+	}
+
+	.mcpc__navitem {
+		align-items: center;
+		padding: var(--mcpc-space-2) var(--mcpc-space-3);
+		white-space: nowrap;
+	}
+
+	/* The descriptions do not survive a horizontal strip; the labels do. */
+	.mcpc__navdesc,
+	.mcpc__navcount {
+		display: none;
+	}
+
+	.mcpc__panels {
+		padding: var(--mcpc-space-4);
+	}
+
+	.mcpc__masthead {
+		align-items: flex-start;
+		flex-direction: column;
+		padding: var(--mcpc-space-4);
+	}
+
+	.mcpc-endpoints {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.mcpc-endpoints dt {
+		border-top: 1px solid var(--mcpc-line);
+	}
+
+	.mcpc-endpoints > :nth-child(-n + 3) {
+		border-top: 1px solid var(--mcpc-line);
+	}
+
+	.mcpc-endpoints > :first-child {
+		border-top: 0;
+	}
+
+	.mcpc-endpoints__action {
+		text-align: left;
+	}
+
+	.mcpc-app__stats {
+		gap: var(--mcpc-space-4);
+	}
+
+	.mcpc-test__step {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+
+	.mcpc-test__timing {
+		grid-column: 2;
+	}
+}
+
+/* --------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+	.mcpc *,
+	.mcpc *::before,
+	.mcpc *::after {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+	}
+}
