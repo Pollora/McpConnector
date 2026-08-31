@@ -154,6 +154,26 @@ The MCP Adapter is **not** a Composer dependency and cannot be one — it is
 distributed as a GitHub repository of a WordPress plugin, not as a package. It is
 installed by hand; see Requirements.
 
+### The bundled dependency is not prefixed
+
+The release zip carries `pollora/abilities` in `vendor/` — 416 KB, one package,
+no transitive dependencies. Nothing in the wordpress.org guidelines forbids that:
+the only rules that bear on it are GPL compatibility, which MIT satisfies, and
+the ban on shipping libraries WordPress itself bundles, which this is not.
+
+What it does mean is that a site running both this plugin and the Pollora
+framework loads two copies of `Pollora\Abilities\`, and PHP's class namespace is
+global — the first autoloader to register wins, and the other side silently runs
+against a version it did not choose. That is accepted rather than solved: the
+namespace belongs to us on both sides, and a `^1.0` constraint keeps them
+compatible.
+
+Revisit it if this plugin ships to the wordpress.org directory, where it would
+sit next to plugins nobody here controls. The fix is a build step, not a code
+change: run [PHP-Scoper](https://github.com/humbug/php-scoper) or
+[Strauss](https://github.com/BrianHenryIE/strauss) in the release workflow to
+rewrite the bundled namespace, leaving the source untouched.
+
 ---
 
 ## Connecting a client
