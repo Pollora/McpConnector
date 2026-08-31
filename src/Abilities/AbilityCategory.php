@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities;
 
+use Pollora\Abilities\Domain\Model\AbilityCategory as PackageCategory;
+
 defined('ABSPATH') || exit;
 
 /**
@@ -35,6 +37,26 @@ enum AbilityCategory: string
 
     /** Site-wide information and options. */
     case Site = 'site';
+
+    /**
+     * Build the package category this one maps to, under the given namespace.
+     *
+     * Category slugs are global to the install, so the configured ability
+     * namespace is prefixed here rather than in the enum: the same six
+     * categories have to be able to coexist with another site's.
+     *
+     * @param string $namespace The configured ability namespace, e.g. `wp-mcp`.
+     *
+     * @return PackageCategory The category, ready to register.
+     */
+    public function toPackageCategory(string $namespace): PackageCategory
+    {
+        return PackageCategory::make(
+            $namespace . '-' . $this->value,
+            $this->label(),
+            $this->description(),
+        );
+    }
 
     /**
      * Human-readable label shown wherever categories are listed.

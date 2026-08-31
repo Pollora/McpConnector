@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities\Group;
 
+use Pollora\Abilities\Domain\Model\Behaviour;
+use Pollora\Abilities\Domain\Model\Input;
+use Pollora\Abilities\Domain\Schema\SchemaBuilder;
 use Pollora\McpConnector\Abilities\AbilityCategory;
 use Pollora\McpConnector\Abilities\AbilityDefinition;
 use Pollora\McpConnector\Abilities\AbilityGroup;
-use Pollora\McpConnector\Abilities\Annotations;
-use Pollora\McpConnector\Abilities\Input;
-use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Formatting\FieldDiscovery;
 use Pollora\McpConnector\Formatting\PostMeta;
 use Pollora\McpConnector\Support\Failure;
@@ -109,7 +109,7 @@ final class SiteGroup implements AbilityGroup
                 . 'active theme, and which options this connector is allowed to write. Call this first '
                 . 'when you know nothing about the site.',
             category: AbilityCategory::Site,
-            inputSchema: Schema::object(),
+            inputSchema: (new SchemaBuilder())->toArray(),
             execute: static function (): array {
                 $theme = wp_get_theme();
 
@@ -150,9 +150,9 @@ final class SiteGroup implements AbilityGroup
                 . 'map of create-post and update-post; fields under framework_fields are read and written '
                 . 'with the owning plugin\'s own tools.',
             category: AbilityCategory::Site,
-            inputSchema: Schema::object([
-                'public_only' => Schema::boolean('Return only publicly queryable post types.', true),
-            ]),
+            inputSchema: (new SchemaBuilder())
+                ->boolean('public_only', 'Return only publicly queryable post types.', default: true)
+                ->toArray(),
             execute: static function (Input $input): array {
                 $args = $input->boolean('public_only', true) ? ['public' => true] : [];
 
@@ -200,10 +200,10 @@ final class SiteGroup implements AbilityGroup
             description: 'Update one of the site options this connector is allowed to write. '
                 . 'Call get-site-info for the current list; by default it is the site title and tagline only.',
             category: AbilityCategory::Site,
-            inputSchema: Schema::object([
-                'option_name' => Schema::string('Option to update. Must be one of the writable_options reported by get-site-info.'),
-                'option_value' => Schema::string('New value.'),
-            ], ['option_name', 'option_value']),
+            inputSchema: (new SchemaBuilder())
+                ->string('option_name', 'Option to update. Must be one of the writable_options reported by get-site-info.', required: true)
+                ->string('option_value', 'New value.', required: true)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $name = $input->string('option_name');
                 $allowed = self::writableOptions();
@@ -221,7 +221,7 @@ final class SiteGroup implements AbilityGroup
                 return ['option' => $name, 'value' => get_option($name)];
             },
             permission: static fn (): bool => current_user_can('manage_options'),
-            annotations: Annotations::updates(),
+            behaviour: Behaviour::Updates,
         );
     }
 }

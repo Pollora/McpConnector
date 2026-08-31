@@ -4,15 +4,23 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities;
 
+use Pollora\Abilities\Domain\Model\Behaviour;
+use Pollora\Abilities\Domain\Model\Input;
+
 defined('ABSPATH') || exit;
 
 /**
  * A single ability, described independently of how it will be registered.
  *
- * Groups return these; {@see AbilityRegistry} decides what namespace to give
- * them, which category slug they land in, and what MCP metadata to attach. That
- * separation is what lets the same group be reused on a site that wants a
- * different ability namespace, or exposed over something other than MCP.
+ * Groups return these; {@see AbilityRegistry} turns each one into a
+ * {@see \Pollora\Abilities\Domain\Model\Ability} from the `pollora/abilities`
+ * package, deciding what namespace to give it, which category slug it lands in,
+ * and what MCP metadata to attach. That separation is what lets the same group be
+ * reused on a site that wants a different ability namespace, or exposed over
+ * something other than MCP.
+ *
+ * The slug here is unnamespaced on purpose: a group cannot know the prefix the
+ * site is configured with, and hard-coding one would break the moment it changes.
  *
  * @psalm-immutable
  */
@@ -26,13 +34,14 @@ final class AbilityDefinition
      *                                                whether to call it. This is the tool description.
      * @param AbilityCategory            $category    Category the ability is filed under.
      * @param array<string, mixed>       $inputSchema JSON Schema of the accepted input; must be an object
-     *                                                schema, see {@see Schema::object()}.
+     *                                                schema, see {@see \Pollora\Abilities\Domain\Schema\SchemaBuilder}.
      * @param \Closure(Input): mixed     $execute     Ability body. Receives wrapped input, returns any
      *                                                JSON-serialisable value, or a `WP_Error` to fail.
      * @param \Closure(Input): (bool|\WP_Error) $permission Capability check run before `$execute`, on the
      *                                                same wrapped input. Returning a `WP_Error` lets the
      *                                                ability explain the refusal instead of just denying it.
-     * @param Annotations                $annotations Behaviour hints passed through to the MCP client.
+     * @param Behaviour                  $behaviour   What the ability does to the site. The package turns
+     *                                                this into the behaviour hints an MCP client reads.
      */
     private function __construct(
         public readonly string $slug,
@@ -42,7 +51,7 @@ final class AbilityDefinition
         public readonly array $inputSchema,
         public readonly \Closure $execute,
         public readonly \Closure $permission,
-        public readonly Annotations $annotations,
+        public readonly Behaviour $behaviour,
     ) {
     }
 
@@ -76,7 +85,7 @@ final class AbilityDefinition
             $inputSchema,
             $execute,
             $permission,
-            Annotations::readOnly(),
+            Behaviour::Reads,
         );
     }
 
@@ -90,8 +99,9 @@ final class AbilityDefinition
      * @param array<string, mixed>   $inputSchema JSON Schema of the accepted input.
      * @param \Closure(Input): mixed $execute     Ability body.
      * @param \Closure(Input): (bool|\WP_Error) $permission Capability check.
-     * @param Annotations            $annotations How the write behaves; see the named constructors on
-     *                                            {@see Annotations}. Defaults to a non-idempotent create.
+     * @param Behaviour              $behaviour   How the write behaves. Defaults to a non-idempotent
+     *                                            create; use {@see Behaviour::Updates} for an overwrite
+     *                                            and {@see Behaviour::Deletes} for a removal.
      *
      * @return self The definition.
      */
@@ -103,7 +113,7 @@ final class AbilityDefinition
         array $inputSchema,
         \Closure $execute,
         \Closure $permission,
-        ?Annotations $annotations = null,
+        Behaviour $behaviour = Behaviour::Creates,
     ): self {
         return new self(
             $slug,
@@ -113,7 +123,20 @@ final class AbilityDefinition
             $inputSchema,
             $execute,
             $permission,
-            $annotations ?? Annotations::creates(),
+            $behaviour,
         );
+    }
+
+    /**
+     * Whether the ability leaves the site unchanged.
+     *
+     * Read-only mode registers nothing else, and a token granted only the `read`
+     * scope may not reach anything else.
+     *
+     * @return bool True when the ability only reads.
+     */
+    public function isReadOnly(): bool
+    {
+        return $this->behaviour->isReadOnly();
     }
 }

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities\Group;
 
+use Pollora\Abilities\Domain\Model\Behaviour;
+use Pollora\Abilities\Domain\Model\Input;
+use Pollora\Abilities\Domain\Schema\SchemaBuilder;
 use Pollora\McpConnector\Abilities\AbilityCategory;
 use Pollora\McpConnector\Abilities\AbilityDefinition;
 use Pollora\McpConnector\Abilities\AbilityGroup;
-use Pollora\McpConnector\Abilities\Annotations;
-use Pollora\McpConnector\Abilities\Input;
-use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Formatting\PostFormatter;
 use Pollora\McpConnector\Formatting\PostMeta;
 use Pollora\McpConnector\Support\Failure;
@@ -94,18 +94,18 @@ final class ContentGroup implements AbilityGroup
                 . 'call get-post for the body of a single item. Supports filtering by status, taxonomy term, '
                 . 'author and free-text search, and is paginated.',
             category: AbilityCategory::Content,
-            inputSchema: Schema::object([
-                'post_type' => Schema::string('Post type slug, such as post, page, or a custom type. Call get-post-types to discover what exists.', 'post'),
-                'post_status' => Schema::string('Post status: publish, draft, pending, private, future, or any.', 'publish'),
-                'posts_per_page' => Schema::integer('How many posts to return, at most 100.', 10, 1, 100),
-                'paged' => Schema::integer('1-based page number, used with posts_per_page.', 1, 1),
-                'orderby' => Schema::string('Sort field.', 'date', ['date', 'modified', 'title', 'menu_order', 'ID', 'rand']),
-                'order' => Schema::string('Sort direction.', 'DESC', ['ASC', 'DESC']),
-                'search' => Schema::string('Free-text search across title and content.'),
-                'terms' => Schema::map('Filter by taxonomy terms, as a map of taxonomy slug to a list of term slugs, e.g. {"annuaire_categorie": ["sante"]}. Call get-taxonomies for the taxonomies a post type has.'),
-                'terms_match_all' => Schema::boolean('Require every listed term rather than any of them.', false),
-                'author' => Schema::integer('User ID of the author to filter by.'),
-            ]),
+            inputSchema: (new SchemaBuilder())
+                ->string('post_type', 'Post type slug, such as post, page, or a custom type. Call get-post-types to discover what exists.', default: 'post')
+                ->string('post_status', 'Post status: publish, draft, pending, private, future, or any.', default: 'publish')
+                ->integer('posts_per_page', 'How many posts to return, at most 100.', default: 10, minimum: 1, maximum: 100)
+                ->integer('paged', '1-based page number, used with posts_per_page.', default: 1, minimum: 1)
+                ->enum('orderby', 'Sort field.', ['date', 'modified', 'title', 'menu_order', 'ID', 'rand'], default: 'date')
+                ->enum('order', 'Sort direction.', ['ASC', 'DESC'], default: 'DESC')
+                ->string('search', 'Free-text search across title and content.')
+                ->map('terms', 'Filter by taxonomy terms, as a map of taxonomy slug to a list of term slugs, e.g. {"annuaire_categorie": ["sante"]}. Call get-taxonomies for the taxonomies a post type has.')
+                ->boolean('terms_match_all', 'Require every listed term rather than any of them.', default: false)
+                ->integer('author', 'User ID of the author to filter by.')
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $postType = $input->string('post_type', 'post');
 
@@ -176,10 +176,9 @@ final class ContentGroup implements AbilityGroup
             description: 'Retrieve a single post by ID, including its full content, featured image, '
                 . 'page template and taxonomy terms.',
             category: AbilityCategory::Content,
-            inputSchema: Schema::object(
-                ['id' => Schema::integer('ID of the post, page or custom post type item to read.', minimum: 1)],
-                ['id'],
-            ),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the post, page or custom post type item to read.', required: true, minimum: 1)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $post = get_post($input->id('id'));
 
@@ -204,11 +203,11 @@ final class ContentGroup implements AbilityGroup
             description: 'List pages in menu order, optionally restricted to the children of one parent. '
                 . 'Use this rather than get-posts when you need the page hierarchy.',
             category: AbilityCategory::Content,
-            inputSchema: Schema::object([
-                'post_status' => Schema::string('Page status: publish, draft, pending, private, or any.', 'publish'),
-                'posts_per_page' => Schema::integer('How many pages to return, at most 100.', 20, 1, 100),
-                'parent' => Schema::integer('Return only the direct children of this page ID. Pass 0 for top-level pages only.', minimum: 0),
-            ]),
+            inputSchema: (new SchemaBuilder())
+                ->string('post_status', 'Page status: publish, draft, pending, private, or any.', default: 'publish')
+                ->integer('posts_per_page', 'How many pages to return, at most 100.', default: 20, minimum: 1, maximum: 100)
+                ->integer('parent', 'Return only the direct children of this page ID. Pass 0 for top-level pages only.', minimum: 0)
+                ->toArray(),
             execute: static function (Input $input): array {
                 $args = [
                     'post_type' => 'page',
@@ -250,22 +249,22 @@ final class ContentGroup implements AbilityGroup
                 . 'markup, for example <!-- wp:paragraph --><p>Text</p><!-- /wp:paragraph -->. Defaults to '
                 . 'a draft: pass post_status explicitly to publish.',
             category: AbilityCategory::Content,
-            inputSchema: Schema::object([
-                'title' => Schema::string('Post title.'),
-                'content' => Schema::string('Post body, as Gutenberg block markup.'),
-                'excerpt' => Schema::string('Short summary used in listings and meta descriptions.'),
-                'post_type' => Schema::string('Post type slug to create.', 'post'),
-                'post_status' => Schema::string('Status to create the post in.', 'draft', ['draft', 'publish', 'pending', 'private', 'future']),
-                'date' => Schema::string('Publication date in site time, as YYYY-MM-DD HH:MM:SS. Required when post_status is future.'),
-                'slug' => Schema::string('URL slug. Derived from the title when omitted.'),
-                'parent' => Schema::integer('Parent ID, for hierarchical post types.', minimum: 0),
-                'menu_order' => Schema::integer('Sort position, for hierarchical post types.'),
-                'page_template' => Schema::string('Page template file name, such as template-full-width.php.'),
-                'featured_image' => Schema::integer('Attachment ID to set as the featured image. Pass 0 to remove it.', minimum: 0),
-                'categories' => Schema::listOf('Category slugs to assign.', Schema::string('Category slug.')),
-                'tags' => Schema::listOf('Tag names to assign. Tags that do not exist are created.', Schema::string('Tag name.')),
-                'meta' => Schema::map('Custom fields to set, as a name/value map. Only fields the post type declares are accepted — get-post-types lists them. Fields managed by Meta Box are set with its own tools instead.'),
-            ], ['title']),
+            inputSchema: (new SchemaBuilder())
+                ->string('title', 'Post title.', required: true)
+                ->string('content', 'Post body, as Gutenberg block markup.')
+                ->string('excerpt', 'Short summary used in listings and meta descriptions.')
+                ->string('post_type', 'Post type slug to create.', default: 'post')
+                ->enum('post_status', 'Status to create the post in.', ['draft', 'publish', 'pending', 'private', 'future'], default: 'draft')
+                ->string('date', 'Publication date in site time, as YYYY-MM-DD HH:MM:SS. Required when post_status is future.')
+                ->string('slug', 'URL slug. Derived from the title when omitted.')
+                ->integer('parent', 'Parent ID, for hierarchical post types.', minimum: 0)
+                ->integer('menu_order', 'Sort position, for hierarchical post types.')
+                ->string('page_template', 'Page template file name, such as template-full-width.php.')
+                ->integer('featured_image', 'Attachment ID to set as the featured image. Pass 0 to remove it.', minimum: 0)
+                ->list('categories', 'Category slugs to assign.', ['type' => 'string', 'description' => 'Category slug.'])
+                ->list('tags', 'Tag names to assign. Tags that do not exist are created.', ['type' => 'string', 'description' => 'Tag name.'])
+                ->map('meta', 'Custom fields to set, as a name/value map. Only fields the post type declares are accepted — get-post-types lists them. Fields managed by Meta Box are set with its own tools instead.')
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $postType = $input->string('post_type', 'post');
 
@@ -334,21 +333,21 @@ final class ContentGroup implements AbilityGroup
                 . 'left alone. Read the post first with get-post if you intend to edit its content, so you '
                 . 'do not overwrite blocks you did not mean to touch.',
             category: AbilityCategory::Content,
-            inputSchema: Schema::object([
-                'id' => Schema::integer('ID of the post to update.', minimum: 1),
-                'title' => Schema::string('New title.'),
-                'content' => Schema::string('New body, as Gutenberg block markup. Replaces the existing content entirely.'),
-                'excerpt' => Schema::string('New excerpt.'),
-                'post_status' => Schema::string('New status.', enum: ['draft', 'publish', 'pending', 'private', 'future']),
-                'slug' => Schema::string('New URL slug.'),
-                'parent' => Schema::integer('New parent ID, for hierarchical post types.', minimum: 0),
-                'menu_order' => Schema::integer('New sort position.'),
-                'page_template' => Schema::string('New page template file name.'),
-                'featured_image' => Schema::integer('Attachment ID to set as the featured image. Pass 0 to remove it.', minimum: 0),
-                'categories' => Schema::listOf('Category slugs, replacing the current ones.', Schema::string('Category slug.')),
-                'tags' => Schema::listOf('Tag names, replacing the current ones.', Schema::string('Tag name.')),
-                'meta' => Schema::map('Custom fields to set, as a name/value map. Only fields the post type declares are accepted.'),
-            ], ['id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the post to update.', required: true, minimum: 1)
+                ->string('title', 'New title.')
+                ->string('content', 'New body, as Gutenberg block markup. Replaces the existing content entirely.')
+                ->string('excerpt', 'New excerpt.')
+                ->enum('post_status', 'New status.', ['draft', 'publish', 'pending', 'private', 'future'])
+                ->string('slug', 'New URL slug.')
+                ->integer('parent', 'New parent ID, for hierarchical post types.', minimum: 0)
+                ->integer('menu_order', 'New sort position.')
+                ->string('page_template', 'New page template file name.')
+                ->integer('featured_image', 'Attachment ID to set as the featured image. Pass 0 to remove it.', minimum: 0)
+                ->list('categories', 'Category slugs, replacing the current ones.', ['type' => 'string', 'description' => 'Category slug.'])
+                ->list('tags', 'Tag names, replacing the current ones.', ['type' => 'string', 'description' => 'Tag name.'])
+                ->map('meta', 'Custom fields to set, as a name/value map. Only fields the post type declares are accepted.')
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('id');
 
@@ -404,7 +403,7 @@ final class ContentGroup implements AbilityGroup
                     : Failure::notFound('post', $postId);
             },
             permission: static fn (Input $input): bool => PostTypes::canEditPost($input->id('id')),
-            annotations: Annotations::updates(),
+            behaviour: Behaviour::Updates,
         );
     }
 
@@ -421,10 +420,10 @@ final class ContentGroup implements AbilityGroup
             description: 'Move a post to the bin, or delete it permanently. Deleting to the bin is '
                 . 'reversible and is the default; permanent deletion cannot be undone.',
             category: AbilityCategory::Content,
-            inputSchema: Schema::object([
-                'id' => Schema::integer('ID of the post to delete.', minimum: 1),
-                'force' => Schema::boolean('Delete permanently instead of moving to the bin.', false),
-            ], ['id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the post to delete.', required: true, minimum: 1)
+                ->boolean('force', 'Delete permanently instead of moving to the bin.', default: false)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('id');
 
@@ -446,7 +445,7 @@ final class ContentGroup implements AbilityGroup
                 ];
             },
             permission: static fn (Input $input): bool => PostTypes::canDeletePost($input->id('id')),
-            annotations: Annotations::deletes(),
+            behaviour: Behaviour::Deletes,
         );
     }
 
@@ -464,13 +463,13 @@ final class ContentGroup implements AbilityGroup
                 . 'pass append=false to replace them. Terms that do not exist are refused unless '
                 . 'create_missing is set.',
             category: AbilityCategory::Content,
-            inputSchema: Schema::object([
-                'post_id' => Schema::integer('ID of the post to assign terms to.', minimum: 1),
-                'taxonomy' => Schema::string('Taxonomy slug, such as category or post_tag.', 'category'),
-                'terms' => Schema::listOf('Term slugs to assign.', Schema::string('Term slug.')),
-                'append' => Schema::boolean('Add to the existing terms rather than replacing them.', true),
-                'create_missing' => Schema::boolean('Create terms that do not exist yet instead of failing.', false),
-            ], ['post_id', 'terms']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('post_id', 'ID of the post to assign terms to.', required: true, minimum: 1)
+                ->string('taxonomy', 'Taxonomy slug, such as category or post_tag.', default: 'category')
+                ->list('terms', 'Term slugs to assign.', ['type' => 'string', 'description' => 'Term slug.'], required: true)
+                ->boolean('append', 'Add to the existing terms rather than replacing them.', default: true)
+                ->boolean('create_missing', 'Create terms that do not exist yet instead of failing.', default: false)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('post_id');
                 $taxonomy = $input->string('taxonomy', 'category');
@@ -514,7 +513,7 @@ final class ContentGroup implements AbilityGroup
                 ];
             },
             permission: static fn (Input $input): bool => PostTypes::canEditPost($input->id('post_id')),
-            annotations: Annotations::updates(),
+            behaviour: Behaviour::Updates,
         );
     }
 

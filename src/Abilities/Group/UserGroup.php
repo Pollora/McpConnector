@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities\Group;
 
+use Pollora\Abilities\Domain\Model\Input;
+use Pollora\Abilities\Domain\Schema\SchemaBuilder;
 use Pollora\McpConnector\Abilities\AbilityCategory;
 use Pollora\McpConnector\Abilities\AbilityDefinition;
 use Pollora\McpConnector\Abilities\AbilityGroup;
-use Pollora\McpConnector\Abilities\Input;
-use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Support\Failure;
 
 defined('ABSPATH') || exit;
@@ -83,11 +83,11 @@ final class UserGroup implements AbilityGroup
             description: 'List user accounts with their display names and roles. Useful for finding the '
                 . 'author ID to filter posts by, or to assign as a post author.',
             category: AbilityCategory::Users,
-            inputSchema: Schema::object([
-                'role' => Schema::string('Filter by role slug, such as editor or author.'),
-                'search' => Schema::string('Match users whose login, display name or email contains this text.'),
-                'number' => Schema::integer('How many users to return, at most 100.', 20, 1, 100),
-            ]),
+            inputSchema: (new SchemaBuilder())
+                ->string('role', 'Filter by role slug, such as editor or author.')
+                ->string('search', 'Match users whose login, display name or email contains this text.')
+                ->integer('number', 'How many users to return, at most 100.', default: 20, minimum: 1, maximum: 100)
+                ->toArray(),
             execute: static function (Input $input): array {
                 $args = ['number' => $input->integer('number', 20, 1, 100)];
 
@@ -119,9 +119,9 @@ final class UserGroup implements AbilityGroup
             label: __('Read a user', 'amphibee-mcp-connector'),
             description: 'Retrieve one user account by ID.',
             category: AbilityCategory::Users,
-            inputSchema: Schema::object([
-                'id' => Schema::integer('ID of the user to read.', minimum: 1),
-            ], ['id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the user to read.', required: true, minimum: 1)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $user = get_userdata($input->id('id'));
 
