@@ -142,14 +142,6 @@ It is not on Packagist yet, so the repository has to be named:
 here would pull a Composer *plugin* into the tree, which is a different kind of
 dependency from the one library this package does require.
 
-Until `pollora/abilities` reaches Packagist its repository has to be named too;
-Composer does not read a dependency's own `repositories` block, so it goes in the
-consuming project's:
-
-```json
-{ "type": "vcs", "url": "https://github.com/Pollora/abilities" }
-```
-
 The MCP Adapter is **not** a Composer dependency and cannot be one — it is
 distributed as a GitHub repository of a WordPress plugin, not as a package. It is
 installed by hand; see Requirements.

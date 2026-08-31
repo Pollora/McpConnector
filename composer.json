@@ -97,11 +97,5 @@
         "installer-name": "mcp-connector"
     },
     "minimum-stability": "stable",
-    "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/Pollora/abilities"
-        }
-    ]
+    "prefer-stable": true
 }

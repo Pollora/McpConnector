@@ -204,16 +204,11 @@ describe('composer metadata', function (): void {
         expect(array_keys($this->composer['require']))->toBe(['php', 'pollora/abilities']);
     });
 
-    it('resolves its one runtime dependency from a declared repository', function (): void {
-        // pollora/abilities is not on Packagist yet, so the release build cannot
-        // find it without this. Drop the repositories block once it is.
-        $urls = array_column($this->composer['repositories'] ?? [], 'url');
-
-        expect($urls)->toContain('https://github.com/Pollora/abilities');
-    })->skip(
-        fn (): bool => ! isset($this->composer['repositories']),
-        'pollora/abilities resolves from Packagist; the repository entry is gone.',
-    );
+    it('resolves every dependency from Packagist, naming no repository of its own', function (): void {
+        // A consuming project cannot see a dependency's repositories block, so
+        // one here would only ever work for this repo's own builds.
+        expect($this->composer)->not->toHaveKey('repositories');
+    });
 
     it('does not require composer/installers, which is the consuming project to decide', function (): void {
         expect($this->composer['require'])->not->toHaveKey('composer/installers');
