@@ -4,8 +4,92 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "63f930c1c5d92f3e42f73538eee0e2c7",
-    "packages": [],
+    "content-hash": "994d5c67181ee37d5627b42e202bbfc9",
+    "packages": [
+        {
+            "name": "pollora/abilities",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Pollora/abilities.git",
+                "reference": "709f5d8f4fe76d19e7659d39be09e72aaedd1982"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Pollora/abilities/zipball/709f5d8f4fe76d19e7659d39be09e72aaedd1982",
+                "reference": "709f5d8f4fe76d19e7659d39be09e72aaedd1982",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "brain/monkey": "^2.6",
+                "laravel/pint": "^1.22",
+                "mockery/mockery": "^1.6",
+                "pestphp/pest": "^3.8",
+                "phpstan/phpstan": "^2.1"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Pollora\\Abilities\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Pollora\\Abilities\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "@test:unit",
+                    "@phpstan",
+                    "@lint:check"
+                ],
+                "test:coverage": [
+                    "pest --coverage"
+                ],
+                "test:unit": [
+                    "pest --testsuite=Unit"
+                ],
+                "phpstan": [
+                    "phpstan analyse"
+                ],
+                "phpstan:ci": [
+                    "phpstan analyse --no-progress"
+                ],
+                "lint": [
+                    "pint"
+                ],
+                "lint:check": [
+                    "pint --test"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Amphibee",
+                    "email": "contact@amphibee.fr"
+                }
+            ],
+            "description": "A modern PHP package for the WordPress Abilities API, with a fluent declaration API and a hexagonal architecture",
+            "keywords": [
+                "abilities",
+                "abilities-api",
+                "ai",
+                "mcp",
+                "wordpress"
+            ],
+            "support": {
+                "source": "https://github.com/Pollora/abilities/tree/v1.0.0",
+                "issues": "https://github.com/Pollora/abilities/issues"
+            },
+            "time": "2026-08-31T13:33:08+00:00"
+        }
+    ],
     "packages-dev": [
         {
             "name": "antecedent/patchwork",

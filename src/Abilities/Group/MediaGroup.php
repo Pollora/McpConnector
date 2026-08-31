@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities\Group;
 
+use Pollora\Abilities\Domain\Model\Behaviour;
+use Pollora\Abilities\Domain\Model\Input;
+use Pollora\Abilities\Domain\Schema\SchemaBuilder;
 use Pollora\McpConnector\Abilities\AbilityCategory;
 use Pollora\McpConnector\Abilities\AbilityDefinition;
 use Pollora\McpConnector\Abilities\AbilityGroup;
-use Pollora\McpConnector\Abilities\Annotations;
-use Pollora\McpConnector\Abilities\Input;
-use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Formatting\PostFormatter;
 use Pollora\McpConnector\Support\Failure;
 use Pollora\McpConnector\Support\PostTypes;
@@ -95,10 +95,10 @@ final class MediaGroup implements AbilityGroup
             description: 'Set the featured image of a post from an existing attachment, or pass '
                 . 'attachment_id=0 to remove it.',
             category: AbilityCategory::Media,
-            inputSchema: Schema::object([
-                'post_id' => Schema::integer('ID of the post to set the featured image on.', minimum: 1),
-                'attachment_id' => Schema::integer('Attachment ID of the image, or 0 to remove the current one.', minimum: 0),
-            ], ['post_id', 'attachment_id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('post_id', 'ID of the post to set the featured image on.', required: true, minimum: 1)
+                ->integer('attachment_id', 'Attachment ID of the image, or 0 to remove the current one.', required: true, minimum: 0)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $postId = $input->id('post_id');
                 $attachmentId = $input->id('attachment_id');
@@ -138,7 +138,7 @@ final class MediaGroup implements AbilityGroup
                 ];
             },
             permission: static fn (Input $input): bool => PostTypes::canEditPost($input->id('post_id')),
-            annotations: Annotations::updates(),
+            behaviour: Behaviour::Updates,
         );
     }
 
@@ -155,12 +155,12 @@ final class MediaGroup implements AbilityGroup
             description: 'List media library attachments, with their URLs, dimensions and alt text. '
                 . 'Use the returned IDs to set a featured image or to reference an image in post content.',
             category: AbilityCategory::Media,
-            inputSchema: Schema::object([
-                'search' => Schema::string('Match attachments whose title or file name contains this text.'),
-                'mime_type' => Schema::string('Filter by MIME type or prefix, such as image/jpeg or image.'),
-                'posts_per_page' => Schema::integer('How many attachments to return, at most 100.', 20, 1, 100),
-                'paged' => Schema::integer('1-based page number.', 1, 1),
-            ]),
+            inputSchema: (new SchemaBuilder())
+                ->string('search', 'Match attachments whose title or file name contains this text.')
+                ->string('mime_type', 'Filter by MIME type or prefix, such as image/jpeg or image.')
+                ->integer('posts_per_page', 'How many attachments to return, at most 100.', default: 20, minimum: 1, maximum: 100)
+                ->integer('paged', '1-based page number.', default: 1, minimum: 1)
+                ->toArray(),
             execute: static function (Input $input): array {
                 $args = [
                     'post_type' => 'attachment',
@@ -205,14 +205,14 @@ final class MediaGroup implements AbilityGroup
                 . 'attaching it to a post. Returns the new attachment ID, which you can pass to '
                 . 'create-post or update-post as featured_image.',
             category: AbilityCategory::Media,
-            inputSchema: Schema::object([
-                'url' => Schema::string('Publicly reachable http or https URL of the file to import.'),
-                'title' => Schema::string('Attachment title. Derived from the file name when omitted.'),
-                'alt_text' => Schema::string('Alternative text, describing the image for screen readers.'),
-                'caption' => Schema::string('Caption displayed under the image.'),
-                'description' => Schema::string('Long description stored on the attachment.'),
-                'post_id' => Schema::integer('Post to attach the file to.', minimum: 1),
-            ], ['url']),
+            inputSchema: (new SchemaBuilder())
+                ->string('url', 'Publicly reachable http or https URL of the file to import.', required: true)
+                ->string('title', 'Attachment title. Derived from the file name when omitted.')
+                ->string('alt_text', 'Alternative text, describing the image for screen readers.')
+                ->string('caption', 'Caption displayed under the image.')
+                ->string('description', 'Long description stored on the attachment.')
+                ->integer('post_id', 'Post to attach the file to.', minimum: 1)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 // These live in wp-admin and are not loaded during a REST request.
                 require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -307,13 +307,13 @@ final class MediaGroup implements AbilityGroup
             description: 'Change an attachment\'s title, alt text, caption or description. The file itself '
                 . 'is not touched. Only the fields you pass are changed.',
             category: AbilityCategory::Media,
-            inputSchema: Schema::object([
-                'id' => Schema::integer('ID of the attachment to update.', minimum: 1),
-                'title' => Schema::string('New attachment title.'),
-                'alt_text' => Schema::string('New alternative text.'),
-                'caption' => Schema::string('New caption.'),
-                'description' => Schema::string('New description.'),
-            ], ['id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the attachment to update.', required: true, minimum: 1)
+                ->string('title', 'New attachment title.')
+                ->string('alt_text', 'New alternative text.')
+                ->string('caption', 'New caption.')
+                ->string('description', 'New description.')
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $attachmentId = $input->id('id');
 
@@ -352,7 +352,7 @@ final class MediaGroup implements AbilityGroup
                     : Failure::notFound('attachment', $attachmentId);
             },
             permission: static fn (Input $input): bool => PostTypes::canEditPost($input->id('id')),
-            annotations: Annotations::updates(),
+            behaviour: Behaviour::Updates,
         );
     }
 
@@ -369,9 +369,9 @@ final class MediaGroup implements AbilityGroup
             description: 'Delete an attachment and its generated image sizes. Posts that embed the file '
                 . 'keep their markup and will show a broken image. This cannot be undone.',
             category: AbilityCategory::Media,
-            inputSchema: Schema::object([
-                'id' => Schema::integer('ID of the attachment to delete.', minimum: 1),
-            ], ['id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the attachment to delete.', required: true, minimum: 1)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $attachmentId = $input->id('id');
 
@@ -389,7 +389,7 @@ final class MediaGroup implements AbilityGroup
                 return ['deleted' => true, 'id' => $attachmentId];
             },
             permission: static fn (Input $input): bool => PostTypes::canDeletePost($input->id('id')),
-            annotations: Annotations::deletes(),
+            behaviour: Behaviour::Deletes,
         );
     }
 }

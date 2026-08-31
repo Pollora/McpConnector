@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities;
 
+use Pollora\Abilities\Adapter\Out\WordPress\WordPressAbilityCategoryRegistrar;
+use Pollora\Abilities\Adapter\Out\WordPress\WordPressAbilityRegistrar;
+use Pollora\Abilities\Application\Service\RegisterAbilityService;
+use Pollora\Abilities\Domain\Model\Ability;
+use Pollora\Abilities\Domain\Model\Input;
 use Pollora\McpConnector\Abilities\Group\ContentGroup;
 use Pollora\McpConnector\Abilities\Group\MediaGroup;
 use Pollora\McpConnector\Abilities\Group\NavigationGroup;
@@ -19,9 +24,11 @@ defined('ABSPATH') || exit;
 /**
  * Turns {@see AbilityGroup} declarations into registered WordPress abilities.
  *
- * This is the only place that knows about the Abilities API, which keeps the
- * groups themselves free of registration boilerplate and makes the namespacing
- * rules — ability prefix, category prefix, MCP metadata — apply uniformly.
+ * Registration itself is delegated to the `pollora/abilities` package: this class
+ * decides *what* to publish and under which name, the package decides *how* and
+ * *when*. What stays here is the policy the package deliberately has no opinion
+ * about — the configurable namespace, read-only mode, OAuth scope enforcement,
+ * and which groups a site has enabled.
  *
  * Registration hooks are attached eagerly. The abilities registry initialises
  * lazily, the first time anything asks for an ability, so there is no single
@@ -48,10 +55,19 @@ final class AbilityRegistry
     private static array $registered = [];
 
     /**
+     * The package service the declarations are queued on.
+     */
+    private readonly RegisterAbilityService $service;
+
+    /**
      * @param Settings $settings Resolved plugin configuration.
      */
     public function __construct(private readonly Settings $settings)
     {
+        $this->service = new RegisterAbilityService(
+            new WordPressAbilityRegistrar(),
+            new WordPressAbilityCategoryRegistrar(),
+        );
     }
 
     /**
@@ -127,20 +143,14 @@ final class AbilityRegistry
     public function registerCategories(): void
     {
         foreach (AbilityCategory::cases() as $category) {
-            $slug = $this->categorySlug($category);
-
-            // Belt and braces: a second registration of the same slug is a
-            // _doing_it_wrong() notice, and on a site running with WP_DEBUG on
-            // that lands in the REST response body and breaks the MCP transport.
-            if (wp_has_ability_category($slug)) {
-                continue;
-            }
-
-            wp_register_ability_category($slug, [
-                'label' => $category->label(),
-                'description' => $category->description(),
-            ]);
+            // ensureCategory() skips a slug already registered by somebody else,
+            // where queueCategory() would attempt a second registration — which
+            // is a _doing_it_wrong() notice, and on a site running with WP_DEBUG
+            // on that lands in the REST response body and breaks the transport.
+            $this->service->ensureCategory($category->toPackageCategory($this->settings->abilityNamespace));
         }
+
+        $this->service->flushCategories();
     }
 
     /**
@@ -158,84 +168,73 @@ final class AbilityRegistry
                 // ability at all, rather than by failing its permission check.
                 // A tool a client never sees cannot be called by mistake, and
                 // cannot be described to the model as available.
-                if ($this->settings->readOnlyMode && ! $definition->annotations->readonly) {
+                if ($this->settings->readOnlyMode && ! $definition->isReadOnly()) {
                     continue;
                 }
 
-                $this->registerAbility($definition);
+                $this->service->queue($this->toAbility($definition));
             }
         }
+
+        self::$registered = [...self::$registered, ...$this->service->flushAbilities()];
     }
 
     /**
-     * Register a single ability.
+     * Turn a plugin definition into the package's ability model.
      *
-     * @param AbilityDefinition $definition The ability to register.
+     * @param AbilityDefinition $definition The ability to describe.
+     *
+     * @return Ability The package model, ready to queue.
      */
-    private function registerAbility(AbilityDefinition $definition): void
+    private function toAbility(AbilityDefinition $definition): Ability
     {
-        $name = $this->settings->abilityNamespace . '/' . $definition->slug;
-
-        if (wp_has_ability($name)) {
-            return;
-        }
-
-        $execute = $definition->execute;
-        $permission = $definition->permission;
-
-        $registered = wp_register_ability($name, [
-            'label' => $definition->label,
-            'description' => $definition->description,
-            'category' => $this->categorySlug($definition->category),
-            'input_schema' => $definition->inputSchema,
-            // The Abilities API hands the raw, schema-validated input straight
-            // through; wrapping it here means no ability body has to defend
-            // against a null or a numeric string on its own.
-            'execute_callback' => static fn (mixed $input = null): mixed => $execute(Input::wrap($input)),
-            // The permission callback receives the same input as the execute
-            // callback, which is what allows per-object checks — `edit_post` on
-            // the identifier being edited, rather than a blanket `edit_posts`.
-            'permission_callback' => static function (mixed $input = null) use ($permission, $definition): mixed {
-                // A token granted only the `read` scope may not reach an ability
-                // that changes the site, however capable the user behind it is.
-                // This cannot be expressed as a capability check: the read
-                // abilities require `edit_posts` too, so stripping write
-                // capabilities would take reading down with it.
-                if (! $definition->annotations->readonly && ! Scope::currentAllowsWrite()) {
-                    return Failure::forbidden(
-                        'change the site: the connected application was granted read-only access',
-                    );
-                }
-
-                return $permission(Input::wrap($input));
-            },
-            'meta' => [
-                'annotations' => $definition->annotations->toArray(),
-                // `mcp.public` is what the MCP Adapter's discovery looks for, and
-                // `show_in_rest` exposes the ability through the core abilities
-                // REST controllers, which is how you test one without an MCP client.
-                'show_in_rest' => true,
+        return Ability::create(
+            name: $this->settings->abilityNamespace . '/' . $definition->slug,
+            label: $definition->label,
+            description: $definition->description,
+            category: $this->settings->abilityNamespace . '-' . $definition->category->value,
+            inputSchema: $definition->inputSchema,
+            execute: $definition->execute,
+            permission: $this->guard($definition),
+            behaviour: $definition->behaviour,
+            meta: [
+                // `mcp.public` is what the MCP Adapter's discovery looks for. The
+                // package sets `show_in_rest` itself, which exposes the ability
+                // through the core abilities REST controllers — that is how you
+                // test one without an MCP client.
                 'mcp' => [
                     'public' => true,
                     'type' => 'tool',
                 ],
             ],
-        ]);
-
-        if ($registered !== null) {
-            self::$registered[] = $name;
-        }
+        );
     }
 
     /**
-     * Namespaced slug of an ability category.
+     * Wrap a definition's permission check with the OAuth scope gate.
      *
-     * @param AbilityCategory $category The category.
+     * A token granted only the `read` scope may not reach an ability that
+     * changes the site, however capable the user behind it is. This cannot be
+     * expressed as a capability check: the read abilities require `edit_posts`
+     * too, so stripping write capabilities would take reading down with it.
      *
-     * @return string The prefixed slug, e.g. `wp-mcp-content`.
+     * @param AbilityDefinition $definition The ability being registered.
+     *
+     * @return \Closure(Input): mixed The guarded permission callback.
      */
-    private function categorySlug(AbilityCategory $category): string
+    private function guard(AbilityDefinition $definition): \Closure
     {
-        return $this->settings->abilityNamespace . '-' . $category->value;
+        $permission = $definition->permission;
+        $readOnly = $definition->isReadOnly();
+
+        return static function (Input $input) use ($permission, $readOnly): mixed {
+            if (! $readOnly && ! Scope::currentAllowsWrite()) {
+                return Failure::forbidden(
+                    'change the site: the connected application was granted read-only access',
+                );
+            }
+
+            return $permission($input);
+        };
     }
 }

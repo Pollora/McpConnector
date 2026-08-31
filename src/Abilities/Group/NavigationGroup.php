@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities\Group;
 
+use Pollora\Abilities\Domain\Model\Behaviour;
+use Pollora\Abilities\Domain\Model\Input;
+use Pollora\Abilities\Domain\Schema\SchemaBuilder;
 use Pollora\McpConnector\Abilities\AbilityCategory;
 use Pollora\McpConnector\Abilities\AbilityDefinition;
 use Pollora\McpConnector\Abilities\AbilityGroup;
-use Pollora\McpConnector\Abilities\Annotations;
-use Pollora\McpConnector\Abilities\Input;
-use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Support\Failure;
 
 defined('ABSPATH') || exit;
@@ -90,7 +90,7 @@ final class NavigationGroup implements AbilityGroup
                 . 'whether the active theme is block-based, in which case navigation may live in '
                 . 'wp_navigation posts instead and these abilities will not see it.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object(),
+            inputSchema: (new SchemaBuilder())->toArray(),
             execute: static function (): array {
                 $menus = array_map(
                     static fn (\WP_Term $menu): array => [
@@ -125,9 +125,9 @@ final class NavigationGroup implements AbilityGroup
                 . 'objects they point at. Item IDs from this list are what update-menu-item and '
                 . 'delete-menu-item expect.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object([
-                'menu' => Schema::string('Menu ID, slug or name.'),
-            ], ['menu']),
+            inputSchema: (new SchemaBuilder())
+                ->string('menu', 'Menu ID, slug or name.', required: true)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $items = wp_get_nav_menu_items($input->string('menu'));
 
@@ -170,7 +170,7 @@ final class NavigationGroup implements AbilityGroup
             description: 'List the menu locations the active theme declares, and which menu is currently '
                 . 'assigned to each.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object(),
+            inputSchema: (new SchemaBuilder())->toArray(),
             execute: static function (): array {
                 $assigned = get_nav_menu_locations();
 
@@ -207,9 +207,9 @@ final class NavigationGroup implements AbilityGroup
             description: 'Create an empty navigation menu. Add items with add-menu-item, then put it on '
                 . 'the site with assign-menu-location.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object([
-                'name' => Schema::string('Menu name, as shown in the admin.'),
-            ], ['name']),
+            inputSchema: (new SchemaBuilder())
+                ->string('name', 'Menu name, as shown in the admin.', required: true)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $name = $input->string('name');
 
@@ -243,18 +243,18 @@ final class NavigationGroup implements AbilityGroup
                 . 'link to a page or term and keep the link in step with its permalink, or pass url for '
                 . 'a custom link.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object([
-                'menu' => Schema::string('Menu ID, slug or name to add the item to.'),
-                'title' => Schema::string('Link text. Falls back to the linked object\'s title when omitted.'),
-                'type' => Schema::string('What the item links to.', 'custom', ['custom', 'post_type', 'taxonomy']),
-                'object' => Schema::string('Post type or taxonomy slug, required when type is post_type or taxonomy.'),
-                'object_id' => Schema::integer('ID of the linked post or term, required when type is post_type or taxonomy.', minimum: 1),
-                'url' => Schema::string('Destination URL, required when type is custom.'),
-                'parent' => Schema::integer('Menu item ID to nest this item under.', minimum: 0),
-                'position' => Schema::integer('Sort position within the menu.', minimum: 0),
-                'target' => Schema::string('Link target. Use _blank to open in a new tab.', enum: ['', '_blank']),
-                'description' => Schema::string('Item description, shown by themes that support it.'),
-            ], ['menu']),
+            inputSchema: (new SchemaBuilder())
+                ->string('menu', 'Menu ID, slug or name to add the item to.', required: true)
+                ->string('title', 'Link text. Falls back to the linked object\'s title when omitted.')
+                ->enum('type', 'What the item links to.', ['custom', 'post_type', 'taxonomy'], default: 'custom')
+                ->string('object', 'Post type or taxonomy slug, required when type is post_type or taxonomy.')
+                ->integer('object_id', 'ID of the linked post or term, required when type is post_type or taxonomy.', minimum: 1)
+                ->string('url', 'Destination URL, required when type is custom.')
+                ->integer('parent', 'Menu item ID to nest this item under.', minimum: 0)
+                ->integer('position', 'Sort position within the menu.', minimum: 0)
+                ->enum('target', 'Link target. Use _blank to open in a new tab.', ['', '_blank'])
+                ->string('description', 'Item description, shown by themes that support it.')
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $menu = wp_get_nav_menu_object($input->string('menu'));
 
@@ -321,16 +321,16 @@ final class NavigationGroup implements AbilityGroup
                 . 'get-menu-items: every field is rewritten on save, so anything omitted here is restored '
                 . 'from the item\'s current value.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object([
-                'menu' => Schema::string('Menu ID, slug or name the item belongs to.'),
-                'id' => Schema::integer('ID of the menu item to update.', minimum: 1),
-                'title' => Schema::string('New link text.'),
-                'url' => Schema::string('New destination URL, for custom links.'),
-                'parent' => Schema::integer('New parent menu item ID. Pass 0 to move it to the top level.', minimum: 0),
-                'position' => Schema::integer('New sort position.', minimum: 0),
-                'target' => Schema::string('New link target.', enum: ['', '_blank']),
-                'description' => Schema::string('New item description.'),
-            ], ['menu', 'id']),
+            inputSchema: (new SchemaBuilder())
+                ->string('menu', 'Menu ID, slug or name the item belongs to.', required: true)
+                ->integer('id', 'ID of the menu item to update.', required: true, minimum: 1)
+                ->string('title', 'New link text.')
+                ->string('url', 'New destination URL, for custom links.')
+                ->integer('parent', 'New parent menu item ID. Pass 0 to move it to the top level.', minimum: 0)
+                ->integer('position', 'New sort position.', minimum: 0)
+                ->enum('target', 'New link target.', ['', '_blank'])
+                ->string('description', 'New item description.')
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $menu = wp_get_nav_menu_object($input->string('menu'));
 
@@ -375,7 +375,7 @@ final class NavigationGroup implements AbilityGroup
                 return ['id' => $itemId, 'menu_id' => $menu->term_id];
             },
             permission: static fn (): bool => current_user_can('edit_theme_options'),
-            annotations: Annotations::updates(),
+            behaviour: Behaviour::Updates,
         );
     }
 
@@ -392,9 +392,9 @@ final class NavigationGroup implements AbilityGroup
             description: 'Remove an item from a menu. Its children are promoted to the item\'s own parent '
                 . 'rather than deleted.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object([
-                'id' => Schema::integer('ID of the menu item to delete.', minimum: 1),
-            ], ['id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the menu item to delete.', required: true, minimum: 1)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $itemId = $input->id('id');
                 $item = get_post($itemId);
@@ -416,7 +416,7 @@ final class NavigationGroup implements AbilityGroup
                 return ['deleted' => true, 'id' => $itemId];
             },
             permission: static fn (): bool => current_user_can('edit_theme_options'),
-            annotations: Annotations::deletes(),
+            behaviour: Behaviour::Deletes,
         );
     }
 
@@ -433,10 +433,10 @@ final class NavigationGroup implements AbilityGroup
             description: 'Display a menu in one of the theme\'s menu locations. Call get-menu-locations '
                 . 'first for the location slugs this theme declares.',
             category: AbilityCategory::Navigation,
-            inputSchema: Schema::object([
-                'location' => Schema::string('Theme menu location slug.'),
-                'menu' => Schema::string('Menu ID, slug or name to display there. Pass an empty string to clear the location.'),
-            ], ['location', 'menu']),
+            inputSchema: (new SchemaBuilder())
+                ->string('location', 'Theme menu location slug.', required: true)
+                ->string('menu', 'Menu ID, slug or name to display there. Pass an empty string to clear the location.', required: true)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $location = $input->string('location');
 
@@ -468,7 +468,7 @@ final class NavigationGroup implements AbilityGroup
                 return ['location' => $location, 'menu_id' => $menu->term_id, 'menu_name' => $menu->name];
             },
             permission: static fn (): bool => current_user_can('edit_theme_options'),
-            annotations: Annotations::updates(),
+            behaviour: Behaviour::Updates,
         );
     }
 }

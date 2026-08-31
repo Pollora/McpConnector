@@ -56,6 +56,7 @@ annotations. Nothing in the Abilities API separates "sets a value" from
 |---|---|
 | PHP | 8.3 or later |
 | WordPress | 6.9 or later, for the Abilities API in core |
+| [`pollora/abilities`](https://github.com/Pollora/abilities) | Installed by Composer. Owns the Abilities API primitives — the ability model, the JSON Schema builder, the input reader and the registration adapters. |
 | [MCP Adapter](https://github.com/WordPress/mcp-adapter) | Required for the MCP endpoint. Distributed on GitHub, **not on wordpress.org** — it cannot be installed from the plugin screen. |
 | Pretty permalinks | Required |
 | HTTPS | Required by remote clients; plain HTTP is workable only locally |
@@ -138,8 +139,16 @@ It is not on Packagist yet, so the repository has to be named:
 ```
 
 `composer/installers` is required by the project, not by this package: adding it
-here would pull a Composer plugin into a tree whose whole `vendor/` is otherwise
-one generated autoloader.
+here would pull a Composer *plugin* into the tree, which is a different kind of
+dependency from the one library this package does require.
+
+Until `pollora/abilities` reaches Packagist its repository has to be named too;
+Composer does not read a dependency's own `repositories` block, so it goes in the
+consuming project's:
+
+```json
+{ "type": "vcs", "url": "https://github.com/Pollora/abilities" }
+```
 
 The MCP Adapter is **not** a Composer dependency and cannot be one — it is
 distributed as a GitHub repository of a WordPress plugin, not as a package. It is
@@ -347,6 +356,28 @@ The group's `definitions()` returns `AbilityDefinition::reading(...)` or
 `::writing(...)` objects. The registry handles namespacing, category
 registration, MCP metadata, input wrapping and scope enforcement.
 
+Describe the input with the package's builder, and a write's effect with a
+`Behaviour`:
+
+```php
+use Pollora\Abilities\Domain\Model\Behaviour;
+use Pollora\Abilities\Domain\Model\Input;
+use Pollora\Abilities\Domain\Schema\SchemaBuilder;
+
+AbilityDefinition::writing(
+    slug: 'archive-post',
+    label: __('Archive a post', 'my-plugin'),
+    description: 'Moves a post out of the published set without deleting it.',
+    category: AbilityCategory::Content,
+    inputSchema: (new SchemaBuilder)
+        ->integer('id', 'ID of the post to archive.', required: true, minimum: 1)
+        ->toArray(),
+    execute: static fn (Input $input): array => ['id' => $input->id('id')],
+    permission: static fn (Input $input): bool => current_user_can('edit_post', $input->id('id')),
+    behaviour: Behaviour::Updates,
+);
+```
+
 Other extension points:
 
 | Filter | Purpose |
@@ -405,16 +436,21 @@ WordPress 6.5 and later prefer — those are generated, and gitignored.
 
 ## Architecture
 
+The Abilities API primitives live in [`pollora/abilities`](https://github.com/Pollora/abilities)
+rather than here: the ability model, the schema builder, the typed input reader
+and the two registration adapters. What stays in this plugin is the policy that
+package deliberately has no opinion about — the configurable namespace,
+read-only mode, OAuth scope enforcement, and which groups a site has enabled.
+
 ```
 src/
 ├── Plugin.php                  Composition root
 ├── Settings.php                Immutable configuration
 ├── Abilities/
-│   ├── AbilityRegistry.php     The only place that talks to the Abilities API
+│   ├── AbilityRegistry.php     Decides what to publish and under which name
 │   ├── AbilityDefinition.php   An ability, described independently of registration
+│   ├── AbilityCategory.php     The six categories, namespaced at registration
 │   ├── AbilityGroup.php        Extension point
-│   ├── Schema.php / Input.php  JSON Schema builder, typed input reader
-│   ├── Annotations.php         Behaviour hints → MCP tool annotations
 │   └── Group/                  The six built-in groups
 ├── Server/ServerRegistry.php   Declares the MCP server
 ├── OAuth/                      Provider: repositories, PKCE, controllers, consent

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\Abilities\Group;
 
+use Pollora\Abilities\Domain\Model\Behaviour;
+use Pollora\Abilities\Domain\Model\Input;
+use Pollora\Abilities\Domain\Schema\SchemaBuilder;
 use Pollora\McpConnector\Abilities\AbilityCategory;
 use Pollora\McpConnector\Abilities\AbilityDefinition;
 use Pollora\McpConnector\Abilities\AbilityGroup;
-use Pollora\McpConnector\Abilities\Annotations;
-use Pollora\McpConnector\Abilities\Input;
-use Pollora\McpConnector\Abilities\Schema;
 use Pollora\McpConnector\Support\Failure;
 
 defined('ABSPATH') || exit;
@@ -84,9 +84,9 @@ final class TaxonomyGroup implements AbilityGroup
             description: 'List the taxonomies this site registers, with the post types each applies to. '
                 . 'Call this before assigning terms, so you use a taxonomy that exists here.',
             category: AbilityCategory::Taxonomy,
-            inputSchema: Schema::object([
-                'public_only' => Schema::boolean('Return only publicly queryable taxonomies.', true),
-            ]),
+            inputSchema: (new SchemaBuilder())
+                ->boolean('public_only', 'Return only publicly queryable taxonomies.', default: true)
+                ->toArray(),
             execute: static function (Input $input): array {
                 $args = $input->boolean('public_only', true) ? ['public' => true] : [];
 
@@ -119,12 +119,12 @@ final class TaxonomyGroup implements AbilityGroup
             description: 'List the terms of a taxonomy, with their slugs, post counts and parents. '
                 . 'Slugs from this list are what the content abilities expect.',
             category: AbilityCategory::Taxonomy,
-            inputSchema: Schema::object([
-                'taxonomy' => Schema::string('Taxonomy slug, such as category or post_tag.', 'category'),
-                'search' => Schema::string('Match terms whose name contains this text.'),
-                'hide_empty' => Schema::boolean('Skip terms that are not assigned to any post.', false),
-                'number' => Schema::integer('How many terms to return, at most 200.', 50, 1, 200),
-            ]),
+            inputSchema: (new SchemaBuilder())
+                ->string('taxonomy', 'Taxonomy slug, such as category or post_tag.', default: 'category')
+                ->string('search', 'Match terms whose name contains this text.')
+                ->boolean('hide_empty', 'Skip terms that are not assigned to any post.', default: false)
+                ->integer('number', 'How many terms to return, at most 200.', default: 50, minimum: 1, maximum: 200)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $taxonomy = $input->string('taxonomy', 'category');
 
@@ -183,13 +183,13 @@ final class TaxonomyGroup implements AbilityGroup
             description: 'Create a term in a taxonomy. Fails if a term with the same name already exists '
                 . 'under the same parent.',
             category: AbilityCategory::Taxonomy,
-            inputSchema: Schema::object([
-                'taxonomy' => Schema::string('Taxonomy to create the term in.', 'category'),
-                'name' => Schema::string('Term name, as it should be displayed.'),
-                'slug' => Schema::string('URL slug. Derived from the name when omitted.'),
-                'description' => Schema::string('Term description.'),
-                'parent' => Schema::integer('Parent term ID, for hierarchical taxonomies.', minimum: 0),
-            ], ['name']),
+            inputSchema: (new SchemaBuilder())
+                ->string('taxonomy', 'Taxonomy to create the term in.', default: 'category')
+                ->string('name', 'Term name, as it should be displayed.', required: true)
+                ->string('slug', 'URL slug. Derived from the name when omitted.')
+                ->string('description', 'Term description.')
+                ->integer('parent', 'Parent term ID, for hierarchical taxonomies.', minimum: 0)
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $taxonomy = $input->string('taxonomy', 'category');
 
@@ -253,10 +253,10 @@ final class TaxonomyGroup implements AbilityGroup
             description: 'Delete a term. The posts assigned to it are not deleted; they simply lose the '
                 . 'term. This cannot be undone.',
             category: AbilityCategory::Taxonomy,
-            inputSchema: Schema::object([
-                'id' => Schema::integer('ID of the term to delete.', minimum: 1),
-                'taxonomy' => Schema::string('Taxonomy the term belongs to.', 'category'),
-            ], ['id']),
+            inputSchema: (new SchemaBuilder())
+                ->integer('id', 'ID of the term to delete.', required: true, minimum: 1)
+                ->string('taxonomy', 'Taxonomy the term belongs to.', default: 'category')
+                ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $termId = $input->id('id');
                 $taxonomy = $input->string('taxonomy', 'category');
@@ -282,7 +282,7 @@ final class TaxonomyGroup implements AbilityGroup
 
                 return $taxonomy !== false && current_user_can($taxonomy->cap->delete_terms);
             },
-            annotations: Annotations::deletes(),
+            behaviour: Behaviour::Deletes,
         );
     }
 }

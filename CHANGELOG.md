@@ -5,6 +5,33 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- The Abilities API primitives now come from [`pollora/abilities`](https://github.com/Pollora/abilities)
+  instead of being carried here. The ability model, the JSON Schema builder, the
+  typed input reader, the behaviour hints and the two registration adapters moved
+  out; `AbilityRegistry` now decides *what* to publish and under which name while
+  the package decides *how* and *when*.
+- What stays in the plugin is the policy the package deliberately has no opinion
+  about: the configurable ability namespace, read-only mode, OAuth scope
+  enforcement, and which groups a site has enabled. `AbilityGroup` and
+  `AbilityDefinition` are unchanged as an extension point, except that a write
+  now declares a `Behaviour` where it declared `Annotations`.
+- **No tool contract changed.** Every one of the 29 registered abilities produces
+  the same label, description, category, behaviour hints and input schema as
+  before, verified by diffing the generated schemas across the refactor.
+
+### Removed
+
+- `Abilities/Schema.php`, `Abilities/Input.php` and `Abilities/Annotations.php`,
+  superseded by their equivalents in the package. Anything extending this plugin
+  through `mcp_connector_ability_groups` should import
+  `Pollora\Abilities\Domain\Schema\SchemaBuilder`,
+  `Pollora\Abilities\Domain\Model\Input` and
+  `Pollora\Abilities\Domain\Model\Behaviour` instead.
+
 ## 1.2.0
 
 First public release. Versions 1.0.0 and 1.1.0 existed, but only ever ran on one

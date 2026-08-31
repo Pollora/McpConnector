@@ -197,10 +197,23 @@ describe('composer metadata', function (): void {
     });
 
     it('keeps every quality tool in require-dev, never in require', function (): void {
-        // The whole runtime vendor/ is one generated autoloader. A production
-        // dependency appearing here means the zip grew a package tree.
-        expect(array_keys($this->composer['require']))->toBe(['php']);
+        // The shipped vendor/ is the autoloader plus pollora/abilities, which
+        // owns the Abilities API primitives this plugin used to carry itself.
+        // Anything else appearing here means the zip grew a package tree, and
+        // wordpress.org reviewers read that diff.
+        expect(array_keys($this->composer['require']))->toBe(['php', 'pollora/abilities']);
     });
+
+    it('resolves its one runtime dependency from a declared repository', function (): void {
+        // pollora/abilities is not on Packagist yet, so the release build cannot
+        // find it without this. Drop the repositories block once it is.
+        $urls = array_column($this->composer['repositories'] ?? [], 'url');
+
+        expect($urls)->toContain('https://github.com/Pollora/abilities');
+    })->skip(
+        fn (): bool => ! isset($this->composer['repositories']),
+        'pollora/abilities resolves from Packagist; the repository entry is gone.',
+    );
 
     it('does not require composer/installers, which is the consuming project to decide', function (): void {
         expect($this->composer['require'])->not->toHaveKey('composer/installers');
