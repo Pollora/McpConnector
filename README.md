@@ -57,7 +57,7 @@ annotations. Nothing in the Abilities API separates "sets a value" from
 | PHP | 8.3 or later |
 | WordPress | 6.9 or later, for the Abilities API in core |
 | [`pollora/abilities`](https://github.com/Pollora/abilities) | Installed by Composer. Owns the Abilities API primitives — the ability model, the JSON Schema builder, the input reader and the registration adapters. |
-| [MCP Adapter](https://github.com/WordPress/mcp-adapter) | Required for the MCP endpoint. Distributed on GitHub, **not on wordpress.org** — it cannot be installed from the plugin screen. |
+| [MCP Adapter](https://github.com/WordPress/mcp-adapter) | Required for the MCP endpoint. **Not on wordpress.org**, so it cannot be installed from the plugin screen: take the zip from GitHub, or `composer require wordpress/mcp-adapter` — see [The MCP Adapter over Composer](#the-mcp-adapter-over-composer). |
 | Pretty permalinks | Required |
 | HTTPS | Required by remote clients; plain HTTP is workable only locally |
 
@@ -146,9 +146,33 @@ Which leaves the consuming project declaring both halves:
 here would pull a Composer *plugin* into the tree, which is a different kind of
 dependency from the one library this package does require.
 
-The MCP Adapter is **not** a Composer dependency and cannot be one — it is
-distributed as a GitHub repository of a WordPress plugin, not as a package. It is
-installed by hand; see Requirements.
+### The MCP Adapter over Composer
+
+The adapter is on Packagist as `wordpress/mcp-adapter`, typed
+`wordpress-plugin`, so a project already installing this plugin with Composer
+can install that one the same way rather than downloading it by hand:
+
+```bash
+composer require wordpress/mcp-adapter
+```
+
+It is not required from here. The adapter is needed at runtime, not to build
+this package, and a site is free to install it from the zip instead; declaring
+it would take that choice away and pin a version this plugin has no reason to
+have an opinion about.
+
+One thing a Composer install of the adapter does need. Its bootstrap looks for
+a Jetpack autoloader under its own plugin directory, and a package installed by
+Composer has no `vendor/` there — the dependencies land in the project's. The
+adapter then shows a notice and returns without booting. It reads a constant
+for exactly this case, which the project sets before WordPress loads plugins:
+
+```php
+define( 'WP_MCP_AUTOLOAD', false );
+```
+
+Its classes are already in the project's autoloader at that point, so this only
+tells it to stop looking for a second one.
 
 ### The bundled dependency is not prefixed
 

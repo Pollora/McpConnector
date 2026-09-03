@@ -111,9 +111,15 @@ Developed and maintained by [AmphiBee](https://amphibee.fr).
 == Installation ==
 
 This plugin needs the [MCP Adapter](https://github.com/WordPress/mcp-adapter)
-for the MCP transport itself. The adapter is distributed on GitHub and is **not
-on wordpress.org**, so it cannot be installed from the plugin screen — download
-it and place it in `wp-content/plugins/mcp-adapter/`.
+for the MCP transport itself. The adapter is **not on wordpress.org**, so it
+cannot be installed from the plugin screen — download the zip from GitHub and
+place it in `wp-content/plugins/mcp-adapter/`.
+
+A site managed with Composer can instead run `composer require
+wordpress/mcp-adapter`, and must then define `WP_MCP_AUTOLOAD` to `false`
+before WordPress loads its plugins: installed that way the adapter has no
+`vendor/` of its own to find, and the constant tells it its classes are already
+autoloaded by the project.
 
 There is deliberately no `Requires Plugins: mcp-adapter` header. It would gate
 activation correctly, but the "Install now" link WordPress offers for a missing
