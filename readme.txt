@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -237,6 +237,10 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.2.2 =
+
+* Fixed: the fallback notice added in 1.2.1 shipped in English only. It is now translated in all six bundled languages.
+
 = 1.2.1 =
 
 * Fixed: activating the plugin after a Composer install ended in a fatal error, because the bootstrap required a vendor/autoload.php that only the release zip carries. Installing from the zip was never affected.
@@ -254,6 +258,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.2.2 =
+Translations only. Nothing to do after updating.
 
 = 1.2.1 =
 Fixes a fatal error on activation for sites that installed the plugin with Composer.

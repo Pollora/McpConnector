@@ -2,7 +2,7 @@
 /**
  * Plugin Name: AmphiBee MCP Connector
  * Description: Exposes WordPress content management as Model Context Protocol tools, with a built-in OAuth 2.1 provider so remote clients such as Claude can connect to the site.
- * Version: 1.2.1
+ * Version: 1.2.2
  * Author: AmphiBee
  * Author URI: https://amphibee.fr
  * Requires PHP: 8.3
@@ -48,7 +48,7 @@ defined('ABSPATH') || exit;
  *
  * @var string
  */
-const VERSION = '1.2.1';
+const VERSION = '1.2.2';
 
 /**
  * Absolute path to the plugin's main file.

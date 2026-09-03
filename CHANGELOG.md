@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.2
+
+### Fixed
+
+- The fallback notice 1.2.1 added shipped in English only: it reached the
+  catalogues after that release was cut. All six locales carry it now.
+
 ## 1.2.1
 
 ### Fixed

@@ -14,6 +14,6 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector;
 
-defined(__NAMESPACE__ . '\VERSION') || define(__NAMESPACE__ . '\VERSION', '1.2.1');
+defined(__NAMESPACE__ . '\VERSION') || define(__NAMESPACE__ . '\VERSION', '1.2.2');
 defined(__NAMESPACE__ . '\PLUGIN_FILE') || define(__NAMESPACE__ . '\PLUGIN_FILE', dirname(__DIR__, 2) . '/mcp-connector.php');
 defined(__NAMESPACE__ . '\PLUGIN_DIR') || define(__NAMESPACE__ . '\PLUGIN_DIR', dirname(__DIR__, 2));
