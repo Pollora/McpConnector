@@ -2,7 +2,7 @@
 /**
  * Plugin Name: AmphiBee MCP Connector
  * Description: Exposes WordPress content management as Model Context Protocol tools, with a built-in OAuth 2.1 provider so remote clients such as Claude can connect to the site.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: AmphiBee
  * Author URI: https://amphibee.fr
  * Requires PHP: 8.3
@@ -48,7 +48,7 @@ defined('ABSPATH') || exit;
  *
  * @var string
  */
-const VERSION = '1.2.0';
+const VERSION = '1.2.1';
 
 /**
  * Absolute path to the plugin's main file.
@@ -64,7 +64,31 @@ const PLUGIN_FILE = __FILE__;
  */
 const PLUGIN_DIR = __DIR__;
 
-require_once __DIR__ . '/vendor/autoload.php';
+// Only the release zip carries a vendor/ directory — it is where the bundled
+// pollora/abilities lives. A Composer install has none, and does not need one:
+// both this package's PSR-4 mapping and its dependency are already in the
+// consuming project's autoloader. Requiring the file unconditionally made every
+// Composer install fatal the moment it was activated.
+if (is_readable(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+
+// Neither source produced the classes — a zip built without its dependencies,
+// or a project whose autoloader is not loaded. Say so where someone can read
+// it instead of fataling on the next line.
+if (! class_exists(Plugin::class)) {
+    add_action('admin_notices', static function (): void {
+        printf(
+            '<div class="notice notice-error"><p>%s</p></div>',
+            esc_html__(
+                'MCP Connector cannot find its classes. Install the plugin with Composer, or from a release zip.',
+                'amphibee-mcp-connector',
+            ),
+        );
+    });
+
+    return;
+}
 
 /**
  * Boot the plugin once all other plugins are loaded.
