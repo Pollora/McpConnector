@@ -124,13 +124,17 @@ The package declares `"type": "wordpress-plugin"`, so with
 [composer/installers](https://github.com/composer/installers) present in the
 consuming project it lands in `wp-content/plugins/` rather than in `vendor/`.
 
-It is not on Packagist yet, so the repository has to be named:
+It is published on [Packagist](https://packagist.org/packages/pollora/mcp-connector),
+so the requirement is all a project needs:
+
+```bash
+composer require pollora/mcp-connector
+```
+
+Which leaves the consuming project declaring both halves:
 
 ```json
 {
-    "repositories": [
-        { "type": "vcs", "url": "https://github.com/Pollora/McpConnector" }
-    ],
     "require": {
         "composer/installers": "^2.0",
         "pollora/mcp-connector": "^1.2"
