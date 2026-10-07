@@ -24,7 +24,7 @@ extensible through a filter.
 
 = What a client gets =
 
-27 first-class tools, each with its own input schema and behaviour annotations,
+29 first-class tools, each with its own input schema and behaviour annotations,
 in six sets that switch on and off independently:
 
 * **Posts and pages** — `get-posts`, `get-post`, `get-pages`, `create-post`, `update-post`, `delete-post`, `set-post-terms`
