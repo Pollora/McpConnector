@@ -1,18 +1,218 @@
-# MCP Connector
+<p align="center">
+  <a href="https://pollora.dev">
+    <img src="https://raw.githubusercontent.com/Pollora/.github/main/brand/banners/McpConnector.png" width="100%" alt="MCP Connector: WordPress content as MCP tools, with OAuth 2.1">
+  </a>
+</p>
 
-Exposes WordPress content management as [Model Context Protocol](https://modelcontextprotocol.io)
-tools, with a built-in OAuth 2.1 provider so a remote client such as Claude can
-connect to the site by URL.
+<p align="center">
+  <a href="https://packagist.org/packages/pollora/mcp-connector"><img src="https://img.shields.io/packagist/v/pollora/mcp-connector" alt="Latest Stable Version"></a>
+  <a href="https://packagist.org/packages/pollora/mcp-connector"><img src="https://img.shields.io/packagist/dt/pollora/mcp-connector" alt="Total Downloads"></a>
+  <a href="https://github.com/Pollora/McpConnector/actions/workflows/ci.yml"><img src="https://github.com/Pollora/McpConnector/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Pollora/McpConnector" alt="License"></a>
+</p>
 
-The plugin is deliberately generic: nothing in it is specific to one site. What
-it publishes is configurable, what it refuses is enforced in two independent
-layers, and the ability set is extensible through a filter.
+MCP Connector is a WordPress plugin that exposes content management as [Model Context Protocol](https://modelcontextprotocol.io) tools, with a built-in OAuth 2.1 provider so a remote client such as Claude can connect to the site by URL. It is for site owners and agencies who want an AI client to manage posts, media and menus, never beyond the WordPress permissions of the user who authorized it. Nothing in it is specific to one site: what it publishes is configurable, what it refuses is enforced in two independent layers, and the ability set is extensible through a filter.
 
----
+## Installation
+
+```bash
+composer require pollora/mcp-connector
+```
+
+Or download the zip from the [latest release](https://github.com/Pollora/McpConnector/releases/latest) and upload it from **Plugins → Add New**. Requires PHP 8.3+, WordPress 6.9+ and the [MCP Adapter](https://github.com/WordPress/mcp-adapter); details below.
+
+### Requirements
+
+| | |
+|---|---|
+| PHP | 8.3 or later |
+| WordPress | 6.9 or later, for the Abilities API in core |
+| [`pollora/abilities`](https://github.com/Pollora/abilities) | Installed by Composer. Owns the Abilities API primitives — the ability model, the JSON Schema builder, the input reader and the registration adapters. |
+| [MCP Adapter](https://github.com/WordPress/mcp-adapter) | Required for the MCP endpoint. **Not on wordpress.org**, so it cannot be installed from the plugin screen: take the zip from GitHub, or `composer require wordpress/mcp-adapter` — see [The MCP Adapter over Composer](#the-mcp-adapter-over-composer). |
+| Pretty permalinks | Required |
+| HTTPS | Required by remote clients; plain HTTP is workable only locally |
+
+Without the MCP Adapter the abilities still register and remain reachable
+through the core abilities REST controllers; only the MCP endpoint is missing.
+Without the Abilities API the plugin registers nothing but the OAuth provider
+keeps working.
+
+**There is deliberately no `Requires Plugins: mcp-adapter` header.** The header
+would gate activation correctly — WordPress resolves the slug against installed
+directory names, not against wordpress.org — but the "Install now" link it
+offers for a missing dependency queries wordpress.org, where the adapter is not.
+Anyone installing this plugin from the directory would meet a refusal to activate
+followed by a link that leads nowhere, and a dead end is worse than a missing
+guard rail. The dependency is enforced where it can also be explained: the
+dashboard states what is missing and prints the two commands that fix it.
+
+The cost is worth knowing: WordPress no longer refuses to deactivate the adapter
+while this plugin runs, so deactivating it silently removes the MCP endpoint.
+
+#### The web server must not block `/.well-known/`
+
+This is the single most common reason a connection fails, and it fails
+invisibly — the client reports an unreachable server, and nothing appears in any
+WordPress log, because the request never reaches PHP.
+
+RFC 8414 and RFC 9728 pin the two discovery documents to the site root, and the
+usual "deny all hidden files" rule blocks them:
+
+```nginx
+# Wrong — also blocks /.well-known/
+location ~ /\. { deny all; }
+
+# Right — RFC 8615 carve-out
+location ~* /\.(?!well-known\/) { deny all; }
+```
+
+Verify with:
+
+```bash
+curl -s https://example.com/.well-known/oauth-protected-resource
+curl -s https://example.com/.well-known/oauth-authorization-server
+```
+
+Both must return JSON. The settings screen probes them itself and prints the
+nginx line to change when they do not. Mirrors are served at `/wp-json/mcp-connector/v1/protected-resource` and
+`/wp-json/mcp-connector/v1/server-metadata` for diagnosis, but a conforming
+client will only look at the canonical paths.
+
+#### Behind a CDN
+
+`/oauth/authorize` is a dotless GET path, which is what a "cache HTML pages"
+edge rule matches. It is only ever served to signed-in users, so a rule that
+excludes session cookies already skips it, and the responses carry `no-store`.
+But a cache rule with an explicit edge TTL overrides origin headers — on such a
+setup, exclude this path explicitly. A cached authorization redirect carries
+somebody else's one-time code.
+
+
+### Installing with Composer
+
+The package declares `"type": "wordpress-plugin"`, so with
+[composer/installers](https://github.com/composer/installers) present in the
+consuming project it lands in `wp-content/plugins/` rather than in `vendor/`.
+
+It is published on [Packagist](https://packagist.org/packages/pollora/mcp-connector),
+so the requirement is all a project needs:
+
+```bash
+composer require pollora/mcp-connector
+```
+
+Which leaves the consuming project declaring both halves:
+
+```json
+{
+    "require": {
+        "composer/installers": "^2.0",
+        "pollora/mcp-connector": "^1.2"
+    }
+}
+```
+
+`composer/installers` is required by the project, not by this package: adding it
+here would pull a Composer *plugin* into the tree, which is a different kind of
+dependency from the one library this package does require.
+
+#### The MCP Adapter over Composer
+
+The adapter is on Packagist as `wordpress/mcp-adapter`, typed
+`wordpress-plugin`, so a project already installing this plugin with Composer
+can install that one the same way rather than downloading it by hand:
+
+```bash
+composer require wordpress/mcp-adapter
+```
+
+It is not required from here. The adapter is needed at runtime, not to build
+this package, and a site is free to install it from the zip instead; declaring
+it would take that choice away and pin a version this plugin has no reason to
+have an opinion about.
+
+One thing a Composer install of the adapter does need. Its bootstrap looks for
+a Jetpack autoloader under its own plugin directory, and a package installed by
+Composer has no `vendor/` there — the dependencies land in the project's. The
+adapter then shows a notice and returns without booting. It reads a constant
+for exactly this case, which the project sets before WordPress loads plugins:
+
+```php
+define( 'WP_MCP_AUTOLOAD', false );
+```
+
+Its classes are already in the project's autoloader at that point, so this only
+tells it to stop looking for a second one.
+
+#### The bundled dependency is not prefixed
+
+The release zip carries `pollora/abilities` in `vendor/` — 416 KB, one package,
+no transitive dependencies. Nothing in the wordpress.org guidelines forbids that:
+the only rules that bear on it are GPL compatibility, which MIT satisfies, and
+the ban on shipping libraries WordPress itself bundles, which this is not.
+
+What it does mean is that a site running both this plugin and the Pollora
+framework loads two copies of `Pollora\Abilities\`, and PHP's class namespace is
+global — the first autoloader to register wins, and the other side silently runs
+against a version it did not choose. That is accepted rather than solved: the
+namespace belongs to us on both sides, and a `^1.0` constraint keeps them
+compatible.
+
+Revisit it if this plugin ships to the wordpress.org directory, where it would
+sit next to plugins nobody here controls. The fix is a build step, not a code
+change: run [PHP-Scoper](https://github.com/humbug/php-scoper) or
+[Strauss](https://github.com/BrianHenryIE/strauss) in the release workflow to
+rewrite the bundled namespace, leaving the source untouched.
+
+
+## Connecting a client
+
+Activate the plugin and open **Settings → MCP Connector**. Until some client
+holds a live access token, that address sends you to the **setup assistant** — a
+screen of its own that takes the whole window, with no admin menu, no admin bar
+and no notices. Setting up a connector is a thing done once, with an end; the
+surrounding chrome offers nothing that helps and several ways to abandon it
+halfway. The only way out is a link that says so.
+
+The assistant walks the chain in the order it has to happen:
+
+1. **Preparation** — every environmental requirement, each failure stating the
+   literal change that fixes it. This step blocks: if the discovery documents do
+   not answer, there is no point handing anybody a URL.
+2. **What it may do** — read-only mode and self-registration, the two decisions
+   worth making before a client sees the site.
+3. **Hand over the URL** — the MCP server URL, of the form
+   `https://example.com/wp-json/mcp/connector`, and a walkthrough per client.
+   Claude registers itself and needs nothing pasted back; a client that cannot
+   wants an identifier and secret created here first.
+4. **Verify** — the end-to-end test below.
+
+It steps aside as soon as any client holds a live access token — a client that
+merely registered is not enough, since a client can introduce itself and then
+abandon the flow. From then on **Settings → MCP Connector** opens on six panels:
+Dashboard, Connect, Tools, Security, Applications, Advanced. The assistant can be
+brought back from the dashboard at any time.
+
+### The end-to-end test
+
+The dashboard's checks establish what can be established from PHP. What they
+cannot establish is whether the seven steps *compose* — whether the code the
+authorization endpoint issues is one the token endpoint will accept, whether that
+token is one the MCP transport will honor. So the test does the real thing:
+registers an application over HTTP, authorizes it as the administrator running
+it, redeems the code, calls `initialize` and `tools/list` with the resulting
+token, and reports which step stopped.
+
+Two consequences worth knowing. The requests are loopback HTTP rather than direct
+calls into the controllers — a direct call would prove the PHP works while saying
+nothing about the web server in front of it, which is where the failure usually
+is. And the run creates a real client and a real token, so it deletes both when
+it finishes, on the failure path as well as the success path.
+
 
 ## What it gives a client
 
-27 first-class MCP tools, each with its own input schema and behaviour
+29 first-class MCP tools, each with its own input schema and behavior
 annotations, grouped into six sets that can be switched on and off
 independently:
 
@@ -48,199 +248,6 @@ annotations. Nothing in the Abilities API separates "sets a value" from
 "rewrites the content model", so the choice is explicit — see
 **Third-party abilities** below.
 
----
-
-## Requirements
-
-| | |
-|---|---|
-| PHP | 8.3 or later |
-| WordPress | 6.9 or later, for the Abilities API in core |
-| [`pollora/abilities`](https://github.com/Pollora/abilities) | Installed by Composer. Owns the Abilities API primitives — the ability model, the JSON Schema builder, the input reader and the registration adapters. |
-| [MCP Adapter](https://github.com/WordPress/mcp-adapter) | Required for the MCP endpoint. **Not on wordpress.org**, so it cannot be installed from the plugin screen: take the zip from GitHub, or `composer require wordpress/mcp-adapter` — see [The MCP Adapter over Composer](#the-mcp-adapter-over-composer). |
-| Pretty permalinks | Required |
-| HTTPS | Required by remote clients; plain HTTP is workable only locally |
-
-Without the MCP Adapter the abilities still register and remain reachable
-through the core abilities REST controllers; only the MCP endpoint is missing.
-Without the Abilities API the plugin registers nothing but the OAuth provider
-keeps working.
-
-**There is deliberately no `Requires Plugins: mcp-adapter` header.** The header
-would gate activation correctly — WordPress resolves the slug against installed
-directory names, not against wordpress.org — but the "Install now" link it
-offers for a missing dependency queries wordpress.org, where the adapter is not.
-Anyone installing this plugin from the directory would meet a refusal to activate
-followed by a link that leads nowhere, and a dead end is worse than a missing
-guard rail. The dependency is enforced where it can also be explained: the
-dashboard states what is missing and prints the two commands that fix it.
-
-The cost is worth knowing: WordPress no longer refuses to deactivate the adapter
-while this plugin runs, so deactivating it silently removes the MCP endpoint.
-
-### The web server must not block `/.well-known/`
-
-This is the single most common reason a connection fails, and it fails
-invisibly — the client reports an unreachable server, and nothing appears in any
-WordPress log, because the request never reaches PHP.
-
-RFC 8414 and RFC 9728 pin the two discovery documents to the site root, and the
-usual "deny all hidden files" rule blocks them:
-
-```nginx
-# Wrong — also blocks /.well-known/
-location ~ /\. { deny all; }
-
-# Right — RFC 8615 carve-out
-location ~* /\.(?!well-known\/) { deny all; }
-```
-
-Verify with:
-
-```bash
-curl -s https://example.com/.well-known/oauth-protected-resource
-curl -s https://example.com/.well-known/oauth-authorization-server
-```
-
-Both must return JSON. The settings screen probes them itself and prints the
-nginx line to change when they do not. Mirrors are served at `/wp-json/mcp-connector/v1/protected-resource` and
-`/wp-json/mcp-connector/v1/server-metadata` for diagnosis, but a conforming
-client will only look at the canonical paths.
-
-### Behind a CDN
-
-`/oauth/authorize` is a dotless GET path, which is what a "cache HTML pages"
-edge rule matches. It is only ever served to signed-in users, so a rule that
-excludes session cookies already skips it, and the responses carry `no-store`.
-But a cache rule with an explicit edge TTL overrides origin headers — on such a
-setup, exclude this path explicitly. A cached authorization redirect carries
-somebody else's one-time code.
-
----
-
-## Installing with Composer
-
-The package declares `"type": "wordpress-plugin"`, so with
-[composer/installers](https://github.com/composer/installers) present in the
-consuming project it lands in `wp-content/plugins/` rather than in `vendor/`.
-
-It is published on [Packagist](https://packagist.org/packages/pollora/mcp-connector),
-so the requirement is all a project needs:
-
-```bash
-composer require pollora/mcp-connector
-```
-
-Which leaves the consuming project declaring both halves:
-
-```json
-{
-    "require": {
-        "composer/installers": "^2.0",
-        "pollora/mcp-connector": "^1.2"
-    }
-}
-```
-
-`composer/installers` is required by the project, not by this package: adding it
-here would pull a Composer *plugin* into the tree, which is a different kind of
-dependency from the one library this package does require.
-
-### The MCP Adapter over Composer
-
-The adapter is on Packagist as `wordpress/mcp-adapter`, typed
-`wordpress-plugin`, so a project already installing this plugin with Composer
-can install that one the same way rather than downloading it by hand:
-
-```bash
-composer require wordpress/mcp-adapter
-```
-
-It is not required from here. The adapter is needed at runtime, not to build
-this package, and a site is free to install it from the zip instead; declaring
-it would take that choice away and pin a version this plugin has no reason to
-have an opinion about.
-
-One thing a Composer install of the adapter does need. Its bootstrap looks for
-a Jetpack autoloader under its own plugin directory, and a package installed by
-Composer has no `vendor/` there — the dependencies land in the project's. The
-adapter then shows a notice and returns without booting. It reads a constant
-for exactly this case, which the project sets before WordPress loads plugins:
-
-```php
-define( 'WP_MCP_AUTOLOAD', false );
-```
-
-Its classes are already in the project's autoloader at that point, so this only
-tells it to stop looking for a second one.
-
-### The bundled dependency is not prefixed
-
-The release zip carries `pollora/abilities` in `vendor/` — 416 KB, one package,
-no transitive dependencies. Nothing in the wordpress.org guidelines forbids that:
-the only rules that bear on it are GPL compatibility, which MIT satisfies, and
-the ban on shipping libraries WordPress itself bundles, which this is not.
-
-What it does mean is that a site running both this plugin and the Pollora
-framework loads two copies of `Pollora\Abilities\`, and PHP's class namespace is
-global — the first autoloader to register wins, and the other side silently runs
-against a version it did not choose. That is accepted rather than solved: the
-namespace belongs to us on both sides, and a `^1.0` constraint keeps them
-compatible.
-
-Revisit it if this plugin ships to the wordpress.org directory, where it would
-sit next to plugins nobody here controls. The fix is a build step, not a code
-change: run [PHP-Scoper](https://github.com/humbug/php-scoper) or
-[Strauss](https://github.com/BrianHenryIE/strauss) in the release workflow to
-rewrite the bundled namespace, leaving the source untouched.
-
----
-
-## Connecting a client
-
-Activate the plugin and open **Settings → MCP Connector**. Until some client
-holds a live access token, that address sends you to the **setup assistant** — a
-screen of its own that takes the whole window, with no admin menu, no admin bar
-and no notices. Setting up a connector is a thing done once, with an end; the
-surrounding chrome offers nothing that helps and several ways to abandon it
-halfway. The only way out is a link that says so.
-
-The assistant walks the chain in the order it has to happen:
-
-1. **Preparation** — every environmental requirement, each failure stating the
-   literal change that fixes it. This step blocks: if the discovery documents do
-   not answer, there is no point handing anybody a URL.
-2. **What it may do** — read-only mode and self-registration, the two decisions
-   worth making before a client sees the site.
-3. **Hand over the URL** — the MCP server URL, of the form
-   `https://example.com/wp-json/mcp/connector`, and a walkthrough per client.
-   Claude registers itself and needs nothing pasted back; a client that cannot
-   wants an identifier and secret created here first.
-4. **Verify** — the end-to-end test below.
-
-It steps aside as soon as any client holds a live access token — a client that
-merely registered is not enough, since a client can introduce itself and then
-abandon the flow. From then on **Settings → MCP Connector** opens on six panels:
-Dashboard, Connect, Tools, Security, Applications, Advanced. The assistant can be
-brought back from the dashboard at any time.
-
-### The end-to-end test
-
-The dashboard's checks establish what can be established from PHP. What they
-cannot establish is whether the seven steps *compose* — whether the code the
-authorization endpoint issues is one the token endpoint will accept, whether that
-token is one the MCP transport will honour. So the test does the real thing:
-registers an application over HTTP, authorises it as the administrator running
-it, redeems the code, calls `initialize` and `tools/list` with the resulting
-token, and reports which step stopped.
-
-Two consequences worth knowing. The requests are loopback HTTP rather than direct
-calls into the controllers — a direct call would prove the PHP works while saying
-nothing about the web server in front of it, which is where the failure usually
-is. And the run creates a real client and a real token, so it deletes both when
-it finishes, on the failure path as well as the success path.
-
----
 
 ## Security model
 
@@ -249,7 +256,7 @@ Three independent layers. Each assumes the others may be wrong.
 **Capabilities.** Every ability checks the capability for the specific object it
 touches — `edit_post` on the post being edited, not a blanket `edit_posts`. A
 connected client can never exceed the WordPress permissions of the user who
-authorised it. The endpoint as a whole is gated on a configurable capability,
+authorized it. The endpoint as a whole is gated on a configurable capability,
 re-checked on every token refresh, so demoting or deleting a user disconnects
 them rather than leaving a valid token behind.
 
@@ -293,7 +300,6 @@ steer is a poor trade for the convenience. Option writing is restricted to an
 allow-list (`blogname`, `blogdescription`) rather than to `manage_options`,
 which would otherwise cover `siteurl`, `home` and `default_role`.
 
----
 
 ## Configuration
 
@@ -304,7 +310,7 @@ which would otherwise cover `siteurl`, `home` and `default_role`.
 | Ability groups | Tools | all but Users | |
 | Addressable post types | Tools | public types declared to REST | Everything else is refused whatever slug is asked for. |
 | Third-party abilities | Tools | read-only, plus a shipped profile | See below. |
-| Required capability | Security | `edit_posts` | To authorise a client and to reach the endpoint. |
+| Required capability | Security | `edit_posts` | To authorize a client and to reach the endpoint. |
 | Read-only mode | Security | off | |
 | OAuth provider | Security | on | |
 | Self-registration | Security | on | Turn off to require clients be created by hand. |
@@ -313,7 +319,7 @@ which would otherwise cover `siteurl`, `home` and `default_role`.
 
 Every panel is in the page whichever one is showing, and saving writes all of
 them at once. That is not incidental: two of these settings treat an empty
-selection as a decision to honour rather than a value to recompute, so a form
+selection as a decision to honor rather than a value to recompute, so a form
 that submitted only the visible panel would empty the others on its way past.
 
 ### Addressable post types
@@ -359,7 +365,7 @@ Two kinds, handled differently, because only one of them is visible to WordPress
 **Declared fields** — registered with `register_post_meta()` and `show_in_rest`
 — are read back on `get-post`, listed under `declared_meta` on `get-post-types`,
 and writable through the `meta` map of `create-post` and `update-post`. Writing
-honours `auth_callback`, so a field its owner restricted stays restricted. Keys
+honors `auth_callback`, so a field its owner restricted stays restricted. Keys
 the type does not declare are refused with a message naming the ones it does.
 
 Undeclared fields are not writable at all, and the restriction is the point. An
@@ -377,7 +383,6 @@ other frameworks are added through `mcp_connector_field_sources`.
 Everything is also filterable through `mcp_connector_settings`, for sites that
 would rather pin configuration in a mu-plugin than leave it editable.
 
----
 
 ## Extending
 
@@ -431,7 +436,6 @@ Other extension points:
 | `mcp_connector_addressable_post_types` | Adjust the addressable post type set |
 | `mcp_connector_field_sources` | Teach the plugin to read another field framework |
 
----
 
 ## Translations
 
@@ -472,7 +476,6 @@ The `.mo` files are what WordPress reads; the `.po` files are the source and
 both are committed. `wp i18n make-php` produces the `.l10n.php` variants that
 WordPress 6.5 and later prefer — those are generated, and gitignored.
 
----
 
 ## Architecture
 
@@ -522,8 +525,10 @@ REST route. WordPress's `rest_cookie_check_errors()` calls
 client's redirect. Inside a REST callback the visitor would appear permanently
 signed out and the flow could never complete.
 
----
+## Contributing
 
-## Licence
+Contributions are welcome: see the [contributing guide](CONTRIBUTING.md). Report security issues privately, as described in the [security policy](SECURITY.md).
 
-GPL-2.0-or-later.
+## License
+
+MCP Connector is open-source software licensed under the [GPL-2.0-or-later](LICENSE). © [RuBee group](https://rubee.group)
