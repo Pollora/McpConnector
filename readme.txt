@@ -92,10 +92,10 @@ which would otherwise cover `siteurl`, `home` and `default_role`.
 = For developers =
 
 Publish your own tools by implementing `AbilityGroup` and appending it to
-`mcp_connector_ability_groups`. Eight filters in all cover the settings, the
-group list, the published tool list, the option allow-list, the third-party
-ability selection and its provider profiles, the addressable post type set, and
-the custom field readers.
+`mcp_connector_ability_groups`. Eleven filters in all cover the settings, the
+group list, the published tool list, the server instructions, prompts and
+resources, the option allow-list, the third-party ability selection and its
+provider profiles, the addressable post type set, and the custom field readers.
 
 Source, issues, and the full hook reference with examples:
 [github.com/Pollora/McpConnector](https://github.com/Pollora/McpConnector).

@@ -430,6 +430,9 @@ Other extension points:
 | `mcp_connector_settings` | Override any configuration value |
 | `mcp_connector_ability_groups` | Add or remove ability groups |
 | `mcp_connector_server_tools` | Adjust the published tool list |
+| `mcp_connector_server_instructions` | Replace the instructions a client receives on `initialize`; a blank value keeps the default |
+| `mcp_connector_server_prompts` | Publish prompts: ability names, `McpPrompt` instances or prompt builders |
+| `mcp_connector_server_resources` | Publish resources: ability names or `McpResource` instances |
 | `mcp_connector_writable_options` | Widen the option write allow-list |
 | `mcp_connector_external_abilities` | Adjust the published third-party ability list |
 | `mcp_connector_provider_profiles` | Declare a recommended selection for a provider |

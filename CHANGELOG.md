@@ -7,6 +7,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## Unreleased
 
+### Added
+
+- **The server instructions, prompts and resources are filterable.** A plugin
+  building a guided workflow on this server can now replace the instructions a
+  client reads on `initialize` (`mcp_connector_server_instructions`) and publish
+  prompts and resources next to the tools (`mcp_connector_server_prompts`,
+  `mcp_connector_server_resources`). The defaults are unchanged: the same
+  instructions, no prompts, no resources. Instructions filtered to nothing fall
+  back to the default.
+
 ### Changed
 
 - The plugin is licensed under the MIT license instead of GPL-2.0-or-later,
