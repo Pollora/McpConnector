@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.2.2
+Stable tag: 1.3.0
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -243,6 +243,11 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.3.0 =
+
+* Added: three filters let a plugin shape the MCP server beyond its tool list. `mcp_connector_server_instructions` replaces the instructions a client reads on `initialize`, and `mcp_connector_server_prompts` and `mcp_connector_server_resources` publish prompts and resources next to the tools. With no callback hooked, nothing changes: the same instructions, no prompts, no resources. Instructions filtered to nothing fall back to the default.
+* Changed: the plugin is licensed under the MIT license instead of GPL-2.0-or-later, which stays compatible with WordPress's GPL. Releases up to 1.2.2 keep the license they were published under.
+
 = 1.2.2 =
 
 * Fixed: the fallback notice added in 1.2.1 shipped in English only. It is now translated in all six bundled languages.
@@ -264,6 +269,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.3.0 =
+New filters for the server instructions, prompts and resources, and the license is now MIT. Nothing to do after updating.
 
 = 1.2.2 =
 Translations only. Nothing to do after updating.
