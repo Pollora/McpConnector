@@ -83,7 +83,7 @@ final class UserGroup implements AbilityGroup
             category: AbilityCategory::Users,
             inputSchema: (new SchemaBuilder())
                 ->string('role', 'Filter by role slug, such as editor or author.')
-                ->string('search', 'Match users whose login, display name or email contains this text.')
+                ->string('search', 'Match users whose login, display name or email contains this text. Email is only searched for callers allowed to see it.')
                 ->integer('number', 'How many users to return, at most 100.', default: 20, minimum: 1, maximum: 100)
                 ->toArray(),
             execute: static function (Input $input): array {
@@ -95,6 +95,13 @@ final class UserGroup implements AbilityGroup
 
                 if ($input->filled('search')) {
                     $args['search'] = '*' . $input->string('search') . '*';
+
+                    // The email is only shown to callers who hold edit_users, so
+                    // it must not be searchable by anyone else: a wildcard search
+                    // would let them guess it one character at a time.
+                    if (! current_user_can('edit_users')) {
+                        $args['search_columns'] = ['user_login', 'display_name'];
+                    }
                 }
 
                 return [

@@ -86,7 +86,13 @@ final class TaxonomyGroup implements AbilityGroup
                 ->boolean('public_only', 'Return only publicly queryable taxonomies.', default: true)
                 ->toArray(),
             execute: static function (Input $input): array {
-                $args = $input->boolean('public_only', true) ? ['public' => true] : [];
+                $publicOnly = $input->boolean('public_only', true);
+                $args = $publicOnly ? ['public' => true] : [];
+                $listed = array_values(get_taxonomies($args, 'objects'));
+
+                if (! $publicOnly) {
+                    $listed = array_values(array_filter($listed, self::mayRead(...)));
+                }
 
                 $taxonomies = array_map(
                     static fn (\WP_Taxonomy $taxonomy): array => [
@@ -95,7 +101,7 @@ final class TaxonomyGroup implements AbilityGroup
                         'hierarchical' => $taxonomy->hierarchical,
                         'post_types' => array_values($taxonomy->object_type),
                     ],
-                    array_values(get_taxonomies($args, 'objects')),
+                    $listed,
                 );
 
                 return ['taxonomies' => $taxonomies];
@@ -131,6 +137,12 @@ final class TaxonomyGroup implements AbilityGroup
                         'Unknown taxonomy "%s". Call get-taxonomies to see what this site registers.',
                         $taxonomy,
                     ));
+                }
+
+                $object = get_taxonomy($taxonomy);
+
+                if ($object instanceof \WP_Taxonomy && ! self::mayRead($object)) {
+                    return Failure::forbidden(sprintf('list the terms of "%s"', $taxonomy));
                 }
 
                 $args = [
@@ -269,6 +281,13 @@ final class TaxonomyGroup implements AbilityGroup
                     return Failure::fromWordPress($result, 'delete the term');
                 }
 
+                if ($result === 0) {
+                    return Failure::invalid(sprintf(
+                        'Term %d is the default term of its taxonomy and cannot be deleted.',
+                        $termId,
+                    ));
+                }
+
                 if ($result === false) {
                     return Failure::invalid(sprintf('WordPress refused to delete term %d.', $termId));
                 }
@@ -282,5 +301,17 @@ final class TaxonomyGroup implements AbilityGroup
             },
             behaviour: Behaviour::Deletes,
         );
+    }
+
+    /**
+     * Whether the current user may read a taxonomy: public ones always, others only by managing them.
+     *
+     * @param \WP_Taxonomy $taxonomy The taxonomy.
+     *
+     * @return bool True when it may be listed and read.
+     */
+    private static function mayRead(\WP_Taxonomy $taxonomy): bool
+    {
+        return $taxonomy->public || current_user_can($taxonomy->cap->manage_terms);
     }
 }

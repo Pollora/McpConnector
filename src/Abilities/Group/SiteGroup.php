@@ -150,7 +150,18 @@ final class SiteGroup implements AbilityGroup
                 ->boolean('public_only', 'Return only publicly queryable post types.', default: true)
                 ->toArray(),
             execute: static function (Input $input): array {
-                $args = $input->boolean('public_only', true) ? ['public' => true] : [];
+                $publicOnly = $input->boolean('public_only', true);
+                $args = $publicOnly ? ['public' => true] : [];
+                $listed = array_values(get_post_types($args, 'objects'));
+
+                if (! $publicOnly) {
+                    // Internal types are only described to users who may edit
+                    // their content, and their protected meta stays unlisted.
+                    $listed = array_values(array_filter(
+                        $listed,
+                        static fn (\WP_Post_Type $type): bool => $type->public || current_user_can($type->cap->edit_posts),
+                    ));
+                }
 
                 $types = array_map(
                     static fn (\WP_Post_Type $type): array => [
@@ -166,7 +177,7 @@ final class SiteGroup implements AbilityGroup
                         // custom fields — only that none are declared to the
                         // REST API; fields owned by a framework such as Meta Box
                         // are described by that plugin's own tools.
-                        'declared_meta' => PostMeta::describe($type->name),
+                        'declared_meta' => self::visibleMeta(PostMeta::describe($type->name), $type, $publicOnly),
                         // Fields a framework such as Meta Box owns. They are
                         // reported here because nothing else would reveal that
                         // they exist, but they are read and written through
@@ -174,7 +185,7 @@ final class SiteGroup implements AbilityGroup
                         // map — it knows their types and this does not.
                         'framework_fields' => FieldDiscovery::frameworkFields($type->name),
                     ],
-                    array_values(get_post_types($args, 'objects')),
+                    $listed,
                 );
 
                 return ['post_types' => $types];
@@ -219,5 +230,23 @@ final class SiteGroup implements AbilityGroup
             permission: static fn (): bool => current_user_can('manage_options'),
             behaviour: Behaviour::Updates,
         );
+    }
+
+    /**
+     * Drop the protected meta of an internal type from its description.
+     *
+     * @param list<array<string, mixed>> $meta       The declared meta.
+     * @param \WP_Post_Type              $type       The post type described.
+     * @param bool                       $publicOnly Whether only public types were requested.
+     *
+     * @return list<array<string, mixed>> The meta to report.
+     */
+    private static function visibleMeta(array $meta, \WP_Post_Type $type, bool $publicOnly): array
+    {
+        if ($publicOnly || $type->public) {
+            return $meta;
+        }
+
+        return array_values(array_filter($meta, static fn (array $entry): bool => $entry['protected'] !== true));
     }
 }

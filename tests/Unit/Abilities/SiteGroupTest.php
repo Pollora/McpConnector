@@ -143,6 +143,8 @@ describe('get-post-types', function (): void {
         $page = new WP_Post_Type('page', 'Pages');
         $page->hierarchical = true;
         $secret = new WP_Post_Type('internal', 'Internal');
+        $secret->public = false;
+        $secret->cap->edit_posts = 'edit_internals';
 
         Functions\when('get_post_types')->alias(function (array $args) use ($page, $secret): array {
             $this->queries[] = $args;
@@ -168,10 +170,32 @@ describe('get-post-types', function (): void {
     });
 
     it('lists every post type when public_only is false', function (): void {
+        abcoreUserCan(['edit_posts', 'edit_internals']);
         $result = (abcoreDefinition(new SiteGroup(), 'get-post-types')->execute)(abcoreInput(['public_only' => false]));
 
         expect($this->queries)->toBe([[]])
             ->and(array_column($result['post_types'], 'name'))->toBe(['page', 'internal']);
+    });
+
+    it('keeps a type the caller cannot manage out of the full listing', function (): void {
+        abcoreUserCan(['edit_posts']);
+
+        $result = (abcoreDefinition(new SiteGroup(), 'get-post-types')->execute)(abcoreInput(['public_only' => false]));
+
+        expect(array_column($result['post_types'], 'name'))->toBe(['page']);
+    });
+
+    it('withholds the protected meta of an internal type', function (): void {
+        abcoreUserCan(['edit_posts', 'edit_internals']);
+        Functions\when('get_registered_meta_keys')->justReturn([
+            'plain' => ['type' => 'string', 'show_in_rest' => true],
+            '_secret' => ['type' => 'string', 'show_in_rest' => true],
+        ]);
+
+        $internal = (abcoreDefinition(new SiteGroup(), 'get-post-types')->execute)(abcoreInput(['public_only' => false]))['post_types'][1];
+
+        expect($internal['name'])->toBe('internal')
+            ->and(array_column($internal['declared_meta'], 'key'))->toBe(['plain']);
     });
 
     it('describes the type, its supports, taxonomies and only the meta declared to REST', function (): void {

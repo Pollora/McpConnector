@@ -112,10 +112,22 @@ describe('get-users', function (): void {
     ]);
 
     it('filters by role and wraps the search term in wildcards', function (): void {
+        abcoreUsersCan(['list_users', 'edit_users']);
         (abcoreDefinition(new UserGroup(), 'get-users')->execute)(abcoreInput(['role' => 'editor', 'search' => 'jan']));
 
         expect($this->queries[0])->toBe(['number' => 20, 'role' => 'editor', 'search' => '*jan*']);
     });
+
+    it('searches the email only for a caller who may see it', function (bool $canEdit, array $expected): void {
+        abcoreUsersCan($canEdit ? ['list_users', 'edit_users'] : ['list_users']);
+
+        (abcoreDefinition(new UserGroup(), 'get-users')->execute)(abcoreInput(['search' => '@gmail']));
+
+        expect($this->queries[0])->toBe(['number' => 20, 'search' => '*@gmail*'] + $expected);
+    })->with([
+        'without edit_users' => [false, ['search_columns' => ['user_login', 'display_name']]],
+        'with edit_users' => [true, []],
+    ]);
 
     it('ignores blank filters', function (): void {
         (abcoreDefinition(new UserGroup(), 'get-users')->execute)(abcoreInput(['role' => '', 'search' => '']));
