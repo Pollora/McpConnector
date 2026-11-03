@@ -122,8 +122,11 @@ final class RegistrationController
      */
     private function readRedirectUris(array $body): array
     {
+        // A URI is a string. Anything else, such as a nested array a client sent by
+        // mistake or on purpose, is not one, and casting it would only raise a
+        // PHP warning on an endpoint that needs no authentication.
         $candidates = array_slice(
-            array_map(strval(...), (array) ($body['redirect_uris'] ?? [])),
+            array_values(array_filter((array) ($body['redirect_uris'] ?? []), is_string(...))),
             0,
             self::MAX_REDIRECT_URIS,
         );
@@ -191,7 +194,8 @@ final class RegistrationController
      */
     private function readName(array $body): string
     {
-        $name = sanitize_text_field((string) ($body['client_name'] ?? ''));
+        $raw = $body['client_name'] ?? '';
+        $name = sanitize_text_field(is_scalar($raw) ? (string) $raw : '');
         $name = trim(mb_substr($name, 0, self::MAX_NAME_LENGTH));
 
         return $name !== '' ? $name : __('Unnamed MCP client', 'amphibee-mcp-connector');
@@ -206,11 +210,11 @@ final class RegistrationController
      */
     private function readAuthMethod(array $body): string
     {
-        $requested = (string) ($body['token_endpoint_auth_method'] ?? 'client_secret_post');
+        $requested = $body['token_endpoint_auth_method'] ?? 'client_secret_post';
 
         $supported = ['client_secret_post', 'client_secret_basic', Client::AUTH_METHOD_NONE];
 
-        return in_array($requested, $supported, true) ? $requested : 'client_secret_post';
+        return is_string($requested) && in_array($requested, $supported, true) ? $requested : 'client_secret_post';
     }
 
     /**

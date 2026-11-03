@@ -97,6 +97,53 @@ describe('dynamic client registration', function (): void {
         expect($response->get_data()['redirect_uris'])->toBe(['https://a.example/cb', 'https://b.example/cb']);
     });
 
+    it('ignores a redirect URI that is not a string, without a warning', function (): void {
+        $response = ($this->register)(['redirect_uris' => [
+            ['https://nested.example/cb'],
+            'https://good.example/cb',
+            null,
+            42,
+            ['key' => 'https://keyed.example/cb'],
+        ]]);
+
+        expect($response->get_status())->toBe(201)
+            ->and($response->get_data()['redirect_uris'])->toBe(['https://good.example/cb']);
+    });
+
+    it('refuses a registration whose redirect URIs are none of them strings', function (): void {
+        $response = ($this->register)(['redirect_uris' => [['https://nested.example/cb'], ['x']]]);
+
+        expect($response->get_status())->toBe(400)
+            ->and($response->get_data()['error'])->toBe('invalid_redirect_uri');
+    });
+
+    it('still accepts a single redirect URI sent as a bare string', function (): void {
+        $response = ($this->register)(['redirect_uris' => 'https://one.example/cb']);
+
+        expect($response->get_status())->toBe(201)
+            ->and($response->get_data()['redirect_uris'])->toBe(['https://one.example/cb']);
+    });
+
+    it('treats a client name that is not a scalar as absent, without a warning', function (): void {
+        $response = ($this->register)([
+            'client_name' => ['Claude'],
+            'redirect_uris' => ['https://claude.example/cb'],
+        ]);
+
+        expect($response->get_status())->toBe(201)
+            ->and($response->get_data()['client_name'])->toBe('Unnamed MCP client');
+    });
+
+    it('falls back to the default authentication method for a value that is not a string', function (): void {
+        $response = ($this->register)([
+            'token_endpoint_auth_method' => ['none'],
+            'redirect_uris' => ['https://claude.example/cb'],
+        ]);
+
+        expect($response->get_status())->toBe(201)
+            ->and($response->get_data()['token_endpoint_auth_method'])->toBe('client_secret_post');
+    });
+
     it('reads no more than ten redirect URIs', function (): void {
         $uris = array_map(static fn (int $i): string => "https://app{$i}.example/cb", range(1, 15));
 
