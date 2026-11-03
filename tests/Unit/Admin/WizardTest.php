@@ -167,6 +167,8 @@ describe('the preparation step', function (): void {
     });
 
     it('signs the probe link with a nonce', function (): void {
+        $this->setOption('permalink_structure', '');
+
         expect(adminsmallWizard())->toContain('_wpnonce=nonce-' . SettingsPage::NONCE_PROBE);
     });
 
