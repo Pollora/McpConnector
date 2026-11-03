@@ -222,6 +222,9 @@ final class TokenRepository
     /**
      * Revoke every token issued to a client.
      *
+     * An entry that is not a record at all, which nothing can authenticate with,
+     * is dropped along the way rather than left behind.
+     *
      * @param string $clientId The client identifier.
      */
     public function revokeClient(string $clientId): void
@@ -231,7 +234,7 @@ final class TokenRepository
                 $option,
                 static fn (array $tokens): array => array_filter(
                     $tokens,
-                    static fn (mixed $record): bool => ! is_array($record) || ($record['client_id'] ?? '') !== $clientId,
+                    static fn (mixed $record): bool => is_array($record) && ($record['client_id'] ?? '') !== $clientId,
                 ),
             );
         }
@@ -252,7 +255,7 @@ final class TokenRepository
                 $option,
                 static fn (array $tokens): array => array_filter(
                     $tokens,
-                    static fn (mixed $record): bool => ! is_array($record) || (int) ($record['user_id'] ?? 0) !== $userId,
+                    static fn (mixed $record): bool => is_array($record) && (int) ($record['user_id'] ?? 0) !== $userId,
                 ),
             );
         }
@@ -439,7 +442,7 @@ final class TokenRepository
                 $option,
                 static fn (array $tokens): array => array_filter(
                     $tokens,
-                    static fn (mixed $record): bool => ! is_array($record) || ($record['family'] ?? null) !== $family,
+                    static fn (mixed $record): bool => is_array($record) && ($record['family'] ?? null) !== $family,
                 ),
             );
         }

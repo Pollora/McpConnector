@@ -480,3 +480,69 @@ describe('the marker of a spent refresh token', function (): void {
         expect($this->optionValues[TokenRepository::REFRESH_OPTION])->toBe([]);
     });
 });
+
+describe('an entry that is not a record', function (): void {
+    /**
+     * Seed an option with two valid records and some entries that are not records at all.
+     *
+     * @return array<string, mixed>
+     */
+    function mcpcCorruptTokens(): array
+    {
+        $record = static fn (int $user, string $client, string $family): array => [
+            'user_id' => $user,
+            'client_id' => $client,
+            'scopes' => ['read'],
+            'created_at' => time(),
+            'expires_at' => time() + 600,
+            'family' => $family,
+        ];
+
+        return [
+            'mine' => $record(7, 'client-1', 'fam-1'),
+            'theirs' => $record(8, 'client-2', 'fam-2'),
+            'a string' => 'garbage',
+            'a null' => null,
+            'an int' => 42,
+        ];
+    }
+
+    it('does not survive the revocation of a client', function (): void {
+        $this->setOption(TokenRepository::ACCESS_OPTION, mcpcCorruptTokens());
+
+        (new TokenRepository())->revokeClient('client-1');
+
+        expect(array_keys($this->optionValues[TokenRepository::ACCESS_OPTION]))->toBe(['theirs']);
+    });
+
+    it('does not survive the revocation of a user', function (): void {
+        $this->setOption(TokenRepository::REFRESH_OPTION, mcpcCorruptTokens());
+
+        (new TokenRepository())->revokeUser(7);
+
+        expect(array_keys($this->optionValues[TokenRepository::REFRESH_OPTION]))->toBe(['theirs']);
+    });
+
+    it('does not survive the revocation of a lineage', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        $repo->consumeRefreshToken($first['refresh_token']);
+        $this->setOption(
+            TokenRepository::REFRESH_OPTION,
+            $this->optionValues[TokenRepository::REFRESH_OPTION] + ['a string' => 'garbage', 'an int' => 42],
+        );
+
+        $repo->consumeRefreshToken($first['refresh_token']);
+
+        expect($this->optionValues[TokenRepository::REFRESH_OPTION])->toBe([]);
+    });
+
+    it('is dropped by the purge of expired records, as it already was', function (): void {
+        $this->setOption(TokenRepository::ACCESS_OPTION, mcpcCorruptTokens());
+
+        $removed = (new TokenRepository())->purgeExpired();
+
+        expect($removed)->toBe(3)
+            ->and(array_keys($this->optionValues[TokenRepository::ACCESS_OPTION]))->toBe(['mine', 'theirs']);
+    });
+});
