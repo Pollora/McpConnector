@@ -168,7 +168,7 @@ final class TokenController
             );
         }
 
-        return $this->issue($record['user_id'], $client->id, $record['scopes']);
+        return $this->issue($record['user_id'], $client->id, $record['scopes'], $record['family']);
     }
 
     /**
@@ -181,10 +181,11 @@ final class TokenController
      * @param int          $userId   The user the tokens act for.
      * @param string       $clientId The client the tokens are issued to.
      * @param list<string> $scopes   The granted scopes.
+     * @param string|null  $family   The lineage of the refresh token being replaced, if any.
      *
      * @return \WP_REST_Response The token response, or an OAuth error.
      */
-    private function issue(int $userId, string $clientId, array $scopes): \WP_REST_Response
+    private function issue(int $userId, string $clientId, array $scopes, ?string $family = null): \WP_REST_Response
     {
         if (! user_can($userId, $this->settings->requiredCapability)) {
             return self::error(
@@ -193,7 +194,7 @@ final class TokenController
             );
         }
 
-        $issued = $this->tokens->issue($userId, $clientId, $scopes);
+        $issued = $this->tokens->issue($userId, $clientId, $scopes, $family);
 
         return self::json([
             'access_token' => $issued['access_token'],

@@ -315,3 +315,168 @@ describe('two requests at the same moment', function (): void {
             ->and($repository->findAccessToken($issued['access_token']))->toBeNull();
     });
 });
+
+/**
+ * Pass a refresh token through one rotation, as the token endpoint does.
+ *
+ * @return array{access_token: string, refresh_token: string, expires_in: int, scope: string}
+ */
+function mcpcRotate(TokenRepository $repo, string $refreshToken): array
+{
+    $record = $repo->consumeRefreshToken($refreshToken);
+
+    return $repo->issue($record['user_id'], $record['client_id'], $record['scopes'], $record['family']);
+}
+
+/**
+ * Make the markers of spent refresh tokens look older than they are allowed to be.
+ */
+function mcpcExpireSpentMarkers(): void
+{
+    $stored = get_option(TokenRepository::REFRESH_OPTION);
+
+    foreach ($stored as $hash => $record) {
+        if (($record['spent'] ?? false) === true) {
+            $stored[$hash]['expires_at'] = time() - 1;
+        }
+    }
+
+    update_option(TokenRepository::REFRESH_OPTION, $stored);
+}
+
+describe('a refresh token presented again after it was spent', function (): void {
+    it('revokes the whole lineage, the pairs that replaced it included', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        $second = mcpcRotate($repo, $first['refresh_token']);
+        $third = mcpcRotate($repo, $second['refresh_token']);
+
+        expect($repo->findAccessToken($third['access_token']))->not->toBeNull()
+            ->and($repo->consumeRefreshToken($first['refresh_token']))->toBeNull()
+            ->and($repo->findAccessToken($second['access_token']))->toBeNull()
+            ->and($repo->findAccessToken($third['access_token']))->toBeNull()
+            ->and($repo->consumeRefreshToken($third['refresh_token']))->toBeNull();
+    });
+
+    it('leaves another lineage alone', function (): void {
+        $repo = new TokenRepository();
+        $mine = $repo->issue(7, 'client-1', ['read']);
+        $other = $repo->issue(7, 'client-1', ['read']);
+        $next = mcpcRotate($repo, $mine['refresh_token']);
+
+        $repo->consumeRefreshToken($mine['refresh_token']);
+
+        expect($repo->findAccessToken($next['access_token']))->toBeNull()
+            ->and($repo->findAccessToken($other['access_token']))->not->toBeNull()
+            ->and($repo->consumeRefreshToken($other['refresh_token']))->not->toBeNull();
+    });
+
+    it('is answered like an unknown token, whoever presents it', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        mcpcRotate($repo, $first['refresh_token']);
+
+        expect($repo->consumeRefreshToken($first['refresh_token']))->toBeNull()
+            ->and($repo->consumeRefreshToken('never-issued'))->toBeNull();
+    });
+
+    it('revokes nothing once its marker has expired, the token being simply unknown', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        $second = mcpcRotate($repo, $first['refresh_token']);
+
+        mcpcExpireSpentMarkers();
+
+        expect($repo->consumeRefreshToken($first['refresh_token']))->toBeNull()
+            ->and($repo->findAccessToken($second['access_token']))->not->toBeNull()
+            ->and($repo->consumeRefreshToken($second['refresh_token']))->not->toBeNull();
+    });
+});
+
+describe('the lineage of a token', function (): void {
+    it('is shared by the two tokens of a pair', function (): void {
+        (new TokenRepository())->issue(7, 'client-1', ['read']);
+
+        $access = array_values($this->optionValues[TokenRepository::ACCESS_OPTION])[0]['family'];
+        $refresh = array_values($this->optionValues[TokenRepository::REFRESH_OPTION])[0]['family'];
+
+        expect($access)->toBeString()->not->toBe('')
+            ->and($refresh)->toBe($access);
+    });
+
+    it('is handed on by a rotation', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        $second = mcpcRotate($repo, $first['refresh_token']);
+
+        $family = array_values($this->optionValues[TokenRepository::ACCESS_OPTION])[0]['family'];
+
+        expect($repo->consumeRefreshToken($second['refresh_token']))->toMatchArray(['family' => $family]);
+    });
+
+    it('is absent from a token issued before lineages existed, which then leaves no marker', function (): void {
+        update_option(TokenRepository::REFRESH_OPTION, [
+            hash('sha256', 'legacy') => [
+                'user_id' => 7,
+                'client_id' => 'client-1',
+                'scopes' => ['read'],
+                'created_at' => time(),
+                'expires_at' => time() + 100,
+            ],
+        ]);
+        $repo = new TokenRepository();
+
+        expect($repo->consumeRefreshToken('legacy'))->toMatchArray(['user_id' => 7, 'family' => null])
+            ->and($this->optionValues[TokenRepository::REFRESH_OPTION])->toBe([])
+            ->and($repo->consumeRefreshToken('legacy'))->toBeNull();
+    });
+});
+
+describe('the marker of a spent refresh token', function (): void {
+    it('is never accepted as a token, and never counts as one', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        $repo->consumeRefreshToken($first['refresh_token']);
+
+        expect($this->optionValues[TokenRepository::REFRESH_OPTION][hash('sha256', $first['refresh_token'])])
+            ->toMatchArray(['spent' => true, 'client_id' => 'client-1', 'user_id' => 7]);
+    });
+
+    it('is dropped with the other expired records', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        $repo->consumeRefreshToken($first['refresh_token']);
+
+        mcpcExpireSpentMarkers();
+
+        expect($repo->purgeExpired())->toBe(1)
+            ->and($this->optionValues[TokenRepository::REFRESH_OPTION])->toBe([]);
+    });
+
+    it('is capped at a week, however long the token would have lived', function (): void {
+        $repo = new TokenRepository();
+        $first = $repo->issue(7, 'client-1', ['read']);
+        $repo->consumeRefreshToken($first['refresh_token']);
+
+        $marker = $this->optionValues[TokenRepository::REFRESH_OPTION][hash('sha256', $first['refresh_token'])];
+
+        expect($marker['expires_at'])->toBeLessThanOrEqual(time() + TokenRepository::SPENT_TTL)
+            ->and($marker['expires_at'])->toBeGreaterThan(time() + TokenRepository::SPENT_TTL - 5);
+    });
+
+    it('goes with the client and with the user it belonged to', function (): void {
+        $repo = new TokenRepository();
+        $mine = $repo->issue(7, 'client-1', ['read']);
+        $theirs = $repo->issue(8, 'client-2', ['read']);
+        $repo->consumeRefreshToken($mine['refresh_token']);
+        $repo->consumeRefreshToken($theirs['refresh_token']);
+
+        $repo->revokeClient('client-1');
+
+        expect(array_keys($this->optionValues[TokenRepository::REFRESH_OPTION]))->toBe([hash('sha256', $theirs['refresh_token'])]);
+
+        $repo->revokeUser(8);
+
+        expect($this->optionValues[TokenRepository::REFRESH_OPTION])->toBe([]);
+    });
+});
