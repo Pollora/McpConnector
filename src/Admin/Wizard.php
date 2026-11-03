@@ -263,6 +263,26 @@ final class Wizard
         return false;
     }
 
+    /**
+     * Whether the request carries a valid nonce asking to re-run the probe.
+     *
+     * The probe makes outgoing requests to the site itself, so a bare
+     * `?probe=1` link must not be enough to trigger it.
+     *
+     * @return bool True when the probe was asked for by a link this plugin issued.
+     */
+    public static function probeRequested(): bool
+    {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended,WordPress.Security.ValidatedSanitizedInput -- Read as a string, unslashed and sanitised, then verified.
+        $nonce = $_GET['_wpnonce'] ?? null;
+        $asked = isset($_GET['probe']);
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+        return $asked
+            && is_string($nonce)
+            && wp_verify_nonce(sanitize_text_field(wp_unslash($nonce)), SettingsPage::NONCE_PROBE) !== false;
+    }
+
     // -- Steps --
 
     /**
@@ -270,9 +290,7 @@ final class Wizard
      */
     private function renderCheck(): void
     {
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Re-runs a read-only probe.
-        $probe = isset($_GET['probe']);
-        $checks = Diagnostics::all($this->settings, $probe);
+        $checks = Diagnostics::all($this->settings, self::probeRequested());
         $blocked = Diagnostics::blocked($this->settings);
 
         $this->head(
@@ -297,7 +315,7 @@ final class Wizard
         $again = sprintf(
             '<a class="mcpc-button mcpc-button--%s" href="%s">%s</a>',
             $blocked ? 'primary' : 'quiet',
-            esc_url(add_query_arg('probe', '1', self::url('check'))),
+            esc_url(wp_nonce_url(add_query_arg('probe', '1', self::url('check')), SettingsPage::NONCE_PROBE)),
             esc_html__('Ask the server again', 'amphibee-mcp-connector'),
         );
 

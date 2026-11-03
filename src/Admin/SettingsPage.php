@@ -70,6 +70,11 @@ final class SettingsPage
     public const string NONCE_SETTINGS = 'mcp_connector_save_settings';
 
     /**
+     * Nonce action protecting the discovery probe link.
+     */
+    public const string NONCE_PROBE = 'mcp_connector_probe';
+
+    /**
      * Nonce action guarding client creation.
      */
     private const string NONCE_CREATE_CLIENT = 'mcp_connector_create_client';
@@ -302,7 +307,7 @@ final class SettingsPage
 
         if (isset($_GET['mcp_connector_delete_client'])) {
             check_admin_referer(self::NONCE_DELETE_CLIENT);
-            $this->deleteClient(sanitize_text_field(wp_unslash((string) $_GET['mcp_connector_delete_client'])));
+            $this->deleteClient(sanitize_text_field(self::scalar($_GET, 'mcp_connector_delete_client')));
         }
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
@@ -326,7 +331,7 @@ final class SettingsPage
     private function maybeSendToSetup(): void
     {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Chooses a destination; changes nothing.
-        $page = isset($_GET['page']) ? sanitize_key(wp_unslash((string) $_GET['page'])) : '';
+        $page = isset($_GET['page']) ? sanitize_key(self::scalar($_GET, 'page')) : '';
 
         if ($page !== self::MENU_SLUG || isset($_GET['tab'])) {
             return;
@@ -366,9 +371,9 @@ final class SettingsPage
         ));
 
         Settings::save([
-            'ability_namespace' => sanitize_key(wp_unslash((string) ($_POST['ability_namespace'] ?? ''))),
-            'server_route' => sanitize_key(wp_unslash((string) ($_POST['server_route'] ?? ''))),
-            'required_capability' => sanitize_key(wp_unslash((string) ($_POST['required_capability'] ?? ''))),
+            'ability_namespace' => sanitize_key(self::scalar($_POST, 'ability_namespace')),
+            'server_route' => sanitize_key(self::scalar($_POST, 'server_route')),
+            'required_capability' => sanitize_key(self::scalar($_POST, 'required_capability')),
             'enabled_groups' => array_values($groups),
             'read_only_mode' => isset($_POST['read_only_mode']),
             'external_abilities' => $this->submittedExternalAbilities(),
@@ -442,8 +447,8 @@ final class SettingsPage
         // each line passed through esc_url_raw() just below, which is the
         // sanitiser that fits a URL; a text sanitiser first would only mangle it.
         // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified by the caller; esc_url_raw() below.
-        $name = sanitize_text_field(wp_unslash((string) ($_POST['client_name'] ?? '')));
-        $rawUris = wp_unslash((string) ($_POST['redirect_uris'] ?? ''));
+        $name = sanitize_text_field(self::scalar($_POST, 'client_name'));
+        $rawUris = self::scalar($_POST, 'redirect_uris');
         // phpcs:enable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
         $uris = array_values(array_filter(array_map(
@@ -482,6 +487,24 @@ final class SettingsPage
     }
 
     /**
+     * Read a request value as an unslashed string.
+     *
+     * A value that is not a string, such as an array posted as `field[]=x`,
+     * is read as absent, as the OAuth controllers do.
+     *
+     * @param array<array-key, mixed> $source The request array, `$_GET` or `$_POST`.
+     * @param string                  $key    The field name.
+     *
+     * @return string The unslashed value, or an empty string.
+     */
+    private static function scalar(array $source, string $key): string
+    {
+        $value = $source[$key] ?? null;
+
+        return is_string($value) ? wp_unslash($value) : '';
+    }
+
+    /**
      * Redirect back to this screen, and stop.
      *
      * The panel or assistant step the submission came from is carried along, so
@@ -493,8 +516,8 @@ final class SettingsPage
     private function redirect(array $arguments): never
     {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified by the caller; these only choose a destination.
-        $tab = sanitize_key(wp_unslash((string) ($_POST['mcpc_tab'] ?? '')));
-        $step = sanitize_key(wp_unslash((string) ($_POST['mcpc_step'] ?? '')));
+        $tab = sanitize_key(self::scalar($_POST, 'mcpc_tab'));
+        $step = sanitize_key(self::scalar($_POST, 'mcpc_step'));
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
         if (Wizard::isStep($step)) {
@@ -759,7 +782,7 @@ final class SettingsPage
         }
 
         $createdId = isset($_GET['created'])
-            ? sanitize_text_field(wp_unslash((string) $_GET['created']))
+            ? sanitize_text_field(self::scalar($_GET, 'created'))
             : '';
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
@@ -954,12 +977,12 @@ final class SettingsPage
         printf('<h3 class="mcpc-subhead">%s</h3>', esc_html__('Checks', 'amphibee-mcp-connector'));
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Re-runs a read-only probe.
-        Parts::checks(Diagnostics::all($settings, isset($_GET['probe'])));
+        Parts::checks(Diagnostics::all($settings, Wizard::probeRequested()));
 
         printf(
             '<p class="mcpc-note">%s <a class="mcpc-link" href="%s">%s</a></p>',
             esc_html__('The discovery answer is cached for five minutes, since the usual sequence is to read this, change the server, and come back.', 'amphibee-mcp-connector'),
-            esc_url(self::url('dashboard', ['probe' => '1'])),
+            esc_url(wp_nonce_url(self::url('dashboard', ['probe' => '1']), self::NONCE_PROBE)),
             esc_html__('Ask the server again', 'amphibee-mcp-connector'),
         );
 

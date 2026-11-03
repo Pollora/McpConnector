@@ -21,6 +21,8 @@ beforeEach(function (): void {
         'administrator' => ['name' => 'Administrator', 'capabilities' => ['edit_posts' => true]],
     ]]);
     Functions\when('current_user_can')->justReturn(true);
+    Functions\when('wp_nonce_url')->alias(static fn (string $url, string $action): string => $url . '&_wpnonce=nonce-' . $action);
+    Functions\when('wp_verify_nonce')->alias(static fn (string $nonce, string $action): int|false => $nonce === 'nonce-' . $action ? 1 : false);
     $this->setOption('permalink_structure', '/%postname%/');
     $this->transientValues[ADMINSMALL_WIZARD_PROBE_KEY] = [
         'https://example.test/.well-known/oauth-protected-resource' => 200,
@@ -151,9 +153,23 @@ describe('the preparation step', function (): void {
         Functions\expect('wp_remote_get')->twice()->andReturn(['code' => 200]);
         Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
 
-        adminsmallWizard(['probe' => '1']);
+        adminsmallWizard(['probe' => '1', '_wpnonce' => 'nonce-' . SettingsPage::NONCE_PROBE]);
 
         expect(true)->toBeTrue();
+    });
+
+    it('does not re-request anything for a probe link without a valid nonce', function (): void {
+        Functions\expect('wp_remote_get')->never();
+
+        adminsmallWizard(['probe' => '1']);
+        adminsmallWizard(['probe' => '1', '_wpnonce' => 'forged']);
+        adminsmallWizard(['probe' => '1', '_wpnonce' => ['nonce-' . SettingsPage::NONCE_PROBE]]);
+    });
+
+    it('signs the probe link with a nonce', function (): void {
+        $this->setOption('permalink_structure', '');
+
+        expect(adminsmallWizard())->toContain('_wpnonce=nonce-' . SettingsPage::NONCE_PROBE);
     });
 
     it('does not request anything on an ordinary page load', function (): void {

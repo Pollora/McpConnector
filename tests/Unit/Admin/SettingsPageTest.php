@@ -272,7 +272,15 @@ describe('saving the configuration', function (): void {
         }
 
         expect($warnings)->toBe([]);
-    })->skip('Known defect: (string) on a posted array raises "Array to string conversion" in SettingsPage::saveSettings() and redirect(), and stores "array". Un-skip once fixed.');
+    });
+
+    it('stores nothing for a posted array instead of the word array', function (): void {
+        $_POST = ['mcp_connector_save' => '1', 'server_route' => ['b'], 'ability_namespace' => ['a']];
+
+        adminsettingsRun();
+
+        expect(($this->optionValues['mcp_connector_settings']['server_route'] ?? ''))->not->toBe('array');
+    });
 
     it('returns to the panel the form was submitted from', function (): void {
         $_POST = ['mcp_connector_save' => '1', 'mcpc_tab' => 'Security'];
