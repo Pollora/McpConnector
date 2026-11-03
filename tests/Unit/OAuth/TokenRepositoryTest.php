@@ -167,6 +167,18 @@ describe('revocation', function (): void {
             ->and($repo->findAccessToken($issued['access_token']))->not->toBeNull();
     });
 
+    it('revokes a token for the client it was issued to and no other', function (): void {
+        $repo = new TokenRepository();
+        $issued = $repo->issue(7, 'client-1', ['read']);
+
+        expect($repo->revoke($issued['access_token'], 'client-2'))->toBeFalse()
+            ->and($repo->revoke($issued['refresh_token'], 'client-2'))->toBeFalse()
+            ->and($repo->findAccessToken($issued['access_token']))->not->toBeNull()
+            ->and($repo->revoke($issued['access_token'], 'client-1'))->toBeTrue()
+            ->and($repo->findAccessToken($issued['access_token']))->toBeNull()
+            ->and($repo->revoke($issued['refresh_token'], 'client-1'))->toBeTrue();
+    });
+
     it('revokes every token of one client and none of another', function (): void {
         $repo = new TokenRepository();
         $mine = $repo->issue(7, 'client-1', ['read']);

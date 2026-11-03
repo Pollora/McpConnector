@@ -291,17 +291,79 @@ describe('the refresh token grant', function (): void {
 });
 
 describe('revocation', function (): void {
-    it('revokes a token and answers 200', function (): void {
+    beforeEach(function (): void {
+        $this->revokeAs = fn (string $token, array $credentials = [], array $headers = []): WP_REST_Response => $this->controller->revoke(
+            mcpcTokenRequest(['token' => $token] + $credentials, $headers),
+        );
+        $this->credentials = fn (): array => ['client_id' => 'client-1', 'client_secret' => $this->secret];
+    });
+
+    it('revokes an access token for the client it was issued to', function (): void {
         $issued = $this->tokens->issue(7, 'client-1', ['read']);
 
-        $response = $this->controller->revoke(mcpcTokenRequest(['token' => $issued['access_token']]));
+        $response = ($this->revokeAs)($issued['access_token'], ($this->credentials)());
 
         expect($response->get_status())->toBe(200)
             ->and($this->tokens->findAccessToken($issued['access_token']))->toBeNull();
     });
 
-    it('answers 200 for an unknown token, so it is no oracle', function (): void {
-        expect($this->controller->revoke(mcpcTokenRequest(['token' => 'nope']))->get_status())->toBe(200)
-            ->and($this->controller->revoke(mcpcTokenRequest([]))->get_status())->toBe(200);
+    it('revokes a refresh token too', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+
+        ($this->revokeAs)($issued['refresh_token'], ($this->credentials)());
+
+        expect($this->tokens->consumeRefreshToken($issued['refresh_token']))->toBeNull();
+    });
+
+    it('takes the credentials from an HTTP Basic header as well', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $header = 'Basic ' . base64_encode('client-1:' . $this->secret);
+
+        $response = ($this->revokeAs)($issued['access_token'], [], ['authorization' => $header]);
+
+        expect($response->get_status())->toBe(200)
+            ->and($this->tokens->findAccessToken($issued['access_token']))->toBeNull();
+    });
+
+    it('lets a public client revoke its own token with its identifier alone', function (): void {
+        Functions\when('wp_generate_uuid4')->justReturn('public-1');
+        $this->clients->create('Native', ['http://127.0.0.1:8080/cb'], Client::AUTH_METHOD_NONE);
+        $issued = $this->tokens->issue(7, 'public-1', ['read']);
+
+        $response = ($this->revokeAs)($issued['access_token'], ['client_id' => 'public-1']);
+
+        expect($response->get_status())->toBe(200)
+            ->and($this->tokens->findAccessToken($issued['access_token']))->toBeNull();
+    });
+
+    it('refuses a request that does not authenticate, and revokes nothing', function (array $credentials): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+
+        $response = ($this->revokeAs)($issued['access_token'], $credentials);
+
+        expect($response->get_status())->toBe(401)
+            ->and($response->get_data()['error'])->toBe('invalid_client')
+            ->and($this->tokens->findAccessToken($issued['access_token']))->not->toBeNull();
+    })->with([
+        'no credentials at all' => [[]],
+        'a wrong secret' => [['client_id' => 'client-1', 'client_secret' => 'wrong']],
+        'no secret' => [['client_id' => 'client-1']],
+        'an unknown client' => [['client_id' => 'nobody', 'client_secret' => 'whatever']],
+    ]);
+
+    it('leaves another client\'s token alone, and answers the same', function (): void {
+        $other = $this->tokens->issue(7, 'client-2', ['read']);
+
+        $response = ($this->revokeAs)($other['access_token'], ($this->credentials)());
+
+        expect($response->get_status())->toBe(200)
+            ->and($response->get_data())->toBe([])
+            ->and($this->tokens->findAccessToken($other['access_token']))->not->toBeNull()
+            ->and($this->tokens->consumeRefreshToken($other['refresh_token']))->not->toBeNull();
+    });
+
+    it('answers 200 for an unknown token once the client is authenticated, so it is no oracle', function (): void {
+        expect(($this->revokeAs)('nope', ($this->credentials)())->get_status())->toBe(200)
+            ->and(($this->revokeAs)('', ($this->credentials)())->get_status())->toBe(200);
     });
 });

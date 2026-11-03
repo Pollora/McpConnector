@@ -49,14 +49,10 @@ final class TokenController
     public function handle(\WP_REST_Request $request): \WP_REST_Response
     {
         $params = $this->readParams($request);
-        [$clientId, $clientSecret] = $this->readCredentials($request, $params);
+        $client = $this->authenticate($request, $params);
 
-        $client = $this->clients->find($clientId);
-
-        if (! $client instanceof Client || ! $client->verifySecret($clientSecret)) {
-            // One message for "no such client" and for "wrong secret": telling
-            // them apart lets an attacker enumerate valid client identifiers.
-            return self::error('invalid_client', __('Client authentication failed.', 'amphibee-mcp-connector'), 401);
+        if (! $client instanceof Client) {
+            return self::clientAuthenticationFailed();
         }
 
         return match ((string) ($params['grant_type'] ?? '')) {
@@ -74,13 +70,26 @@ final class TokenController
      *
      * @param \WP_REST_Request<array<string, mixed>> $request The revocation request.
      *
-     * @return \WP_REST_Response An empty 200, whatever the outcome.
+     * @return \WP_REST_Response An empty 200 once the client is authenticated, whatever became of the
+     *                           token; an `invalid_client` error when it is not.
      */
     public function revoke(\WP_REST_Request $request): \WP_REST_Response
     {
         $params = $this->readParams($request);
 
-        $this->tokens->revoke((string) ($params['token'] ?? ''));
+        // RFC 7009 section 2.1: the client authenticates here as it does at the
+        // token endpoint. Without it anyone holding a token, or guessing one,
+        // could revoke it, and any client could revoke another's.
+        $client = $this->authenticate($request, $params);
+
+        if (! $client instanceof Client) {
+            return self::clientAuthenticationFailed();
+        }
+
+        // Only a token issued to this client is revoked. The answer is the same
+        // for another client's token, so the endpoint cannot be used to find out
+        // whose a token is.
+        $this->tokens->revoke((string) ($params['token'] ?? ''), $client->id);
 
         // RFC 7009 section 2.2 requires 200 even for a token that was already
         // invalid or never existed. Distinguishing the cases would turn this
@@ -215,6 +224,36 @@ final class TokenController
         }
 
         return $request->get_body_params() ?: $request->get_params();
+    }
+
+    /**
+     * Authenticate the client making a request to the token or revocation endpoint.
+     *
+     * @param \WP_REST_Request<array<string, mixed>> $request The request.
+     * @param array<string, mixed>                  $params  The parsed parameters.
+     *
+     * @return Client|null The client, or null when it is unknown or its secret is wrong.
+     */
+    private function authenticate(\WP_REST_Request $request, array $params): ?Client
+    {
+        [$clientId, $clientSecret] = $this->readCredentials($request, $params);
+
+        $client = $this->clients->find($clientId);
+
+        return $client instanceof Client && $client->verifySecret($clientSecret) ? $client : null;
+    }
+
+    /**
+     * The error for a client that could not be authenticated.
+     *
+     * One message for "no such client" and for "wrong secret": telling them
+     * apart lets an attacker enumerate valid client identifiers.
+     *
+     * @return \WP_REST_Response The `invalid_client` error.
+     */
+    private static function clientAuthenticationFailed(): \WP_REST_Response
+    {
+        return self::error('invalid_client', __('Client authentication failed.', 'amphibee-mcp-connector'), 401);
     }
 
     /**
