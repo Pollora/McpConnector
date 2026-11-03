@@ -318,6 +318,25 @@ describe('upload-media-from-url', function (): void {
     });
 });
 
+describe('upload-media-from-url authorisation on post_id', function (): void {
+    it('requires edit_post on the post the import is attached to', function (): void {
+        H::posts(H::post(12), H::post(13));
+        H::actAs(['upload_files', 'edit_post:12']);
+        $input = ['url' => 'https://example.test/a.jpg'];
+
+        expect(H::permitted(mediaAbility('upload-media-from-url'), $input + ['post_id' => 12]))->toBeTrue()
+            ->and(H::permitted(mediaAbility('upload-media-from-url'), $input + ['post_id' => 13]))->toBeFalse()
+            ->and(H::permitted(mediaAbility('upload-media-from-url'), $input))->toBeTrue();
+    });
+
+    it('still needs upload_files when the user may edit the post', function (): void {
+        H::posts(H::post(12));
+        H::actAs(['edit_post:12']);
+
+        expect(H::permitted(mediaAbility('upload-media-from-url'), ['url' => 'https://example.test/a.jpg', 'post_id' => 12]))->toBeFalse();
+    });
+});
+
 describe('update-media', function (): void {
     it('answers with a 404 error for something that is not an attachment', function (): void {
         H::posts(H::post(3, ['post_type' => 'post']));
@@ -429,11 +448,28 @@ describe('set-featured-image', function (): void {
     });
 
     it('is decided per post, on post_id', function (): void {
-        H::posts(H::post(9), H::post(10));
-        H::actAs(['edit_post:9']);
+        H::posts(H::post(9), H::post(10), H::post(4, ['post_type' => 'attachment']));
+        H::actAs(['edit_post:9', 'read_post:4']);
 
         expect(H::permitted(mediaAbility('set-featured-image'), ['post_id' => 9, 'attachment_id' => 4]))->toBeTrue()
             ->and(H::permitted(mediaAbility('set-featured-image'), ['post_id' => 10, 'attachment_id' => 4]))->toBeFalse();
+    });
+});
+
+describe('set-featured-image authorisation on the attachment', function (): void {
+    it('requires the right to read the attachment as well as to edit the post', function (): void {
+        H::posts(H::post(9), H::post(4, ['post_type' => 'attachment']), H::post(5, ['post_type' => 'attachment']));
+        H::actAs(['edit_post:9', 'read_post:4']);
+
+        expect(H::permitted(mediaAbility('set-featured-image'), ['post_id' => 9, 'attachment_id' => 4]))->toBeTrue()
+            ->and(H::permitted(mediaAbility('set-featured-image'), ['post_id' => 9, 'attachment_id' => 5]))->toBeFalse();
+    });
+
+    it('lets the image be removed without any right on an attachment', function (): void {
+        H::posts(H::post(9));
+        H::actAs(['edit_post:9']);
+
+        expect(H::permitted(mediaAbility('set-featured-image'), ['post_id' => 9, 'attachment_id' => 0]))->toBeTrue();
     });
 });
 

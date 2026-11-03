@@ -135,7 +135,18 @@ final class MediaGroup implements AbilityGroup
                     'featured_image_url' => get_the_post_thumbnail_url($postId, 'full') ?: null,
                 ];
             },
-            permission: static fn (Input $input): bool => PostTypes::canEditPost($input->id('post_id')),
+            permission: static function (Input $input): bool {
+                if (! PostTypes::canEditPost($input->id('post_id'))) {
+                    return false;
+                }
+
+                // set_post_thumbnail() checks nothing about the attachment, and
+                // the answer echoes its URL: the caller must at least be able to
+                // read the image it points the post at. 0 only removes the image.
+                $attachmentId = $input->id('attachment_id');
+
+                return $attachmentId === 0 || PostTypes::canReadPost($attachmentId);
+            },
             behaviour: Behaviour::Updates,
         );
     }
@@ -288,7 +299,17 @@ final class MediaGroup implements AbilityGroup
                     ? PostFormatter::attachment($attachment)
                     : Failure::notFound('attachment', $attachmentId);
             },
-            permission: static fn (): bool => current_user_can('upload_files'),
+            permission: static function (Input $input): bool {
+                if (! current_user_can('upload_files')) {
+                    return false;
+                }
+
+                // Attaching the import to a post rewrites that post's media
+                // relations, so it takes the right to edit that very post.
+                $postId = $input->id('post_id');
+
+                return $postId === 0 || PostTypes::canEditPost($postId);
+            },
         );
     }
 
