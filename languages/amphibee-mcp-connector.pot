@@ -1366,10 +1366,6 @@ msgstr ""
 msgid "Unnamed MCP client"
 msgstr ""
 
-#: src/OAuth/Controller/TokenController.php:59
-msgid "Client authentication failed."
-msgstr ""
-
 #: src/OAuth/Controller/TokenController.php:67
 msgid "Supported grant types are authorization_code and refresh_token."
 msgstr ""
@@ -1400,6 +1396,10 @@ msgstr ""
 
 #: src/OAuth/Controller/TokenController.php:183
 msgid "The user this grant belongs to no longer has permission to use this connector."
+msgstr ""
+
+#: src/OAuth/Controller/TokenController.php:256
+msgid "Client authentication failed."
 msgstr ""
 
 #: src/OAuth/Scope.php:149
