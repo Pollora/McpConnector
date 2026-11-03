@@ -17,6 +17,10 @@ beforeEach(function (): void {
     H::taxonomies(['category', 'post_tag', 'genre']);
     H::stubPostFormatting();
     H::posts();
+    Functions\when('get_taxonomy')->alias(static fn (string $name): WP_Taxonomy|false => in_array($name, ['category', 'post_tag', 'genre'], true)
+        ? new WP_Taxonomy($name, $name)
+        : false);
+    Functions\when('term_exists')->justReturn(null);
 });
 
 afterEach(function (): void {
@@ -456,6 +460,7 @@ describe('create-post', function (): void {
     });
 
     it('passes the date, parent and menu order only when given', function (): void {
+        H::actAs(['publish_posts']);
         $captured = [];
         stageInsert($captured);
 
@@ -519,6 +524,7 @@ describe('create-post', function (): void {
     });
 
     it('assigns categories by slug and tags by name', function (): void {
+        H::actAs(['edit_posts', 'manage_categories']);
         $captured = [];
         stageInsert($captured);
         Functions\when('get_term_by')->alias(static fn (string $field, string $slug, string $taxonomy): WP_Term|false => $slug === 'news'
@@ -749,6 +755,7 @@ describe('delete-post', function (): void {
 
 describe('set-post-terms', function (): void {
     beforeEach(function (): void {
+        H::actAs(['edit_posts', 'manage_categories']);
         H::posts(H::post(11));
         Functions\when('get_term_by')->alias(static fn (string $field, string $slug, string $taxonomy): WP_Term|false => match ($slug) {
             'news' => new WP_Term(['term_id' => 4, 'slug' => 'news']),
@@ -832,5 +839,202 @@ describe('set-post-terms', function (): void {
         expect(H::permitted(contentAbility('set-post-terms'), ['post_id' => 11]))->toBeTrue()
             ->and(H::permitted(contentAbility('set-post-terms'), ['post_id' => 12]))->toBeFalse()
             ->and(H::permitted(contentAbility('set-post-terms'), ['id' => 11]))->toBeFalse();
+    });
+});
+
+describe('password-protected posts', function (): void {
+    beforeEach(function (): void {
+        H::posts(H::post(5, ['post_content' => 'Secret body', 'post_excerpt' => 'Secret excerpt', 'post_password' => 'hunter2']));
+    });
+
+    it('withholds the body and excerpt from a reader who has no password, and says so', function (): void {
+        $result = H::run(contentAbility('get-post'), ['id' => 5]);
+
+        expect($result['content'])->toBe('')
+            ->and($result['excerpt'])->toBe('')
+            ->and($result['password_protected'])->toBeTrue()
+            ->and(json_encode($result))->not->toContain('hunter2');
+    });
+
+    it('withholds them again when the password is wrong', function (): void {
+        $result = H::run(contentAbility('get-post'), ['id' => 5, 'password' => 'wrong']);
+
+        expect($result['content'])->toBe('')->and($result['password_protected'])->toBeTrue();
+    });
+
+    it('returns them when the right password is given, still without echoing it', function (): void {
+        $result = H::run(contentAbility('get-post'), ['id' => 5, 'password' => 'hunter2']);
+
+        expect($result['content'])->toBe('Secret body')
+            ->and($result['excerpt'])->toBe('Secret excerpt')
+            ->and($result['password_protected'])->toBeTrue()
+            ->and(json_encode($result))->not->toContain('hunter2');
+    });
+
+    it('returns them to a user who may edit the post', function (): void {
+        H::actAs(['edit_post:5']);
+
+        expect(H::run(contentAbility('get-post'), ['id' => 5])['content'])->toBe('Secret body');
+    });
+
+    it('reports an unprotected post as such and leaves its body alone', function (): void {
+        H::posts(H::post(6, ['post_content' => 'Open body']));
+
+        $result = H::run(contentAbility('get-post'), ['id' => 6]);
+
+        expect($result['content'])->toBe('Open body')->and($result['password_protected'])->toBeFalse();
+    });
+});
+
+describe('publishing capability', function (): void {
+    it('refuses to create a post in a publishing status without the capability', function (string $status): void {
+        $captured = [];
+        stageInsert($captured);
+        Functions\expect('wp_insert_post')->never();
+
+        $result = H::run(contentAbility('create-post'), ['title' => 'T', 'post_status' => $status]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_code())->toBe('mcp_connector_forbidden')
+            ->and($result->get_error_data())->toBe(['status' => 403]);
+    })->with(['publish', 'future', 'private']);
+
+    it('creates a publishing status for a user who holds the capability', function (): void {
+        $captured = [];
+        stageInsert($captured);
+        H::actAs(['publish_posts']);
+
+        H::run(contentAbility('create-post'), ['title' => 'T', 'post_status' => 'publish']);
+
+        expect($captured['post_status'])->toBe('publish');
+    });
+
+    it('still lets a user without the capability create a draft or a pending post', function (string $status): void {
+        $captured = [];
+        stageInsert($captured);
+
+        H::run(contentAbility('create-post'), ['title' => 'T', 'post_status' => $status]);
+
+        expect($captured['post_status'])->toBe($status);
+    })->with(['draft', 'pending']);
+
+    it('refuses to publish an existing post without the capability, and writes nothing', function (): void {
+        H::posts(H::post(7, ['post_status' => 'draft']));
+        Functions\expect('wp_update_post')->never();
+
+        $result = H::run(contentAbility('update-post'), ['id' => 7, 'post_status' => 'publish']);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    });
+
+    it('publishes an existing post for a user who holds the capability', function (): void {
+        H::posts(H::post(7, ['post_status' => 'draft']));
+        H::actAs(['publish_posts']);
+        Functions\expect('wp_update_post')->once()->andReturn(7);
+
+        H::run(contentAbility('update-post'), ['id' => 7, 'post_status' => 'publish']);
+    });
+
+    it('does not ask for the capability when the status is not changing', function (): void {
+        H::posts(H::post(7, ['post_status' => 'publish']));
+        Functions\expect('wp_update_post')->once()->andReturn(7);
+
+        H::run(contentAbility('update-post'), ['id' => 7, 'post_status' => 'publish', 'title' => 'New']);
+    });
+});
+
+describe('term capabilities', function (): void {
+    it('refuses to assign terms without the assign capability of the taxonomy', function (): void {
+        H::posts(H::post(11));
+        Functions\when('get_term_by')->justReturn(new WP_Term(['term_id' => 4, 'slug' => 'news']));
+        Functions\expect('wp_set_object_terms')->never();
+
+        $result = H::run(contentAbility('set-post-terms'), ['post_id' => 11, 'terms' => ['news']]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    });
+
+    it('refuses create_missing without the edit capability of the taxonomy, and creates nothing', function (): void {
+        H::posts(H::post(11));
+        H::actAs(['edit_posts']);
+        Functions\when('get_term_by')->justReturn(false);
+        Functions\expect('wp_insert_term')->never();
+        Functions\expect('wp_set_object_terms')->never();
+
+        $result = H::run(contentAbility('set-post-terms'), ['post_id' => 11, 'terms' => ['ghost'], 'create_missing' => true]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    });
+
+    it('creates the missing terms for a user who may edit the taxonomy', function (): void {
+        H::posts(H::post(11));
+        H::actAs(['edit_posts', 'manage_categories']);
+        Functions\when('get_term_by')->justReturn(false);
+        Functions\when('wp_get_object_terms')->justReturn(['ghost']);
+        Functions\expect('wp_insert_term')->once()->andReturn(['term_id' => 90]);
+        Functions\expect('wp_set_object_terms')->once()->andReturn([90]);
+
+        H::run(contentAbility('set-post-terms'), ['post_id' => 11, 'terms' => ['ghost'], 'create_missing' => true]);
+    });
+
+    it('refuses to create a new tag without the edit capability, before creating the post', function (): void {
+        $captured = [];
+        stageInsert($captured);
+        H::actAs(['edit_posts', 'create_posts']);
+        Functions\expect('wp_insert_post')->never();
+        Functions\expect('wp_set_post_tags')->never();
+
+        $result = H::run(contentAbility('create-post'), ['title' => 'T', 'tags' => ['Brand new']]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    });
+
+    it('lets a user without the edit capability attach tags that already exist', function (): void {
+        $captured = [];
+        stageInsert($captured);
+        H::actAs(['edit_posts']);
+        Functions\when('term_exists')->justReturn(['term_id' => 3]);
+        Functions\expect('wp_set_post_tags')->once()->with(31, ['Known']);
+
+        H::run(contentAbility('create-post'), ['title' => 'T', 'tags' => ['Known']]);
+    });
+
+    it('refuses to assign categories or tags without the assign capability', function (string $field): void {
+        $captured = [];
+        stageInsert($captured);
+        Functions\expect('wp_insert_post')->never();
+
+        $result = H::run(contentAbility('create-post'), ['title' => 'T', $field => ['x']]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    })->with(['categories', 'tags']);
+});
+
+describe('unknown categories', function (): void {
+    beforeEach(function (): void {
+        H::actAs(['edit_posts']);
+        Functions\when('get_term_by')->justReturn(false);
+    });
+
+    it('fail the creation before any post is written', function (): void {
+        $captured = [];
+        stageInsert($captured);
+        Functions\expect('wp_insert_post')->never();
+        Functions\expect('wp_set_post_categories')->never();
+
+        $result = H::run(contentAbility('create-post'), ['title' => 'T', 'categories' => ['ghost', 'phantom']]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_code())->toBe('mcp_connector_invalid_input')
+            ->and($result->get_error_message())->toContain('ghost, phantom');
+    });
+
+    it('fail the update before the post is touched', function (): void {
+        H::posts(H::post(7));
+        Functions\expect('wp_update_post')->never();
+
+        $result = H::run(contentAbility('update-post'), ['id' => 7, 'title' => 'New', 'categories' => ['ghost']]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_message())->toContain('ghost');
     });
 });
