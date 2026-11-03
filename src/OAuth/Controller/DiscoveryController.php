@@ -25,6 +25,11 @@ defined('ABSPATH') || exit;
 final class DiscoveryController
 {
     /**
+     * How a client may authenticate at the token and revocation endpoints.
+     */
+    private const array CLIENT_AUTH_METHODS = ['client_secret_post', 'client_secret_basic', 'none'];
+
+    /**
      * @param Settings $settings Resolved plugin configuration.
      */
     public function __construct(private readonly Settings $settings)
@@ -68,11 +73,10 @@ final class DiscoveryController
             // the variant in which the challenge and the verifier are the same
             // string, which is no protection at all.
             'code_challenge_methods_supported' => [Pkce::METHOD],
-            'token_endpoint_auth_methods_supported' => [
-                'client_secret_post',
-                'client_secret_basic',
-                'none',
-            ],
+            'token_endpoint_auth_methods_supported' => self::CLIENT_AUTH_METHODS,
+            // The revocation endpoint authenticates the client the same way
+            // (RFC 7009 section 2.1); RFC 8414 would otherwise assume Basic only.
+            'revocation_endpoint_auth_methods_supported' => self::CLIENT_AUTH_METHODS,
             'scopes_supported' => Scope::supported(),
         ];
 

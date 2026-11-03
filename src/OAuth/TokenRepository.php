@@ -154,15 +154,17 @@ final class TokenRepository
     /**
      * Revoke a single token, whichever kind it is.
      *
-     * @param string $token The plaintext token to revoke.
+     * @param string      $token    The plaintext token to revoke.
+     * @param string|null $clientId When given, the token is only revoked if it was issued to this
+     *                              client; a token of another client is left alone.
      *
      * @return bool True when a token was removed.
      */
-    public function revoke(string $token): bool
+    public function revoke(string $token, ?string $clientId = null): bool
     {
-        $removed = $this->forget(self::ACCESS_OPTION, $token);
+        $removed = $this->forget(self::ACCESS_OPTION, $token, $clientId);
 
-        return $this->forget(self::REFRESH_OPTION, $token) || $removed;
+        return $this->forget(self::REFRESH_OPTION, $token, $clientId) || $removed;
     }
 
     /**
@@ -358,16 +360,17 @@ final class TokenRepository
     /**
      * Remove a token record.
      *
-     * @param string $option Option to write to.
-     * @param string $token  Plaintext token.
+     * @param string      $option   Option to write to.
+     * @param string      $token    Plaintext token.
+     * @param string|null $clientId When given, only a record issued to this client is removed.
      *
      * @return bool True when a record was removed.
      */
-    private function forget(string $option, string $token): bool
+    private function forget(string $option, string $token, ?string $clientId = null): bool
     {
         $key = self::hash($token);
 
-        if (! isset($this->allRaw($option)[$key])) {
+        if (! self::isIssuedTo($this->allRaw($option)[$key] ?? null, $clientId)) {
             return false;
         }
 
@@ -375,16 +378,40 @@ final class TokenRepository
 
         $this->mutate(
             $option,
-            static function (array $tokens) use ($key, &$removed): array {
-                $removed = isset($tokens[$key]);
+            static function (array $tokens) use ($key, $clientId, &$removed): array {
+                // Checked again under the lock: the record may have been replaced since.
+                $removed = self::isIssuedTo($tokens[$key] ?? null, $clientId);
 
-                unset($tokens[$key]);
+                if ($removed) {
+                    unset($tokens[$key]);
+                }
 
                 return $tokens;
             },
         );
 
         return $removed;
+    }
+
+    /**
+     * Whether a stored record exists and, when a client is named, belongs to it.
+     *
+     * @param mixed       $record   What the option holds under a token's hash.
+     * @param string|null $clientId The client the record must have been issued to, if any.
+     *
+     * @return bool True when the record is there and passes the client check.
+     */
+    private static function isIssuedTo(mixed $record, ?string $clientId): bool
+    {
+        if ($record === null) {
+            return false;
+        }
+
+        if ($clientId === null) {
+            return true;
+        }
+
+        return is_array($record) && hash_equals((string) ($record['client_id'] ?? ''), $clientId);
     }
 
     /**
