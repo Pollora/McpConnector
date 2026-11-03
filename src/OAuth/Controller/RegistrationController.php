@@ -143,14 +143,43 @@ final class RegistrationController
                 continue;
             }
 
-            $isLoopback = in_array($parts['host'], ['127.0.0.1', '::1', 'localhost'], true);
-
-            if ($parts['scheme'] === 'https' || ($parts['scheme'] === 'http' && $isLoopback)) {
+            if ($parts['scheme'] === 'https' || ($parts['scheme'] === 'http' && self::isLoopbackHost($parts['host']))) {
                 $accepted[] = $uri;
             }
         }
 
         return array_values(array_unique($accepted));
+    }
+
+    /**
+     * Whether a URL host is a loopback address.
+     *
+     * An IPv6 host comes out of the URL parser with its brackets (`[::1]`), so
+     * it is compared as an address rather than as a string: that also accepts
+     * the long form of the loopback, and refuses a bracketed name that is not
+     * an address, such as `[localhost]`.
+     *
+     * @param string $host The host part of a redirect URI.
+     *
+     * @return bool True for 127.0.0.1, localhost and the IPv6 loopback.
+     */
+    private static function isLoopbackHost(string $host): bool
+    {
+        if (in_array($host, ['127.0.0.1', 'localhost'], true)) {
+            return true;
+        }
+
+        if (! str_starts_with($host, '[') || ! str_ends_with($host, ']')) {
+            return false;
+        }
+
+        $address = substr($host, 1, -1);
+
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return false;
+        }
+
+        return inet_pton($address) === inet_pton('::1');
     }
 
     /**
