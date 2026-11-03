@@ -29,6 +29,14 @@ defined('ABSPATH') || exit;
  * be spent twice, or a token revoked a moment ago comes back. Every change
  * therefore runs under a lock per option, and reads what is stored once it
  * holds the lock rather than what it read before.
+ *
+ * Every pair issued from one authorization, and every pair a refresh then
+ * produces, shares a lineage identifier. A refresh token is not forgotten once
+ * it is spent: a marker takes its place for a while, so that if the same token
+ * is presented again, which only a copy of it can do, the whole lineage is
+ * revoked. Either the legitimate client or whoever copied the token is the one
+ * holding a dead token; there is no telling which, and the safe answer is to
+ * make both start over (RFC 6819 section 5.2.2.3, OAuth 2.0 Security BCP 4.14).
  */
 final class TokenRepository
 {
@@ -55,6 +63,16 @@ final class TokenRepository
     public const REFRESH_TTL = 30 * DAY_IN_SECONDS;
 
     /**
+     * How long a spent refresh token is remembered, in seconds, at most.
+     *
+     * Long enough for the legitimate client to come back with the token it
+     * believes is current, short enough that the option does not fill up with a
+     * marker per refresh over the whole life of a refresh token. A spent token
+     * presented after this is simply unknown.
+     */
+    public const SPENT_TTL = 7 * DAY_IN_SECONDS;
+
+    /**
      * @param OptionLock $lock Serialises the changes made to each token option.
      */
     public function __construct(private readonly OptionLock $lock = new OptionLock())
@@ -67,11 +85,13 @@ final class TokenRepository
      * @param int          $userId   User the tokens act on behalf of.
      * @param string       $clientId Client the tokens were issued to.
      * @param list<string> $scopes   Granted scopes.
+     * @param string|null  $family   Lineage the pair belongs to: the one of the refresh token it replaces,
+     *                               or null for a pair issued from a fresh authorization, which starts one.
      *
      * @return array{access_token: string, refresh_token: string, expires_in: int, scope: string}
      *         The token response body, with both secrets in plaintext for the one time they can be read.
      */
-    public function issue(int $userId, string $clientId, array $scopes): array
+    public function issue(int $userId, string $clientId, array $scopes, ?string $family = null): array
     {
         $accessToken = wp_generate_password(48, false);
         $refreshToken = wp_generate_password(48, false);
@@ -82,6 +102,7 @@ final class TokenRepository
             'client_id' => $clientId,
             'scopes' => $scopes,
             'created_at' => $now,
+            'family' => $family ?? self::hash($refreshToken),
         ];
 
         $this->put(self::ACCESS_OPTION, $accessToken, $record + ['expires_at' => $now + self::ACCESS_TTL]);
@@ -100,7 +121,7 @@ final class TokenRepository
      *
      * @param string $token The plaintext bearer token.
      *
-     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int}|null
+     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int, family: string|null}|null
      *         The token record, or null when the token is unknown or expired.
      */
     public function findAccessToken(string $token): ?array
@@ -119,9 +140,12 @@ final class TokenRepository
      * When the lock cannot be taken in time the token is refused and left in
      * place, never accepted unchecked: the client can present it again.
      *
+     * A token that was already spent is refused, and revokes every token of its
+     * lineage, the pair that replaced it and whatever came after.
+     *
      * @param string $token The plaintext refresh token.
      *
-     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int}|null
+     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int, family: string|null}|null
      *         The token record, or null when the token is unknown, expired or already spent.
      */
     public function consumeRefreshToken(string $token): ?array
@@ -135,18 +159,46 @@ final class TokenRepository
         }
 
         $record = null;
+        $replayedFamily = null;
+        $now = time();
 
         $locked = $this->mutate(
             self::REFRESH_OPTION,
-            static function (array $tokens) use ($key, &$record): array {
-                $record = self::describe($tokens[$key] ?? null);
+            static function (array $tokens) use ($key, $now, &$record, &$replayedFamily): array {
+                $stored = $tokens[$key] ?? null;
 
-                unset($tokens[$key]);
+                if (self::isSpent($stored)) {
+                    $replayedFamily = $stored['family'] ?? null;
+
+                    return $tokens;
+                }
+
+                $record = self::describe($stored);
+
+                // An expired token, or one issued before lineages existed, leaves nothing
+                // behind. Any other leaves a marker in its place until it would have expired.
+                if ($record === null || $record['family'] === null) {
+                    unset($tokens[$key]);
+
+                    return $tokens;
+                }
+
+                $tokens[$key] = [
+                    'spent' => true,
+                    'family' => $record['family'],
+                    'client_id' => $record['client_id'],
+                    'user_id' => $record['user_id'],
+                    'expires_at' => min($record['expires_at'], $now + self::SPENT_TTL),
+                ];
 
                 return $tokens;
             },
             strict: true,
         );
+
+        if ($locked && is_string($replayedFamily) && $replayedFamily !== '') {
+            $this->revokeLineage($replayedFamily);
+        }
 
         return $locked ? $record : null;
     }
@@ -325,7 +377,7 @@ final class TokenRepository
      * @param string $option Option to read from.
      * @param string $token  Plaintext token.
      *
-     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int}|null The record.
+     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int, family: string|null}|null The record.
      */
     private function find(string $option, string $token): ?array
     {
@@ -341,20 +393,56 @@ final class TokenRepository
      *
      * @param mixed $record What the option holds under a token's hash.
      *
-     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int}|null The record.
+     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int, family: string|null}|null The record.
      */
     private static function describe(mixed $record): ?array
     {
-        if (! is_array($record) || (int) ($record['expires_at'] ?? 0) <= time()) {
+        if (! is_array($record) || ($record['spent'] ?? false) === true || (int) ($record['expires_at'] ?? 0) <= time()) {
             return null;
         }
+
+        $family = $record['family'] ?? null;
 
         return [
             'user_id' => (int) ($record['user_id'] ?? 0),
             'client_id' => (string) ($record['client_id'] ?? ''),
             'scopes' => array_values(array_map(strval(...), (array) ($record['scopes'] ?? []))),
             'expires_at' => (int) $record['expires_at'],
+            'family' => is_string($family) && $family !== '' ? $family : null,
         ];
+    }
+
+    /**
+     * Whether a stored record is the marker of a refresh token that was spent and
+     * is still remembered.
+     *
+     * @param mixed $record What the option holds under a token's hash.
+     *
+     * @return bool True for a live marker.
+     */
+    private static function isSpent(mixed $record): bool
+    {
+        return is_array($record)
+            && ($record['spent'] ?? false) === true
+            && (int) ($record['expires_at'] ?? 0) > time();
+    }
+
+    /**
+     * Revoke every token of a lineage, the spent markers included.
+     *
+     * @param string $family The lineage identifier.
+     */
+    private function revokeLineage(string $family): void
+    {
+        foreach ([self::ACCESS_OPTION, self::REFRESH_OPTION] as $option) {
+            $this->mutate(
+                $option,
+                static fn (array $tokens): array => array_filter(
+                    $tokens,
+                    static fn (mixed $record): bool => ! is_array($record) || ($record['family'] ?? null) !== $family,
+                ),
+            );
+        }
     }
 
     /**

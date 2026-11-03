@@ -254,6 +254,32 @@ describe('the refresh token grant', function (): void {
             ->and($replay->get_data()['error'])->toBe('invalid_grant');
     });
 
+    it('revokes everything the grant produced when a spent refresh token comes back', function (): void {
+        $first = ($this->exchange)()->get_data();
+        $second = ($this->refresh)($first['refresh_token'])->get_data();
+        $third = ($this->refresh)($second['refresh_token'])->get_data();
+
+        expect($this->tokens->findAccessToken($third['access_token']))->not->toBeNull();
+
+        $replay = ($this->refresh)($first['refresh_token']);
+
+        expect($replay->get_data()['error'])->toBe('invalid_grant')
+            ->and($this->tokens->findAccessToken($second['access_token']))->toBeNull()
+            ->and($this->tokens->findAccessToken($third['access_token']))->toBeNull()
+            ->and(($this->refresh)($third['refresh_token'])->get_data()['error'])->toBe('invalid_grant');
+    });
+
+    it('keeps a second grant of the same client out of it', function (): void {
+        $first = ($this->exchange)()->get_data();
+        $other = ($this->exchange)()->get_data();
+        ($this->refresh)($first['refresh_token']);
+
+        ($this->refresh)($first['refresh_token']);
+
+        expect($this->tokens->findAccessToken($other['access_token']))->not->toBeNull()
+            ->and(($this->refresh)($other['refresh_token'])->get_status())->toBe(200);
+    });
+
     it('refuses an access token presented as a refresh token', function (): void {
         $first = ($this->exchange)()->get_data();
 
