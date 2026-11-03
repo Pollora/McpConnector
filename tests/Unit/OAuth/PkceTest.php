@@ -45,4 +45,31 @@ describe('PKCE', function (): void {
         'an empty challenge' => ['', 'S256', false],
         'a challenge of exactly 43 characters' => [str_repeat('a', 43), 'S256', true],
     ]);
+
+    it('refuses a challenge that is not exactly 43 base64url characters', function (string $challenge): void {
+        expect(Pkce::isSupported($challenge, 'S256'))->toBeFalse();
+    })->with([
+        'one character too long' => [str_repeat('a', 44)],
+        'a padded challenge' => [str_repeat('a', 42) . '='],
+        'a standard base64 plus' => [str_repeat('a', 42) . '+'],
+        'a standard base64 slash' => [str_repeat('a', 42) . '/'],
+        'a dot' => [str_repeat('a', 42) . '.'],
+        'a space' => [str_repeat('a', 42) . ' '],
+        'a trailing newline' => [str_repeat('a', 43) . "\n"],
+        'ten thousand characters' => [str_repeat('a', 10000)],
+    ]);
+
+    it('bounds the verifier to 43-128 unreserved characters', function (string $verifier, bool $expected): void {
+        expect(Pkce::verify($verifier, Pkce::challengeFor($verifier)))->toBe($expected);
+    })->with([
+        '42 characters' => [str_repeat('a', 42), false],
+        '43 characters' => [str_repeat('a', 43), true],
+        '128 characters' => [str_repeat('a', 128), true],
+        '129 characters' => [str_repeat('a', 129), false],
+        'every allowed punctuation mark' => [str_repeat('aA0-._~', 7), true],
+        'a space' => [str_repeat('a', 42) . ' ', false],
+        'a plus' => [str_repeat('a', 42) . '+', false],
+        'a trailing newline' => [str_repeat('a', 43) . "\n", false],
+        'a multibyte character' => [str_repeat('a', 42) . 'é', false],
+    ]);
 });
