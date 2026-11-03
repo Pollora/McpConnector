@@ -5,6 +5,61 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.4.0
+
+The OAuth provider is hardened. A client that follows the specifications is not
+affected; the three changes under **Upgrade notes** are the ones a client that
+does not may notice.
+
+### Security
+
+- **The revocation endpoint authenticates the client** (RFC 7009 section 2.1).
+  It revoked any token it was given, for anyone: a token could be revoked by
+  whoever held it or guessed it, and one client could revoke another's. The
+  client now authenticates as it does at the token endpoint, and only a token
+  issued to it is revoked. The answer is the same `200` for another client's
+  token or an unknown one, so the endpoint cannot be used to probe for tokens.
+  The authorization server metadata lists `revocation_endpoint_auth_methods_supported`.
+- **A refresh token that comes back after it was used revokes everything that
+  descends from it.** The code refused the token but left the pair that had
+  replaced it valid, so whoever copied a refresh token and used it first kept a
+  working chain. Every pair now carries a lineage, a spent refresh token is
+  remembered for up to seven days, and presenting it again revokes the whole
+  lineage (OAuth 2.0 Security BCP section 4.14).
+- **A refresh token presented twice at the same moment is spent once.** Tokens
+  of one kind are kept in a single option, and each change read it, edited it and
+  wrote it back with nothing in between, so two simultaneous requests could both
+  succeed and a token revoked a moment earlier could come back. Changes now run
+  under a lock taken in the options table. If the lock cannot be taken in time a
+  refresh token is refused and kept, never accepted unchecked.
+- **PKCE values are bounded to what RFC 7636 allows.** A code challenge must be
+  exactly 43 base64url characters, a code verifier 43 to 128 characters from
+  `A-Z a-z 0-9 - . _ ~`. An oversized challenge used to be stored as it came.
+
+### Fixed
+
+- **A native client on the IPv6 loopback could not register.** `http://[::1]:8080/cb`
+  was refused with `invalid_redirect_uri`, because the host reaches the check
+  with its brackets. It is now compared as an address, so the long form of the
+  loopback is accepted too, and `[localhost]` or another address is not.
+- **PHP warnings on requests that need no authentication.** A registration
+  request, or a call to the token endpoint, carrying an array where a string
+  belongs raised `Array to string conversion`. Such a value is now read as absent.
+- A revocation no longer carries forward entries of the token options that are
+  not records at all; the purge of expired tokens already dropped them.
+
+### Upgrade notes
+
+- A client that revokes a token by sending only `token`, with no `client_id` and
+  no `Authorization` header, now receives `401 invalid_client` and the token
+  stays valid. Clients that follow RFC 7009 already identify themselves.
+- A client that presents a refresh token it has already used, a retry that raced
+  a response it never received for example, loses its whole authorization and
+  must be authorized again. Before, it received `invalid_grant` and could carry
+  on with the newer pair it held.
+- A client whose PKCE challenge or verifier is outside the RFC 7636 ranges is
+  refused. Standard base64 with `+`, `/` or `=` is not base64url.
+
 ## 1.3.0
 
 ### Added

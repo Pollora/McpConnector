@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -243,6 +243,15 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.4.0 =
+
+* Security: the revocation endpoint now authenticates the client (RFC 7009) and only revokes a token issued to it. A client that revoked by sending only the token now receives a 401.
+* Security: a refresh token that comes back after it was used revokes every token that descends from it, so a copied token no longer leaves a working chain. A legitimate client that replays a stale refresh token must be authorized again.
+* Security: a refresh token presented twice at the same moment is spent once; changes to the stored tokens now run under a lock.
+* Security: PKCE challenges and verifiers are bounded to what RFC 7636 allows.
+* Fixed: a native client on the IPv6 loopback (`http://[::1]:port/`) could not register.
+* Fixed: PHP warnings when a registration or token request carried an array where a string belongs.
+
 = 1.3.0 =
 
 * Added: three filters let a plugin shape the MCP server beyond its tool list. `mcp_connector_server_instructions` replaces the instructions a client reads on `initialize`, and `mcp_connector_server_prompts` and `mcp_connector_server_resources` publish prompts and resources next to the tools. With no callback hooked, nothing changes: the same instructions, no prompts, no resources. Instructions filtered to nothing fall back to the default.
@@ -269,6 +278,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Hardens the OAuth provider. Revoking a token now requires the client to identify itself, a replayed refresh token revokes its whole authorization, and PKCE values must follow RFC 7636. Clients that follow the specifications are not affected.
 
 = 1.3.0 =
 New filters for the server instructions, prompts and resources, and the license is now MIT. Nothing to do after updating.
