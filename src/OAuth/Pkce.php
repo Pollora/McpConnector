@@ -42,10 +42,10 @@ final class Pkce
      */
     public static function isSupported(string $challenge, string $method): bool
     {
-        // 43 characters is the base64url length of a SHA-256 digest, and also the
-        // minimum verifier length the RFC mandates; anything shorter is not a
-        // real challenge, whatever the client called it.
-        return $method === self::METHOD && strlen($challenge) >= 43;
+        // RFC 7636 section 4.2: an S256 challenge is the unpadded base64url of a
+        // SHA-256 digest, so exactly 43 characters. Anything else is not a real
+        // challenge, and it is stored with the code, so its size must be bounded.
+        return $method === self::METHOD && preg_match('/\A[A-Za-z0-9_-]{43}\z/', $challenge) === 1;
     }
 
     /**
@@ -58,7 +58,8 @@ final class Pkce
      */
     public static function verify(string $verifier, string $challenge): bool
     {
-        if ($verifier === '' || $challenge === '') {
+        // RFC 7636 section 4.1: 43 to 128 characters of [A-Za-z0-9-._~].
+        if (preg_match('/\A[A-Za-z0-9._~-]{43,128}\z/', $verifier) !== 1 || $challenge === '') {
             return false;
         }
 
