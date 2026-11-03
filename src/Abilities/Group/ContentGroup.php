@@ -176,12 +176,13 @@ final class ContentGroup implements AbilityGroup
             category: AbilityCategory::Content,
             inputSchema: (new SchemaBuilder())
                 ->integer('id', 'ID of the post, page or custom post type item to read.', required: true, minimum: 1)
+                ->string('password', 'Password of a password-protected post. Without the right one, the content and excerpt of such a post are left empty unless you may edit it.')
                 ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $post = get_post($input->id('id'));
 
                 return $post instanceof \WP_Post
-                    ? PostFormatter::full($post)
+                    ? self::protectedRecord($post, $input->string('password'))
                     : Failure::notFound('post', $input->id('id'));
             },
             permission: static fn (Input $input): bool => PostTypes::canReadPost($input->id('id')),
@@ -270,6 +271,12 @@ final class ContentGroup implements AbilityGroup
                     return PostTypes::notAddressable($postType);
                 }
 
+                $prepared = self::preflight($input, $postType, $input->string('post_status', 'draft'), null);
+
+                if ($prepared instanceof \WP_Error) {
+                    return $prepared;
+                }
+
                 $postData = [
                     'post_title' => $input->string('title'),
                     'post_content' => $input->string('content'),
@@ -300,7 +307,7 @@ final class ContentGroup implements AbilityGroup
                     return Failure::fromWordPress($postId, 'create the post');
                 }
 
-                $failed = self::applySideEffects($postId, $input);
+                $failed = self::applySideEffects($postId, $input, $prepared);
 
                 if ($failed instanceof \WP_Error) {
                     return $failed;
@@ -353,6 +360,19 @@ final class ContentGroup implements AbilityGroup
                     return Failure::notFound('post', $postId);
                 }
 
+                $existing = get_post($postId);
+
+                $prepared = self::preflight(
+                    $input,
+                    $existing->post_type,
+                    $input->has('post_status') ? $input->string('post_status') : null,
+                    $existing->post_status,
+                );
+
+                if ($prepared instanceof \WP_Error) {
+                    return $prepared;
+                }
+
                 $postData = ['ID' => $postId];
 
                 // Each field is copied only when the caller mentioned it. A
@@ -388,7 +408,7 @@ final class ContentGroup implements AbilityGroup
                     return Failure::fromWordPress($result, 'update the post');
                 }
 
-                $failed = self::applySideEffects($postId, $input);
+                $failed = self::applySideEffects($postId, $input, $prepared);
 
                 if ($failed instanceof \WP_Error) {
                     return $failed;
@@ -483,6 +503,16 @@ final class ContentGroup implements AbilityGroup
                     ));
                 }
 
+                $denied = self::requireTermCapability(
+                    $taxonomy,
+                    'assign_terms',
+                    sprintf('assign terms of the "%s" taxonomy', $taxonomy),
+                );
+
+                if ($denied instanceof \WP_Error) {
+                    return $denied;
+                }
+
                 $resolved = self::resolveTermSlugs(
                     $input->stringList('terms'),
                     $taxonomy,
@@ -521,12 +551,13 @@ final class ContentGroup implements AbilityGroup
      * Each is skipped unless the caller mentioned it, so an update that only
      * changes a title does not clear the categories.
      *
-     * @param int   $postId Post being written to.
-     * @param Input $input  The ability input.
+     * @param int            $postId     Post being written to.
+     * @param Input          $input      The ability input.
+     * @param list<int>|null $categories Category IDs {@see self::preflight()} resolved, null when none were asked for.
      *
      * @return \WP_Error|null An error when a declared field could not be written, null otherwise.
      */
-    private static function applySideEffects(int $postId, Input $input): ?\WP_Error
+    private static function applySideEffects(int $postId, Input $input, ?array $categories = null): ?\WP_Error
     {
         if ($input->filled('page_template')) {
             update_post_meta($postId, '_wp_page_template', sanitize_text_field($input->string('page_template')));
@@ -544,12 +575,8 @@ final class ContentGroup implements AbilityGroup
             }
         }
 
-        if ($input->filled('categories')) {
-            $categories = self::resolveTermSlugs($input->stringList('categories'), 'category', false);
-
-            if (! is_wp_error($categories)) {
-                wp_set_post_categories($postId, $categories);
-            }
+        if ($categories !== null) {
+            wp_set_post_categories($postId, $categories);
         }
 
         // Tags are matched by name, not slug: wp_set_post_tags() creates the
@@ -566,6 +593,137 @@ final class ContentGroup implements AbilityGroup
         $written = PostMeta::write($postId, $input->map('meta'));
 
         return is_wp_error($written) ? $written : null;
+    }
+
+    /**
+     * Render a post in full, keeping the body of a password-protected one back.
+     *
+     * Same rule as the REST API: the content and excerpt are emptied unless the
+     * caller may edit the post or supplies its password, and the record says the
+     * post is protected. The password itself is never part of the record.
+     *
+     * @param \WP_Post $post     The post to render.
+     * @param string   $password Password the caller supplied, possibly empty.
+     *
+     * @return array<string, mixed> The record.
+     */
+    private static function protectedRecord(\WP_Post $post, string $password): array
+    {
+        $record = PostFormatter::full($post);
+        $record['password_protected'] = $post->post_password !== '';
+
+        if ($record['password_protected'] && ! self::mayReadProtected($post, $password)) {
+            $record['content'] = '';
+            $record['excerpt'] = '';
+        }
+
+        return $record;
+    }
+
+    /**
+     * Whether the current user may see the body of a password-protected post.
+     *
+     * @param \WP_Post $post     The protected post.
+     * @param string   $password Password the caller supplied, possibly empty.
+     *
+     * @return bool True for editors of the post and callers holding the password.
+     */
+    private static function mayReadProtected(\WP_Post $post, string $password): bool
+    {
+        return current_user_can('edit_post', $post->ID)
+            || ($password !== '' && hash_equals($post->post_password, $password));
+    }
+
+    /**
+     * Check everything a write could be refused for, before anything is written.
+     *
+     * Runs ahead of `wp_insert_post()` and `wp_update_post()` so that a refusal
+     * never leaves a half-written post behind: WordPress itself checks neither
+     * the publish capability nor the term capabilities on those functions.
+     *
+     * @param Input       $input         The ability input.
+     * @param string      $postType      Type of the post being written.
+     * @param string|null $status        Status the caller asked for, null when not changing it.
+     * @param string|null $currentStatus Status the post has now, null for a new post.
+     *
+     * @return list<int>|null|\WP_Error The category IDs to assign (null when none were asked for), or the refusal.
+     */
+    private static function preflight(Input $input, string $postType, ?string $status, ?string $currentStatus): array|\WP_Error|null
+    {
+        if (in_array($status, ['publish', 'future', 'private'], true) && $status !== $currentStatus) {
+            $object = get_post_type_object($postType);
+
+            if (! $object instanceof \WP_Post_Type || ! current_user_can($object->cap->publish_posts)) {
+                return Failure::forbidden(sprintf(
+                    'give a "%s" the status "%s": that takes the capability to publish this post type',
+                    $postType,
+                    $status,
+                ));
+            }
+        }
+
+        $categories = null;
+
+        if ($input->filled('categories')) {
+            $denied = self::requireTermCapability('category', 'assign_terms', 'assign categories');
+
+            if ($denied instanceof \WP_Error) {
+                return $denied;
+            }
+
+            $resolved = self::resolveTermSlugs($input->stringList('categories'), 'category', false);
+
+            if (is_wp_error($resolved)) {
+                return $resolved;
+            }
+
+            $categories = $resolved;
+        }
+
+        if ($input->filled('tags')) {
+            $denied = self::requireTermCapability('post_tag', 'assign_terms', 'assign tags');
+
+            if ($denied instanceof \WP_Error) {
+                return $denied;
+            }
+
+            foreach ($input->stringList('tags') as $name) {
+                if (! term_exists($name, 'post_tag')) {
+                    $denied = self::requireTermCapability('post_tag', 'edit_terms', 'create tags');
+
+                    if ($denied instanceof \WP_Error) {
+                        return $denied;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        return $categories;
+    }
+
+    /**
+     * Refuse unless the current user holds one of a taxonomy's capabilities.
+     *
+     * @param string $taxonomy   Taxonomy slug.
+     * @param string $capability Key of the taxonomy's `cap` object, such as `assign_terms` or `edit_terms`.
+     * @param string $action     What is being attempted, phrased as an infinitive without "to".
+     *
+     * @return \WP_Error|null The refusal, null when allowed.
+     */
+    private static function requireTermCapability(string $taxonomy, string $capability, string $action): ?\WP_Error
+    {
+        $object = get_taxonomy($taxonomy);
+
+        if (! $object instanceof \WP_Taxonomy) {
+            return Failure::invalid(sprintf(
+                'Unknown taxonomy "%s". Call get-taxonomies to see what this site registers.',
+                $taxonomy,
+            ));
+        }
+
+        return current_user_can($object->cap->{$capability}) ? null : Failure::forbidden($action);
     }
 
     /**
@@ -666,6 +824,16 @@ final class ContentGroup implements AbilityGroup
                 $missing[] = $slug;
 
                 continue;
+            }
+
+            $denied = self::requireTermCapability(
+                $taxonomy,
+                'edit_terms',
+                sprintf('create terms in the "%s" taxonomy', $taxonomy),
+            );
+
+            if ($denied instanceof \WP_Error) {
+                return $denied;
             }
 
             $created = wp_insert_term($slug, $taxonomy);
