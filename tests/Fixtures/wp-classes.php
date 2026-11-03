@@ -18,6 +18,7 @@ if (!class_exists('WP_Post')) {
     /**
      * @see https://developer.wordpress.org/reference/classes/wp_post/
      */
+    #[\AllowDynamicProperties]
     class WP_Post
     {
         public int $ID = 0;
@@ -35,6 +36,8 @@ if (!class_exists('WP_Post')) {
         public string $post_status = 'publish';
 
         public string $post_password = '';
+
+        public string $post_mime_type = '';
 
         public string $post_date = '';
 
@@ -116,10 +119,18 @@ if (!class_exists('WP_Taxonomy')) {
         /** @var list<string> */
         public array $object_type = [];
 
+        public \stdClass $cap;
+
         public function __construct(string $name = '', string $label = '')
         {
             $this->name = $name;
             $this->label = $label;
+            $this->cap = (object) [
+                'manage_terms' => 'manage_categories',
+                'edit_terms' => 'manage_categories',
+                'delete_terms' => 'manage_categories',
+                'assign_terms' => 'edit_posts',
+            ];
         }
     }
 }
@@ -385,6 +396,52 @@ if (!class_exists('WP_Screen')) {
     {
         public function __construct(public string $id = '', public string $base = '')
         {
+        }
+    }
+}
+
+if (!class_exists('WP_Query', false)) {
+    /**
+     * Records the arguments it was built with and serves whatever a test staged.
+     *
+     * @see https://developer.wordpress.org/reference/classes/wp_query/
+     */
+    class WP_Query
+    {
+        /** @var array<string, mixed> */
+        public static array $lastArgs = [];
+
+        /** @var list<\WP_Post> */
+        public static array $stagedPosts = [];
+
+        public static int $stagedTotal = 0;
+
+        public static int $stagedPages = 0;
+
+        /** @var list<\WP_Post> */
+        public array $posts = [];
+
+        public int $found_posts = 0;
+
+        public int $max_num_pages = 0;
+
+        /**
+         * @param  array<string, mixed>  $args
+         */
+        public function __construct(array $args = [])
+        {
+            self::$lastArgs = $args;
+            $this->posts = self::$stagedPosts;
+            $this->found_posts = self::$stagedTotal;
+            $this->max_num_pages = self::$stagedPages;
+        }
+
+        public static function reset(): void
+        {
+            self::$lastArgs = [];
+            self::$stagedPosts = [];
+            self::$stagedTotal = 0;
+            self::$stagedPages = 0;
         }
     }
 }
