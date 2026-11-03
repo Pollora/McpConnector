@@ -1341,10 +1341,6 @@ msgstr "Se requiere al menos una URI de redirección https válida."
 msgid "Unnamed MCP client"
 msgstr "Cliente MCP sin nombre"
 
-#: src/OAuth/Controller/TokenController.php:59
-msgid "Client authentication failed."
-msgstr "La autenticación del cliente ha fallado."
-
 #: src/OAuth/Controller/TokenController.php:67
 msgid "Supported grant types are authorization_code and refresh_token."
 msgstr "Los tipos de concesión admitidos son authorization_code y refresh_token."
@@ -1376,6 +1372,10 @@ msgstr "El token de refresco se emitió para otro cliente."
 #: src/OAuth/Controller/TokenController.php:183
 msgid "The user this grant belongs to no longer has permission to use this connector."
 msgstr "El usuario al que pertenece esta concesión ya no tiene permiso para usar este conector."
+
+#: src/OAuth/Controller/TokenController.php:256
+msgid "Client authentication failed."
+msgstr "La autenticación del cliente ha fallado."
 
 #: src/OAuth/Scope.php:149
 msgid "Read your posts, pages, media and site settings."
