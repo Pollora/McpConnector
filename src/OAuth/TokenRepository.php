@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pollora\McpConnector\OAuth;
 
+use Pollora\McpConnector\Support\OptionLock;
+
 defined('ABSPATH') || exit;
 
 /**
@@ -20,6 +22,13 @@ defined('ABSPATH') || exit;
  * also evaporate whenever anything calls `wp_cache_flush()` — which cache
  * plugins do on every content purge. An access token that dies each time an
  * editor saves a post turns into a refresh storm.
+ *
+ * Each option holds every token of its kind as one array, so every change is a
+ * read, a modification and a write of the whole array. Two requests doing that
+ * at once lose one of the two changes, and for a refresh token that means it can
+ * be spent twice, or a token revoked a moment ago comes back. Every change
+ * therefore runs under a lock per option, and reads what is stored once it
+ * holds the lock rather than what it read before.
  */
 final class TokenRepository
 {
@@ -44,6 +53,13 @@ final class TokenRepository
      * @var int
      */
     public const REFRESH_TTL = 30 * DAY_IN_SECONDS;
+
+    /**
+     * @param OptionLock $lock Serialises the changes made to each token option.
+     */
+    public function __construct(private readonly OptionLock $lock = new OptionLock())
+    {
+    }
 
     /**
      * Issue a fresh access and refresh token pair.
@@ -96,21 +112,43 @@ final class TokenRepository
      * Consume a refresh token, removing it so it cannot be replayed.
      *
      * Refresh tokens rotate: the caller is expected to issue a new pair straight
-     * away. Deleting before issuing means a token presented twice concurrently
-     * only succeeds once, which is the behaviour RFC 6749 section 10.4 asks for.
+     * away. The token is looked up and removed in a single locked step, so a
+     * token presented twice concurrently only succeeds once, which is the
+     * behaviour RFC 6749 section 10.4 asks for.
+     *
+     * When the lock cannot be taken in time the token is refused and left in
+     * place, never accepted unchecked: the client can present it again.
      *
      * @param string $token The plaintext refresh token.
      *
      * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int}|null
-     *         The token record, or null when the token is unknown or expired.
+     *         The token record, or null when the token is unknown, expired or already spent.
      */
     public function consumeRefreshToken(string $token): ?array
     {
-        $record = $this->find(self::REFRESH_OPTION, $token);
+        $key = self::hash($token);
 
-        $this->forget(self::REFRESH_OPTION, $token);
+        // A token that is not even stored is turned away without taking the lock.
+        // An expired one is not: presenting it removes it, as it always did.
+        if ($token === '' || ! isset($this->allRaw(self::REFRESH_OPTION)[$key])) {
+            return null;
+        }
 
-        return $record;
+        $record = null;
+
+        $locked = $this->mutate(
+            self::REFRESH_OPTION,
+            static function (array $tokens) use ($key, &$record): array {
+                $record = self::describe($tokens[$key] ?? null);
+
+                unset($tokens[$key]);
+
+                return $tokens;
+            },
+            strict: true,
+        );
+
+        return $locked ? $record : null;
     }
 
     /**
@@ -135,12 +173,13 @@ final class TokenRepository
     public function revokeClient(string $clientId): void
     {
         foreach ([self::ACCESS_OPTION, self::REFRESH_OPTION] as $option) {
-            $tokens = array_filter(
-                $this->allRaw($option),
-                static fn (mixed $record): bool => ! is_array($record) || ($record['client_id'] ?? '') !== $clientId,
+            $this->mutate(
+                $option,
+                static fn (array $tokens): array => array_filter(
+                    $tokens,
+                    static fn (mixed $record): bool => ! is_array($record) || ($record['client_id'] ?? '') !== $clientId,
+                ),
             );
-
-            update_option($option, $tokens, false);
         }
     }
 
@@ -155,12 +194,13 @@ final class TokenRepository
     public function revokeUser(int $userId): void
     {
         foreach ([self::ACCESS_OPTION, self::REFRESH_OPTION] as $option) {
-            $tokens = array_filter(
-                $this->allRaw($option),
-                static fn (mixed $record): bool => ! is_array($record) || (int) ($record['user_id'] ?? 0) !== $userId,
+            $this->mutate(
+                $option,
+                static fn (array $tokens): array => array_filter(
+                    $tokens,
+                    static fn (mixed $record): bool => ! is_array($record) || (int) ($record['user_id'] ?? 0) !== $userId,
+                ),
             );
-
-            update_option($option, $tokens, false);
         }
     }
 
@@ -175,17 +215,19 @@ final class TokenRepository
         $removed = 0;
 
         foreach ([self::ACCESS_OPTION, self::REFRESH_OPTION] as $option) {
-            $tokens = $this->allRaw($option);
-            $live = array_filter(
-                $tokens,
-                static fn (mixed $record): bool => is_array($record) && (int) ($record['expires_at'] ?? 0) > $now,
+            $this->mutate(
+                $option,
+                static function (array $tokens) use ($now, &$removed): array {
+                    $live = array_filter(
+                        $tokens,
+                        static fn (mixed $record): bool => is_array($record) && (int) ($record['expires_at'] ?? 0) > $now,
+                    );
+
+                    $removed += count($tokens) - count($live);
+
+                    return $live;
+                },
             );
-
-            $removed += count($tokens) - count($live);
-
-            if (count($live) !== count($tokens)) {
-                update_option($option, $live, false);
-            }
         }
 
         return $removed;
@@ -265,10 +307,14 @@ final class TokenRepository
      */
     private function put(string $option, string $token, array $record): void
     {
-        $tokens = $this->allRaw($option);
-        $tokens[self::hash($token)] = $record;
+        $this->mutate(
+            $option,
+            static function (array $tokens) use ($token, $record): array {
+                $tokens[self::hash($token)] = $record;
 
-        update_option($option, $tokens, false);
+                return $tokens;
+            },
+        );
     }
 
     /**
@@ -285,8 +331,18 @@ final class TokenRepository
             return null;
         }
 
-        $record = $this->allRaw($option)[self::hash($token)] ?? null;
+        return self::describe($this->allRaw($option)[self::hash($token)] ?? null);
+    }
 
+    /**
+     * Shape a stored record, treating an expired or malformed one as absent.
+     *
+     * @param mixed $record What the option holds under a token's hash.
+     *
+     * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int}|null The record.
+     */
+    private static function describe(mixed $record): ?array
+    {
         if (! is_array($record) || (int) ($record['expires_at'] ?? 0) <= time()) {
             return null;
         }
@@ -309,16 +365,66 @@ final class TokenRepository
      */
     private function forget(string $option, string $token): bool
     {
-        $tokens = $this->allRaw($option);
         $key = self::hash($token);
 
-        if (! isset($tokens[$key])) {
+        if (! isset($this->allRaw($option)[$key])) {
             return false;
         }
 
-        unset($tokens[$key]);
+        $removed = false;
 
-        update_option($option, $tokens, false);
+        $this->mutate(
+            $option,
+            static function (array $tokens) use ($key, &$removed): array {
+                $removed = isset($tokens[$key]);
+
+                unset($tokens[$key]);
+
+                return $tokens;
+            },
+        );
+
+        return $removed;
+    }
+
+    /**
+     * Change the tokens stored in an option while holding that option's lock.
+     *
+     * The stored value is read again once the lock is held, past the object
+     * cache, since anything read earlier may already be out of date: that is the
+     * whole point of the lock.
+     *
+     * A change that cannot get the lock in time is still made, unprotected, as it
+     * was before the lock existed, unless `$strict` says it is only safe under
+     * the lock. Dropping it instead would have a token issued that was never
+     * stored, or a revocation silently lost.
+     *
+     * @param string                                                  $option Option to change.
+     * @param callable(array<string, mixed>): array<string, mixed>    $change Receives the stored map, returns the map to store.
+     * @param bool                                                    $strict Give up rather than change it without the lock.
+     *
+     * @return bool False when `$strict` and the lock could not be taken, so nothing was changed.
+     */
+    private function mutate(string $option, callable $change, bool $strict = false): bool
+    {
+        $lockName = $option;
+        $locked = $this->lock->acquire($lockName);
+
+        if (! $locked && $strict) {
+            return false;
+        }
+
+        try {
+            if ($locked) {
+                wp_cache_delete($option, 'options');
+            }
+
+            update_option($option, $change($this->allRaw($option)), false);
+        } finally {
+            if ($locked) {
+                $this->lock->release($lockName);
+            }
+        }
 
         return true;
     }

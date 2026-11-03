@@ -37,3 +37,4 @@ require_once __DIR__ . '/Fixtures/plugin-constants.php';
 
 // Minimal doubles for the core classes the plugin type-hints against.
 require_once __DIR__ . '/Fixtures/wp-classes.php';
+require_once __DIR__ . '/Fixtures/wpdb.php';
