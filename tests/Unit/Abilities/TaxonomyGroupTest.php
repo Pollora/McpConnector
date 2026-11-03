@@ -92,6 +92,22 @@ describe('get-taxonomies', function (): void {
         expect(H::run(taxonomyAbility('get-taxonomies'), ['public_only' => false]))->toBe(['taxonomies' => []]);
     });
 
+    it('lists a non-public taxonomy only to a caller who can manage its terms', function (): void {
+        $internal = new WP_Taxonomy('nav_menu', 'Menus');
+        $internal->public = false;
+        $internal->cap->manage_terms = 'edit_theme_options';
+        $genre = new WP_Taxonomy('genre', 'Genres');
+        Functions\when('get_taxonomies')->justReturn(['nav_menu' => $internal, 'genre' => $genre]);
+
+        H::actAs(['edit_posts']);
+        $names = static fn (): array => array_column(H::run(taxonomyAbility('get-taxonomies'), ['public_only' => false])['taxonomies'], 'name');
+
+        expect($names())->toBe(['genre']);
+
+        H::actAs(['edit_posts', 'edit_theme_options']);
+        expect($names())->toBe(['nav_menu', 'genre']);
+    });
+
     it('requires edit_posts', function (): void {
         expect(H::permitted(taxonomyAbility('get-taxonomies')))->toBeFalse();
 
@@ -101,6 +117,38 @@ describe('get-taxonomies', function (): void {
 });
 
 describe('get-terms', function (): void {
+    beforeEach(function (): void {
+        Functions\when('get_taxonomy')->alias(static fn (string $name): WP_Taxonomy => new WP_Taxonomy($name, $name));
+    });
+
+    it('refuses the terms of a non-public taxonomy to a caller who cannot manage it', function (): void {
+        $internal = new WP_Taxonomy('nav_menu', 'Menus');
+        $internal->public = false;
+        $internal->cap->manage_terms = 'edit_theme_options';
+        H::taxonomies(['nav_menu']);
+        Functions\when('get_taxonomy')->justReturn($internal);
+        Functions\expect('get_terms')->never();
+        H::actAs(['edit_posts']);
+
+        $result = H::run(taxonomyAbility('get-terms'), ['taxonomy' => 'nav_menu']);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_code())->toBe('mcp_connector_forbidden')
+            ->and($result->get_error_data())->toBe(['status' => 403]);
+    });
+
+    it('lists the terms of a non-public taxonomy to a caller who can manage it', function (): void {
+        $internal = new WP_Taxonomy('nav_menu', 'Menus');
+        $internal->public = false;
+        $internal->cap->manage_terms = 'edit_theme_options';
+        H::taxonomies(['nav_menu']);
+        Functions\when('get_taxonomy')->justReturn($internal);
+        Functions\when('get_terms')->justReturn([]);
+        H::actAs(['edit_posts', 'edit_theme_options']);
+
+        expect(H::run(taxonomyAbility('get-terms'), ['taxonomy' => 'nav_menu']))->toBe(['taxonomy' => 'nav_menu', 'terms' => []]);
+    });
+
     it('lists the terms of the category taxonomy by default', function (): void {
         $captured = [];
         Functions\when('get_terms')->alias(function (array $args) use (&$captured): array {
@@ -302,6 +350,16 @@ describe('delete-term', function (): void {
 
         expect($result)->toBeInstanceOf(WP_Error::class)
             ->and($result->get_error_message())->toBe('WordPress refused to delete term 8.');
+    });
+
+    it('reports the default term as not deleted, since WordPress answers 0 and removes nothing', function (): void {
+        Functions\when('get_term')->justReturn(new WP_Term(['term_id' => 1]));
+        Functions\when('wp_delete_term')->justReturn(0);
+
+        $result = H::run(taxonomyAbility('delete-term'), ['id' => 1]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_message())->toBe('Term 1 is the default term of its taxonomy and cannot be deleted.');
     });
 
     it('asks the taxonomy for its own delete capability', function (): void {
