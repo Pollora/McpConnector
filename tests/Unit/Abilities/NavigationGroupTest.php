@@ -340,6 +340,25 @@ describe('add-menu-item', function (): void {
 });
 
 describe('update-menu-item', function (): void {
+    beforeEach(function (): void {
+        Functions\when('is_object_in_term')->justReturn(true);
+    });
+
+    it('refuses an item that belongs to another menu and rewrites nothing', function (): void {
+        knownMenus(menuTerm(2, 'Main'), menuTerm(3, 'Footer'));
+        Functions\when('get_post')->justReturn(menuItem(30));
+        Functions\when('is_object_in_term')->alias(
+            static fn (int $objectId, string $taxonomy, int $term): bool => $objectId === 30 && $taxonomy === 'nav_menu' && $term === 3,
+        );
+        Functions\expect('wp_update_nav_menu_item')->never();
+
+        $result = H::run(navAbility('update-menu-item'), ['menu' => 'Main', 'id' => 30, 'title' => 'Hijacked']);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_code())->toBe('mcp_connector_not_found')
+            ->and($result->get_error_data())->toBe(['status' => 404]);
+    });
+
     it('rewrites the item from its current values, changing only what was given', function (): void {
         knownMenus(menuTerm(2, 'Main'));
         $existing = menuItem(30);

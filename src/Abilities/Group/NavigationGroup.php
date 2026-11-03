@@ -343,6 +343,13 @@ final class NavigationGroup implements AbilityGroup
                     return Failure::notFound('menu item', $itemId);
                 }
 
+                // The permission is global (edit_theme_options), so the item has
+                // to be checked against the menu the caller named: otherwise an
+                // item of menu B could be rewritten under a menu A argument.
+                if (! is_object_in_term($itemId, 'nav_menu', $menu->term_id)) {
+                    return Failure::notFound('menu item', $itemId);
+                }
+
                 // wp_update_nav_menu_item() rewrites every field it is given and
                 // clears the ones it is not, so the current values have to be
                 // read back and used as the baseline for a partial update.
