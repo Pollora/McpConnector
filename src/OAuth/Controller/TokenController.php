@@ -55,7 +55,7 @@ final class TokenController
             return self::clientAuthenticationFailed();
         }
 
-        return match ((string) ($params['grant_type'] ?? '')) {
+        return match (self::param($params, 'grant_type')) {
             'authorization_code' => $this->exchangeCode($params, $client),
             'refresh_token' => $this->refresh($params, $client),
             default => self::error(
@@ -89,7 +89,7 @@ final class TokenController
         // Only a token issued to this client is revoked. The answer is the same
         // for another client's token, so the endpoint cannot be used to find out
         // whose a token is.
-        $this->tokens->revoke((string) ($params['token'] ?? ''), $client->id);
+        $this->tokens->revoke(self::param($params, 'token'), $client->id);
 
         // RFC 7009 section 2.2 requires 200 even for a token that was already
         // invalid or never existed. Distinguishing the cases would turn this
@@ -107,7 +107,7 @@ final class TokenController
      */
     private function exchangeCode(array $params, Client $client): \WP_REST_Response
     {
-        $record = $this->codes->consume((string) ($params['code'] ?? ''));
+        $record = $this->codes->consume(self::param($params, 'code'));
 
         if ($record === null) {
             return self::error(
@@ -125,14 +125,14 @@ final class TokenController
 
         // RFC 6749 section 4.1.3: when a redirect URI was used to obtain the
         // code, the same one must be presented here.
-        if (! hash_equals($record['redirect_uri'], (string) ($params['redirect_uri'] ?? ''))) {
+        if (! hash_equals($record['redirect_uri'], self::param($params, 'redirect_uri'))) {
             return self::error(
                 'invalid_grant',
                 __('The redirect URI does not match the one used to obtain this code.', 'amphibee-mcp-connector'),
             );
         }
 
-        if (! Pkce::verify((string) ($params['code_verifier'] ?? ''), $record['code_challenge'])) {
+        if (! Pkce::verify(self::param($params, 'code_verifier'), $record['code_challenge'])) {
             return self::error(
                 'invalid_grant',
                 __('The PKCE code verifier does not match the challenge.', 'amphibee-mcp-connector'),
@@ -152,7 +152,7 @@ final class TokenController
      */
     private function refresh(array $params, Client $client): \WP_REST_Response
     {
-        $record = $this->tokens->consumeRefreshToken((string) ($params['refresh_token'] ?? ''));
+        $record = $this->tokens->consumeRefreshToken(self::param($params, 'refresh_token'));
 
         if ($record === null) {
             return self::error(
@@ -227,6 +227,26 @@ final class TokenController
     }
 
     /**
+     * Read one request parameter as a string.
+     *
+     * A parameter a client sent as an array or an object is not a string, and
+     * casting it would raise a PHP warning on an endpoint reachable without
+     * credentials. It is treated as absent, as the authorization endpoint does,
+     * which no valid value can be mistaken for.
+     *
+     * @param array<string, mixed> $params The request parameters.
+     * @param string               $name   The parameter name.
+     *
+     * @return string The value, or an empty string when it is missing or not a scalar.
+     */
+    private static function param(array $params, string $name): string
+    {
+        $value = $params[$name] ?? '';
+
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
      * Authenticate the client making a request to the token or revocation endpoint.
      *
      * @param \WP_REST_Request<array<string, mixed>> $request The request.
@@ -266,8 +286,8 @@ final class TokenController
      */
     private function readCredentials(\WP_REST_Request $request, array $params): array
     {
-        $id = (string) ($params['client_id'] ?? '');
-        $secret = (string) ($params['client_secret'] ?? '');
+        $id = self::param($params, 'client_id');
+        $secret = self::param($params, 'client_secret');
 
         if ($id !== '') {
             return [$id, $secret];

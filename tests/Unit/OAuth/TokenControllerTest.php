@@ -367,3 +367,43 @@ describe('revocation', function (): void {
             ->and(($this->revokeAs)('', ($this->credentials)())->get_status())->toBe(200);
     });
 });
+
+describe('a parameter that is not a scalar', function (): void {
+    it('is treated as absent, without a warning', function (string $name, string $error): void {
+        $response = ($this->exchange)([$name => ['nested']]);
+
+        expect($response->get_data()['error'])->toBe($error);
+    })->with([
+        'client_id' => ['client_id', 'invalid_client'],
+        'client_secret' => ['client_secret', 'invalid_client'],
+        'grant_type' => ['grant_type', 'unsupported_grant_type'],
+        'code' => ['code', 'invalid_grant'],
+        'redirect_uri' => ['redirect_uri', 'invalid_grant'],
+        'code_verifier' => ['code_verifier', 'invalid_grant'],
+    ]);
+
+    it('is treated as an absent refresh token', function (): void {
+        $response = $this->controller->handle(mcpcTokenRequest([
+            'grant_type' => 'refresh_token',
+            'client_id' => 'client-1',
+            'client_secret' => $this->secret,
+            'refresh_token' => ['nested'],
+        ]));
+
+        expect($response->get_data()['error'])->toBe('invalid_grant');
+    });
+
+    it('revokes nothing when the token to revoke is not a scalar, and still answers 200', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+
+        $response = $this->controller->revoke(mcpcTokenRequest([
+            'token' => [$issued['access_token']],
+            'client_id' => 'client-1',
+            'client_secret' => $this->secret,
+        ]));
+
+        expect($response->get_status())->toBe(200)
+            ->and($this->tokens->findAccessToken($issued['access_token']))->not->toBeNull();
+    });
+
+});
