@@ -45,12 +45,14 @@ abstract class TestCase extends BaseTestCase
 
         $this->stubEscaping();
         $this->stubOptions();
+        $GLOBALS['wpdb'] = new \wpdb();
         $this->stubTransients();
         $this->stubSiteInfo();
     }
 
     protected function tearDown(): void
     {
+        unset($GLOBALS['wpdb']);
         Monkey\tearDown();
         \Mockery::close();
         parent::tearDown();
@@ -145,6 +147,7 @@ abstract class TestCase extends BaseTestCase
 
             return true;
         });
+        Functions\when('wp_cache_delete')->justReturn(true);
         Functions\when('delete_option')->alias(function (string $name): bool {
             unset($this->optionValues[$name]);
 

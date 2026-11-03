@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Brain\Monkey\Functions;
 use Pollora\McpConnector\OAuth\TokenRepository;
+use Pollora\McpConnector\Support\OptionLock;
 
 beforeEach(function (): void {
     // The shared stub is deterministic; token tests need every call to differ.
@@ -230,5 +231,75 @@ describe('housekeeping', function (): void {
 
         expect($repo->liveAccessTokenCounts())->toBe([])
             ->and($repo->liveAccessTokenSummaries())->toBe([]);
+    });
+});
+
+describe('two requests at the same moment', function (): void {
+    it('refuses a refresh token while another request holds the lock, and keeps it', function (): void {
+        $issued = (new TokenRepository())->issue(7, 'client-1', ['read']);
+
+        $other = new OptionLock();
+        $other->acquire(TokenRepository::REFRESH_OPTION);
+
+        $repository = new TokenRepository(new OptionLock(10, 0));
+
+        expect($repository->consumeRefreshToken($issued['refresh_token']))->toBeNull();
+
+        $other->release(TokenRepository::REFRESH_OPTION);
+
+        expect($repository->consumeRefreshToken($issued['refresh_token']))->toMatchArray(['user_id' => 7]);
+    });
+
+    it('looks at the token again once it holds the lock', function (): void {
+        $issued = (new TokenRepository())->issue(7, 'client-1', ['read']);
+
+        // The cache is cleared right after the lock is taken. That is the window in
+        // which another request can spend the token the first look still saw.
+        Functions\when('wp_cache_delete')->alias(function (): bool {
+            update_option(TokenRepository::REFRESH_OPTION, []);
+
+            return true;
+        });
+
+        expect((new TokenRepository())->consumeRefreshToken($issued['refresh_token']))->toBeNull();
+    });
+
+    it('spends a refresh token once, whoever asks first', function (): void {
+        $issued = (new TokenRepository())->issue(7, 'client-1', ['read']);
+
+        $first = (new TokenRepository())->consumeRefreshToken($issued['refresh_token']);
+        $second = (new TokenRepository())->consumeRefreshToken($issued['refresh_token']);
+
+        expect($first)->toMatchArray(['user_id' => 7])
+            ->and($second)->toBeNull();
+    });
+
+    it('lets go of the lock once the token is spent', function (): void {
+        $issued = (new TokenRepository())->issue(7, 'client-1', ['read']);
+
+        (new TokenRepository())->consumeRefreshToken($issued['refresh_token']);
+
+        expect((new OptionLock(10, 0))->acquire(TokenRepository::REFRESH_OPTION))->toBeTrue();
+    });
+
+    it('does not lose a token that is issued while the lock is held elsewhere', function (): void {
+        $other = new OptionLock();
+        $other->acquire(TokenRepository::ACCESS_OPTION);
+
+        $repository = new TokenRepository(new OptionLock(10, 0));
+        $issued = $repository->issue(7, 'client-1', ['read']);
+
+        expect($repository->findAccessToken($issued['access_token']))->toMatchArray(['client_id' => 'client-1']);
+    });
+
+    it('lets a revocation through while the lock is held elsewhere', function (): void {
+        $repository = new TokenRepository(new OptionLock(10, 0));
+        $issued = $repository->issue(7, 'client-1', ['read']);
+
+        $other = new OptionLock();
+        $other->acquire(TokenRepository::ACCESS_OPTION);
+
+        expect($repository->revoke($issued['access_token']))->toBeTrue()
+            ->and($repository->findAccessToken($issued['access_token']))->toBeNull();
     });
 });
