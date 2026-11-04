@@ -95,7 +95,7 @@ final class PostMeta
                 'type' => (string) ($args['type'] ?? 'string'),
                 'single' => (bool) ($args['single'] ?? false),
                 'description' => (string) ($args['description'] ?? ''),
-                'protected' => str_starts_with($key, '_'),
+                'protected' => is_protected_meta($key, 'post'),
             ];
         }
 
