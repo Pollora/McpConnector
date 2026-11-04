@@ -33,12 +33,19 @@ final class BearerAuthenticator
     public function register(): void
     {
         // Priority 20, after the core cookie resolution at 10: a request that
-        // already has a signed-in user is left alone rather than overridden.
+        // already has a signed-in user keeps that user, and only has the
+        // scope of a token issued to the same user applied to it.
         add_filter('determine_current_user', $this->authenticate(...), 20);
     }
 
     /**
      * Resolve the current user from a bearer token, if there is one.
+     *
+     * A request that already has a signed-in user keeps that user. When it also
+     * carries a valid token issued to the same user, the token's scope is still
+     * recorded: a client that declared itself read-only must not write because a
+     * cookie happened to be sent along. A token issued to someone else, or an
+     * invalid one, changes nothing.
      *
      * @param int|false $userId The user identifier resolved so far, or false.
      *
@@ -46,10 +53,6 @@ final class BearerAuthenticator
      */
     public function authenticate(int|false $userId): int|false
     {
-        if ($userId) {
-            return $userId;
-        }
-
         $token = self::readBearerToken();
 
         if ($token === '') {
@@ -59,6 +62,14 @@ final class BearerAuthenticator
         $record = $this->tokens->findAccessToken($token);
 
         if ($record === null || $record['user_id'] <= 0) {
+            return $userId;
+        }
+
+        if ($userId) {
+            if ($record['user_id'] === (int) $userId) {
+                Scope::setCurrent($record['scopes']);
+            }
+
             return $userId;
         }
 
