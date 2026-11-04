@@ -547,3 +547,45 @@ describe('the notices after an action', function (): void {
         expect(adminsettingsRender())->not->toContain('topsecret');
     });
 });
+
+describe('lists posted with nested arrays', function (): void {
+    it('keeps the string members of a list and drops anything nested, without a warning', function (): void {
+        $_POST = [
+            'mcp_connector_save' => '1',
+            'enabled_groups' => ['posts', ['nested'], 'media'],
+            'addressable_post_types' => [['post'], 'page'],
+            'external_abilities' => ['acme/read-things', ['acme/read-things'], 'evil/delete-everything'],
+        ];
+
+        $warnings = [];
+        set_error_handler(static function (int $no, string $message) use (&$warnings): bool {
+            $warnings[] = $message;
+
+            return true;
+        });
+
+        try {
+            adminsettingsRun();
+        } finally {
+            restore_error_handler();
+        }
+
+        $stored = $this->optionValues['mcp_connector_settings'];
+
+        expect($warnings)->toBe([])
+            ->and($stored['enabled_groups'])->toBe(['posts', 'media'])
+            ->and($stored['addressable_post_types'])->toBe(['page'])
+            ->and($stored['external_abilities'])->toBe(['acme/read-things']);
+    });
+
+    it('treats a list posted as a nested array alone as empty', function (): void {
+        $_POST = ['mcp_connector_save' => '1', 'enabled_groups' => [['x']], 'addressable_post_types' => [[]], 'external_abilities' => [['x']]];
+
+        adminsettingsRun();
+        $stored = $this->optionValues['mcp_connector_settings'];
+
+        expect($stored['enabled_groups'])->toBe([])
+            ->and($stored['addressable_post_types'])->toBe([])
+            ->and($stored['external_abilities'])->toBe([]);
+    });
+});
