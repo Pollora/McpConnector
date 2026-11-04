@@ -66,7 +66,11 @@ final class Diagnostics
      */
     public static function all(Settings $settings, bool $probe = false): array
     {
-        $key = $probe ? 'probe' : 'cached';
+        // Keyed on the configuration as well as on the probe flag: the same
+        // request may establish the checks for two different configurations,
+        // such as before and after a save.
+        $fingerprint = md5((string) json_encode($settings->toArray()));
+        $key = ($probe ? 'probe:' : 'cached:') . $fingerprint;
 
         if (isset(self::$memo[$key])) {
             return self::$memo[$key];
@@ -94,7 +98,7 @@ final class Diagnostics
 
         // A fresh probe answers for the cached reading too: it has just written
         // the transient the cached reading would go on to consult.
-        self::$memo['cached'] = $checks;
+        self::$memo['cached:' . $fingerprint] = $checks;
         self::$memo[$key] = $checks;
 
         return $checks;
