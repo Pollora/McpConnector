@@ -78,7 +78,7 @@ describe('the literals', function (): void {
         $literals = ClientGuides::literals('claude-code', 'https://example.test/wp-json/mcp/connector');
 
         expect(array_keys($literals))->toBe([1])
-            ->and($literals[1]['text'])->toBe('claude mcp add --transport http example-site https://example.test/wp-json/mcp/connector');
+            ->and($literals[1]['text'])->toBe('claude mcp add --transport http example-site \'https://example.test/wp-json/mcp/connector\'');
     });
 
     it('gives the editors a JSON entry that parses back to the URL, with the slashes intact', function (): void {
@@ -109,13 +109,13 @@ describe('the literals', function (): void {
 
         $text = ClientGuides::literals('claude-code', 'https://x')[1]['text'];
 
-        expect($text)->toBe('claude mcp add --transport http my-site-b-b-co https://x');
+        expect($text)->toBe('claude mcp add --transport http my-site-b-b-co \'https://x\'');
     });
 
     it('falls back to a fixed name when the site title leaves nothing usable', function (): void {
         Functions\when('get_bloginfo')->justReturn('!!!');
 
-        expect(ClientGuides::literals('claude-code', 'https://x')[1]['text'])->toBe('claude mcp add --transport http wordpress https://x');
+        expect(ClientGuides::literals('claude-code', 'https://x')[1]['text'])->toBe('claude mcp add --transport http wordpress \'https://x\'');
     });
 
     it('never lets a site title put a shell metacharacter in the command', function (): void {
@@ -123,6 +123,20 @@ describe('the literals', function (): void {
 
         $command = ClientGuides::literals('claude-code', 'https://x')[1]['text'];
 
-        expect($command)->toMatch('/^claude mcp add --transport http [a-z0-9-]+ https:\/\/x$/');
+        expect($command)->toMatch('/^claude mcp add --transport http [a-z0-9-]+ \'https:\/\/x\'$/');
+    });
+});
+
+describe('the quoting of the URL', function (): void {
+    it('keeps an address with shell metacharacters as one word', function (): void {
+        $command = ClientGuides::literals('claude-code', 'https://x.test/?a=1&b=2;id $(id) `id`')[1]['text'];
+
+        expect($command)->toBe('claude mcp add --transport http example-site \'https://x.test/?a=1&b=2;id $(id) `id`\'');
+    });
+
+    it('escapes a single quote so it cannot close the quoting', function (): void {
+        $command = ClientGuides::literals('claude-code', "https://x.test/'; id; '")[1]['text'];
+
+        expect($command)->toBe("claude mcp add --transport http example-site 'https://x.test/'\\''; id; '\\'''");
     });
 });

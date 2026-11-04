@@ -217,3 +217,45 @@ describe('the aggregate status', function (): void {
         expect($second)->toBe($first);
     });
 });
+
+describe('the memo', function (): void {
+    it('answers again for a different configuration within the same request', function (): void {
+        $open = Settings::fromArray(['oauth_enabled' => true, 'enabled_groups' => []]);
+        $closed = Settings::fromArray(['oauth_enabled' => false, 'enabled_groups' => ['posts']]);
+
+        $first = adminsmallChecks($open);
+        $second = adminsmallChecks($closed);
+
+        expect($first)->toHaveKey('discovery')->not->toHaveKey('oauth')
+            ->and($second)->not->toHaveKey('discovery')->toHaveKey('oauth')
+            ->and($second['tools'])->not->toBe($first['tools']);
+    });
+
+    it('does not establish the same configuration twice', function (): void {
+        $reads = 0;
+        Functions\when('wp_roles')->alias(static function () use (&$reads): object {
+            $reads++;
+
+            return (object) ['roles' => ['administrator' => ['name' => 'Administrator', 'capabilities' => ['edit_posts' => true]]]];
+        });
+
+        Diagnostics::all(Settings::fromArray([]));
+        Diagnostics::all(Settings::fromArray([]));
+        Diagnostics::worst(Settings::fromArray([]));
+
+        expect($reads)->toBe(1);
+    });
+
+    it('keeps a fresh probe for its configuration only', function (): void {
+        $a = Settings::fromArray(['required_capability' => 'edit_posts']);
+        $b = Settings::fromArray(['required_capability' => 'do_nothing']);
+
+        Functions\when('wp_remote_get')->justReturn(['code' => 200]);
+        Functions\when('wp_remote_retrieve_response_code')->justReturn(200);
+
+        $probed = Diagnostics::all($a, true);
+
+        expect(Diagnostics::all($a))->toBe($probed)
+            ->and(Diagnostics::all($b))->not->toBe($probed);
+    });
+});

@@ -101,8 +101,8 @@ describe('the client walkthroughs', function (): void {
     it('puts the command under the step that introduces it, with a copy button holding the same text', function (): void {
         $html = adminsmallCapture(fn () => Parts::guides(Settings::fromArray([]), 'https://example.test/mcp'));
 
-        expect($html)->toContain('data-copy="claude mcp add --transport http example-site https://example.test/mcp"')
-            ->and($html)->toContain('<code class="mcpc-fix__code">claude mcp add --transport http example-site https://example.test/mcp</code>');
+        expect($html)->toContain('data-copy="claude mcp add --transport http example-site &#039;https://example.test/mcp&#039;"')
+            ->and($html)->toContain('<code class="mcpc-fix__code">claude mcp add --transport http example-site &#039;https://example.test/mcp&#039;</code>');
     });
 
     it('never lets a hostile URL out of the copy attribute or the code block', function (): void {

@@ -127,7 +127,7 @@ final class ClientGuides
             return [
                 1 => [
                     'label' => __('In a terminal', 'amphibee-mcp-connector'),
-                    'text' => 'claude mcp add --transport http ' . self::serverName() . ' ' . $url,
+                    'text' => 'claude mcp add --transport http ' . self::serverName() . ' ' . self::shellQuote($url),
                 ],
             ];
         }
@@ -145,6 +145,21 @@ final class ClientGuides
         }
 
         return [];
+    }
+
+    /**
+     * Quote a value as one word for a POSIX shell.
+     *
+     * An address with `&`, `?` or `;` in it, pasted unquoted, is split by the
+     * shell (the query string is cut off and run in the background).
+     *
+     * @param string $value The value to quote.
+     *
+     * @return string The value in single quotes, embedded quotes escaped.
+     */
+    private static function shellQuote(string $value): string
+    {
+        return "'" . str_replace("'", "'\\''", $value) . "'";
     }
 
     /**

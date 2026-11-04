@@ -360,13 +360,10 @@ final class SettingsPage
         // a list of [a-z0-9_-] keys would be a no-op, and sanitize_key() drops a
         // stray backslash rather than carrying it through.
         // phpcs:disable WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput -- Verified by the caller; sanitize_key() inside the array_map().
-        $groups = array_map(
-            sanitize_key(...),
-            array_map(strval(...), (array) ($_POST['enabled_groups'] ?? [])),
-        );
+        $groups = array_map(sanitize_key(...), self::strings($_POST['enabled_groups'] ?? []));
 
         $postTypes = array_values(array_intersect(
-            array_map(sanitize_key(...), array_map(strval(...), (array) ($_POST['addressable_post_types'] ?? []))),
+            array_map(sanitize_key(...), self::strings($_POST['addressable_post_types'] ?? [])),
             array_map(static fn (\WP_Post_Type $t): string => $t->name, PostTypes::offerable()),
         ));
 
@@ -433,7 +430,7 @@ final class SettingsPage
         // on the next line, so an unrecognised name cannot survive — which is a
         // stricter filter than any sanitiser would be.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput -- Verified by the caller; intersected against the offered set below.
-        $submitted = array_map(strval(...), (array) ($_POST['external_abilities'] ?? []));
+        $submitted = self::strings($_POST['external_abilities'] ?? []);
 
         return array_values(array_intersect($submitted, $offered));
     }
@@ -502,6 +499,32 @@ final class SettingsPage
         $value = $source[$key] ?? null;
 
         return is_string($value) ? wp_unslash($value) : '';
+    }
+
+    /**
+     * The string members of a posted list.
+     *
+     * A list field posted as `field[]=x` arrives as an array of strings, and a
+     * lone `field=x` as a string. A nested array (`field[][]=x`) cannot be cast
+     * to a string without an "Array to string conversion" warning, so any
+     * member that is not a string is dropped, as {@see self::scalar()} does for
+     * a single value.
+     *
+     * @param mixed $value The raw posted value.
+     *
+     * @return list<string> The unslashed string members, in order.
+     */
+    private static function strings(mixed $value): array
+    {
+        $strings = [];
+
+        foreach ((array) $value as $member) {
+            if (is_string($member)) {
+                $strings[] = $member;
+            }
+        }
+
+        return $strings;
     }
 
     /**
