@@ -2,7 +2,7 @@
 # This file is distributed under the MIT.
 msgid ""
 msgstr ""
-"Project-Id-Version: AmphiBee MCP Connector 1.6.0\n"
+"Project-Id-Version: AmphiBee MCP Connector 1.6.1\n"
 "Report-Msgid-Bugs-To: https://amphibee.fr\n"
 "Last-Translator: AmphiBee\n"
 "Language-Team: AmphiBee\n"

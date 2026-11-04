@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -243,6 +243,10 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.6.1 =
+
+* Security: a read-only OAuth token is no longer ignored when the request also carries a login cookie. The scope of a valid token issued to the signed-in user now applies to the request. Hardening only: the cookie already gave the same user the same rights.
+
 = 1.6.0 =
 
 * Security: `get-posts`, `get-pages` and `get-post` withhold the excerpt and declared meta of a password-protected post from users who cannot edit it.
@@ -297,6 +301,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.6.1 =
+A request that sends both a login cookie and a valid OAuth token for the same user is now limited to the token's scopes. Nothing to do after updating.
 
 = 1.6.0 =
 Abilities validate a request before writing and withhold more from protected posts. Setting meta is all or nothing, and `categories: []` now clears the categories instead of being ignored.
