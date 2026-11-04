@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -243,6 +243,15 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.6.0 =
+
+* Security: `get-posts`, `get-pages` and `get-post` withhold the excerpt and declared meta of a password-protected post from users who cannot edit it.
+* Security: `get-post-types` no longer lists protected meta as declared meta, and asks WordPress which meta is protected.
+* Security: a menu item's parent must belong to its menu, and `delete-menu-item` can verify the menu it deletes from.
+* Fixed: meta, terms and categories are validated before anything is written; meta are written all or nothing.
+* Fixed: `categories: []` removes every category on update instead of being ignored.
+* Fixed: a nested array posted in the settings lists no longer raises a PHP warning, the diagnostics follow the configuration, and the `claude mcp add` command quotes the URL.
+
 = 1.5.0 =
 
 * Security: `create-post` and `update-post` refuse the publish, future and private statuses without the `publish_posts` capability.
@@ -288,6 +297,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.6.0 =
+Abilities validate a request before writing and withhold more from protected posts. Setting meta is all or nothing, and `categories: []` now clears the categories instead of being ignored.
 
 = 1.5.0 =
 Abilities now check the capabilities of the user behind the token. Publishing needs `publish_posts`, creating a tag needs `edit_terms`, and protected posts need their password. Accounts with the right capabilities are not affected.

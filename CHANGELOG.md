@@ -5,6 +5,56 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.6.0
+
+The abilities are stricter about what they write and what they reveal, and the
+settings screens tolerate malformed input. A new optional `menu` argument on
+`delete-menu-item` is the only addition; the **Upgrade notes** list what a
+client may notice.
+
+### Security
+
+- **Password-protected posts keep their excerpt and meta to themselves.**
+  `get-posts` and `get-pages` empty the excerpt of a protected post for a user
+  who cannot edit it and add a `password_protected` field; `get-post` withholds
+  its declared meta in the same case as its content and excerpt.
+- **Protected meta is never described as writable.** `get-post-types` asks
+  `is_protected_meta()` instead of treating every key that starts with `_` as
+  protected, and no longer lists protected meta under `declared_meta`, public
+  types included.
+- **A menu item's parent must belong to its menu.** `add-menu-item` and
+  `update-menu-item` refuse a `parent` outside the menu (400), and an item
+  cannot be its own parent. `delete-menu-item` accepts an optional `menu`: if
+  it is given and unknown, or the item is not in it, the answer is 404.
+
+### Fixed
+
+- **Nothing is written before the whole request is validated.** Meta are
+  checked (declared, `edit_post_meta`) before the post is saved, and written
+  all or nothing, where the allowed keys used to be written and only the
+  others reported. When the per-field capability can only be checked on an
+  existing post, a refused creation deletes the post it has just created.
+  `set-post-terms` with `create_missing` removes the terms it created if
+  WordPress refuses one of them.
+- **`categories: []` removes every category** on `update-post`; it used to be
+  ignored. On creation, an empty list still leaves the default category.
+- A nested array posted in `enabled_groups`, `addressable_post_types` or
+  `external_abilities` is ignored instead of raising `Array to string
+  conversion`.
+- The diagnostics are computed per configuration: a request that evaluates two
+  different configurations no longer gets the first answer back.
+- The `claude mcp add` command shown in the setup guides puts the URL in single
+  quotes, escaped for a POSIX shell.
+
+### Upgrade notes
+
+- A client that sets meta in one call now gets all of them or none; a refused
+  key fails the whole call.
+- A client that sent `categories: []` to leave categories alone will now clear
+  them. Omit the key instead.
+- `get-posts`, `get-pages` and `get-post` return `password_protected` for
+  protected posts; `get-post` returns `meta: []` when it withholds the post.
+
 ## 1.5.0
 
 The abilities now check what the user behind the token may do, object by
