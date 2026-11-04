@@ -271,7 +271,7 @@ final class ContentGroup implements AbilityGroup
                     return PostTypes::notAddressable($postType);
                 }
 
-                $prepared = self::preflight($input, $postType, $input->string('post_status', 'draft'), null);
+                $prepared = self::preflight($input, $postType, $input->string('post_status', 'draft'), null, null);
 
                 if ($prepared instanceof \WP_Error) {
                     return $prepared;
@@ -310,6 +310,12 @@ final class ContentGroup implements AbilityGroup
                 $failed = self::applySideEffects($postId, $input, $prepared);
 
                 if ($failed instanceof \WP_Error) {
+                    // The per-field capability can only be asked of a post that
+                    // exists, so a refusal can still surface here. The post was
+                    // created by this very call: take it back rather than leave
+                    // an article the caller was told failed.
+                    wp_delete_post($postId, true);
+
                     return $failed;
                 }
 
@@ -367,6 +373,7 @@ final class ContentGroup implements AbilityGroup
                     $existing->post_type,
                     $input->has('post_status') ? $input->string('post_status') : null,
                     $existing->post_status,
+                    $postId,
                 );
 
                 if ($prepared instanceof \WP_Error) {
@@ -575,7 +582,11 @@ final class ContentGroup implements AbilityGroup
             }
         }
 
-        if ($categories !== null) {
+        if ($categories === []) {
+            // wp_set_post_categories() puts the default category back when given
+            // nothing, which is the opposite of what was asked.
+            wp_set_object_terms($postId, [], 'category');
+        } elseif ($categories !== null) {
             wp_set_post_categories($postId, $categories);
         }
 
@@ -645,10 +656,11 @@ final class ContentGroup implements AbilityGroup
      * @param string      $postType      Type of the post being written.
      * @param string|null $status        Status the caller asked for, null when not changing it.
      * @param string|null $currentStatus Status the post has now, null for a new post.
+     * @param int|null    $postId        The post being updated, null for a new post.
      *
      * @return list<int>|null|\WP_Error The category IDs to assign (null when none were asked for), or the refusal.
      */
-    private static function preflight(Input $input, string $postType, ?string $status, ?string $currentStatus): array|\WP_Error|null
+    private static function preflight(Input $input, string $postType, ?string $status, ?string $currentStatus, ?int $postId): array|\WP_Error|null
     {
         if (in_array($status, ['publish', 'future', 'private'], true) && $status !== $currentStatus) {
             $object = get_post_type_object($postType);
@@ -662,9 +674,20 @@ final class ContentGroup implements AbilityGroup
             }
         }
 
+        // Meta is validated here, ahead of the write, so that a refused field
+        // does not leave a post saved with the rest of the request applied.
+        $metaChecked = PostMeta::check($postType, $input->map('meta'), $postId);
+
+        if ($metaChecked instanceof \WP_Error) {
+            return $metaChecked;
+        }
+
         $categories = null;
 
-        if ($input->filled('categories')) {
+        // `has()` rather than `filled()`: an empty list on an update means
+        // "remove every category". On creation it carries no instruction, and
+        // the default category WordPress just assigned is left alone.
+        if ($input->filled('categories') || ($postId !== null && $input->has('categories'))) {
             $denied = self::requireTermCapability('category', 'assign_terms', 'assign categories');
 
             if ($denied instanceof \WP_Error) {
@@ -816,41 +839,53 @@ final class ContentGroup implements AbilityGroup
 
             if ($term instanceof \WP_Term) {
                 $ids[] = $term->term_id;
-
-                continue;
-            }
-
-            if (! $createMissing) {
+            } else {
                 $missing[] = $slug;
-
-                continue;
             }
-
-            $denied = self::requireTermCapability(
-                $taxonomy,
-                'edit_terms',
-                sprintf('create terms in the "%s" taxonomy', $taxonomy),
-            );
-
-            if ($denied instanceof \WP_Error) {
-                return $denied;
-            }
-
-            $created = wp_insert_term($slug, $taxonomy);
-
-            if (is_wp_error($created)) {
-                return Failure::fromWordPress($created, sprintf('create the term "%s"', $slug));
-            }
-
-            $ids[] = (int) $created['term_id'];
         }
 
-        if ($missing !== []) {
+        if ($missing === []) {
+            return $ids;
+        }
+
+        if (! $createMissing) {
             return Failure::invalid(sprintf(
                 'No term in "%s" matches these slugs: %s. Call get-terms to list them, or pass create_missing=true.',
                 $taxonomy,
                 implode(', ', $missing),
             ));
+        }
+
+        // Everything that can be refused is refused before the first term is
+        // created: the capability, once, for the whole batch.
+        $denied = self::requireTermCapability(
+            $taxonomy,
+            'edit_terms',
+            sprintf('create terms in the "%s" taxonomy', $taxonomy),
+        );
+
+        if ($denied instanceof \WP_Error) {
+            return $denied;
+        }
+
+        $created = [];
+
+        foreach (array_unique($missing) as $slug) {
+            $term = wp_insert_term($slug, $taxonomy);
+
+            if (is_wp_error($term)) {
+                // WordPress can still refuse one term (a name already used by
+                // another slug, say). Take back the ones this call made, so the
+                // failure leaves the taxonomy as it found it.
+                foreach ($created as $termId) {
+                    wp_delete_term($termId, $taxonomy);
+                }
+
+                return Failure::fromWordPress($term, sprintf('create the term "%s"', $slug));
+            }
+
+            $created[] = (int) $term['term_id'];
+            $ids[] = (int) $term['term_id'];
         }
 
         return $ids;
