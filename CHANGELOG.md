@@ -5,6 +5,50 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.5.0
+
+The abilities now check what the user behind the token may do, object by
+object, where before some checked only the role. A site whose clients use an
+account with the right capabilities is not affected; the **Upgrade notes** list
+what a client with a narrower account may notice.
+
+### Security
+
+- **Posts: publishing needs `publish_posts`.** `create-post` and `update-post`
+  refuse the `publish`, `future` and `private` statuses with a 403 when the user
+  lacks that capability. On an update, only a change of status is checked.
+- **Posts: a protected post no longer leaks.** `get-post` reports
+  `password_protected` and accepts a `password`. Without the right to edit the
+  post or the right password, the content and the excerpt come back empty.
+- **Terms: creating needs `edit_terms`, assigning needs `assign_terms`.** A new
+  tag therefore needs at least the Editor role.
+- **Media and menus: the target is checked.** `upload-media-from-url` with a
+  `post_id` requires `edit_post` on it, `set-featured-image` requires `read_post`
+  on the attachment, and `update-menu-item` refuses an item that is not in the
+  menu given (404).
+- **Users and types: exposure is limited.** Without `edit_users`, searching users
+  by e-mail returns nothing. `get-post-types` and `get-taxonomies` with
+  `public_only=false` are filtered by capability, and `get-terms` on a
+  non-public taxonomy without `manage_terms` answers 403.
+- **Admin: an array posted in a settings field is read as empty**, and the
+  `?probe` link of the setup assistant and the dashboard requires a nonce. A link
+  typed by hand or bookmarked no longer starts the probe.
+
+### Fixed
+
+- An unknown category is an error raised before anything is written; it used to
+  be ignored silently.
+- `delete-term` refuses the default category (400).
+
+### Upgrade notes
+
+- A client whose account lacks `publish_posts` can no longer publish, schedule
+  or make a post private; it can still save drafts.
+- Creating a tag now needs `edit_terms`: a Contributor account cannot do it
+  through the connector, although WordPress itself allows it.
+- A client that reads protected posts must send their `password`, or use an
+  account that can edit them.
+
 ## 1.4.0
 
 The OAuth provider is hardened. A client that follows the specifications is not
