@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Brain\Monkey\Functions;
 use Pollora\McpConnector\Admin\SettingsPage;
+use Pollora\McpConnector\Admin\Wizard;
 use Pollora\McpConnector\OAuth\Client;
 use Pollora\McpConnector\OAuth\ClientRepository;
 use Pollora\McpConnector\OAuth\TokenRepository;
@@ -587,5 +588,198 @@ describe('lists posted with nested arrays', function (): void {
         expect($stored['enabled_groups'])->toBe([])
             ->and($stored['addressable_post_types'])->toBe([])
             ->and($stored['external_abilities'])->toBe([]);
+    });
+});
+
+describe('registering the hooks', function (): void {
+    it('attaches the menu, the actions, the assets, the plugin row link and the connection test', function (): void {
+        $actions = [];
+        $filters = [];
+        Functions\when('add_action')->alias(static function (string $hook) use (&$actions): void {
+            $actions[] = $hook;
+        });
+        Functions\when('add_filter')->alias(static function (string $hook) use (&$filters): void {
+            $filters[] = $hook;
+        });
+
+        (new SettingsPage())->register();
+
+        expect($actions)->toBe(['admin_menu', 'admin_init', 'admin_enqueue_scripts', 'wp_ajax_mcp_connector_test'])
+            ->and($filters)->toBe(['plugin_action_links_mcp-connector/mcp-connector.php']);
+    });
+
+    it('takes the admin furniture off only on the assistant\'s own screen', function (): void {
+        $_GET['page'] = 'mcp-connector-setup';
+        $removed = [];
+        $filters = [];
+        $actions = [];
+        Functions\when('add_action')->alias(static function (string $hook, callable $callback) use (&$actions): void {
+            $actions[$hook] = $callback;
+        });
+        Functions\when('add_filter')->alias(static function (string $hook, callable $callback) use (&$filters): void {
+            $filters[$hook] = $callback;
+        });
+        Functions\when('remove_action')->alias(static function (string $hook, string $callback) use (&$removed): void {
+            $removed[] = $hook . ':' . $callback;
+        });
+        Functions\when('remove_all_actions')->alias(static function (string $hook) use (&$removed): void {
+            $removed[] = $hook;
+        });
+
+        (new SettingsPage())->register();
+
+        expect($removed)->toBe(['in_admin_header:wp_admin_bar_render'])
+            ->and($filters['admin_body_class']('folded'))->toContain('folded')->toContain(Wizard::BODY_CLASS);
+
+        $actions['in_admin_header']();
+
+        expect($removed)->toBe([
+            'in_admin_header:wp_admin_bar_render',
+            'admin_notices',
+            'all_admin_notices',
+            'user_admin_notices',
+            'network_admin_notices',
+        ]);
+    });
+
+    it('leaves every other screen furnished', function (): void {
+        $_GET['page'] = 'mcp-connector';
+        $removed = [];
+        Functions\when('add_action')->justReturn(true);
+        Functions\when('add_filter')->justReturn(true);
+        Functions\when('remove_action')->alias(static function () use (&$removed): void {
+            $removed[] = 'remove_action';
+        });
+
+        (new SettingsPage())->register();
+
+        expect($removed)->toBe([]);
+    });
+
+    it('adds the settings page and the assistant, then unlists the assistant', function (): void {
+        $calls = [];
+        Functions\when('add_options_page')->alias(static function (...$args) use (&$calls): string {
+            $calls[] = ['options', $args[3]];
+
+            return 'settings_page';
+        });
+        Functions\when('add_submenu_page')->alias(static function (...$args) use (&$calls): string {
+            $calls[] = ['submenu', $args[4]];
+
+            return 'assistant_page';
+        });
+        Functions\when('remove_submenu_page')->alias(static function (string $parent, string $slug) use (&$calls): void {
+            $calls[] = ['remove', $slug];
+        });
+
+        (new SettingsPage())->addMenuPage();
+
+        expect($calls)->toBe([
+            ['options', SettingsPage::MENU_SLUG],
+            ['submenu', Wizard::MENU_SLUG],
+            ['remove', Wizard::MENU_SLUG],
+        ]);
+    });
+});
+
+describe('loading the assets', function (): void {
+    it('loads them on both screens of the plugin', function (string $hookSuffix): void {
+        $enqueued = [];
+        $localised = null;
+        Functions\when('wp_enqueue_style')->alias(static function (string $handle, string $src) use (&$enqueued): void {
+            $enqueued[] = ['style', $src];
+        });
+        Functions\when('wp_enqueue_script')->alias(static function (string $handle, string $src) use (&$enqueued): void {
+            $enqueued[] = ['script', $src];
+        });
+        Functions\when('wp_localize_script')->alias(static function (string $handle, string $name, array $data) use (&$localised): void {
+            $localised = [$handle, $name, $data];
+        });
+
+        (new SettingsPage())->enqueueAssets($hookSuffix);
+
+        expect($enqueued)->toBe([
+            ['style', 'https://example.test/plugin/assets/admin.css'],
+            ['script', 'https://example.test/plugin/assets/admin.js'],
+        ])->and($localised[1])->toBe('mcpConnectorAdmin')
+            ->and($localised[2]['testAction'])->toBe('mcp_connector_test')
+            ->and($localised[2]['testNonce'])->toBe('nonce')
+            ->and($localised[2]['ajaxUrl'])->toBe('https://example.test/wp-admin/admin-ajax.php')
+            ->and($localised[2]['panelsWithoutSettings'])->toBe('dashboard,connect,applications');
+    })->with(['settings' => ['settings_page_mcp-connector'], 'assistant' => ['settings_page_mcp-connector-setup']]);
+
+    it('loads nothing on any other admin page', function (): void {
+        Functions\expect('wp_enqueue_style')->never();
+        Functions\expect('wp_enqueue_script')->never();
+        Functions\expect('wp_localize_script')->never();
+
+        (new SettingsPage())->enqueueAssets('edit.php');
+        (new SettingsPage())->enqueueAssets('settings_page_other');
+    });
+});
+
+describe('the Tools panel', function (): void {
+    /**
+     * @param array<string, mixed> $meta
+     */
+    function adminsettingsAbility(string $name, array $meta): WP_Ability
+    {
+        return new WP_Ability($name, 'Label ' . $name, 'Does ' . $name, 'cat', ['mcp' => ['public' => true]] + $meta);
+    }
+
+    it('says so when no other plugin publishes abilities', function (): void {
+        Functions\when('wp_get_abilities')->justReturn([]);
+
+        expect(adminsettingsRender())->toContain('No other active plugin publishes abilities for MCP.');
+    });
+
+    it('groups a provider\'s abilities by what it declares about them, escaping their text', function (): void {
+        Functions\when('wp_get_abilities')->justReturn([
+            adminsettingsAbility('acme/read', ['annotations' => ['readonly' => true]]),
+            adminsettingsAbility('acme/write', ['annotations' => ['readonly' => false]]),
+            adminsettingsAbility('acme/delete', ['annotations' => ['readonly' => false, 'destructive' => true]]),
+            adminsettingsAbility('acme/silent', []),
+            new WP_Ability('acme/xss', '<script>alert(1)</script>', 'd', 'cat', ['mcp' => ['public' => true]]),
+        ]);
+
+        $html = adminsettingsRender();
+
+        expect($html)->toContain('Reads only')
+            ->and($html)->toContain('Writes, and may delete or overwrite')
+            ->and($html)->toContain('Undeclared')
+            ->and($html)->toContain('5 abilities offered')
+            ->and($html)->toContain('These are the recommended defaults, in force until you save this screen.')
+            ->and($html)->not->toContain('<script>alert(1)</script>');
+    });
+
+    it('stops saying the defaults are in force once the list has been reviewed', function (): void {
+        $this->setSettings(['external_abilities_reviewed' => true, 'external_abilities' => []]);
+
+        expect(adminsettingsRender())->not->toContain('These are the recommended defaults');
+    });
+});
+
+describe('rendering the clients and the assistant', function (): void {
+    it('badges a self-registered client and dates its last token', function (): void {
+        $client = (new Client('abc', '', 'Self', [], 'none', 100, true))->toArray();
+        $this->setOption(ClientRepository::OPTION, ['abc' => $client]);
+
+        expect(adminsettingsRender())->toContain('self-registered')->toContain('never');
+    });
+
+    it('draws the assistant through the page callback', function (): void {
+        Functions\when('add_query_arg')->alias(static function (mixed ...$arguments): string {
+            [$args, $url] = is_array($arguments[0])
+                ? [$arguments[0], (string) $arguments[1]]
+                : [[(string) $arguments[0] => $arguments[1]], (string) $arguments[2]];
+
+            return $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($args);
+        });
+
+        ob_start();
+        (new SettingsPage())->renderSetup();
+        $html = (string) ob_get_clean();
+
+        expect($html)->toContain('mcpc-setup')->toContain('Step 1 of 4');
     });
 });
