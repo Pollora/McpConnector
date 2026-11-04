@@ -1122,3 +1122,42 @@ describe('refusals that must come before any write', function (): void {
         expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('term_exists');
     });
 });
+
+describe('password-protected posts in listings and meta', function (): void {
+    beforeEach(function (): void {
+        $this->locked = H::post(5, ['post_excerpt' => 'Secret excerpt', 'post_password' => 'hunter2']);
+        $this->open = H::post(6, ['post_excerpt' => 'Public excerpt']);
+        WP_Query::$stagedPosts = [$this->locked, $this->open];
+    });
+
+    it('empties the excerpt of a protected post in get-posts and get-pages, and flags it', function (): void {
+        $posts = H::run(contentAbility('get-posts'))['posts'];
+        $pages = H::run(contentAbility('get-pages'))['pages'];
+
+        foreach ([$posts, $pages] as $list) {
+            expect($list[0]['excerpt'])->toBe('')
+                ->and($list[0]['password_protected'])->toBeTrue()
+                ->and($list[1]['excerpt'])->toBe('Public excerpt')
+                ->and($list[1]['password_protected'])->toBeFalse()
+                ->and(json_encode($list))->not->toContain('hunter2')->not->toContain('Secret');
+        }
+    });
+
+    it('keeps the excerpt for a user who may edit that post', function (): void {
+        H::actAs(['edit_post:5']);
+
+        expect(H::run(contentAbility('get-posts'))['posts'][0]['excerpt'])->toBe('Secret excerpt');
+    });
+
+    it('hides the declared meta of a protected post along with its body', function (): void {
+        H::posts($this->locked);
+        Functions\when('get_registered_meta_keys')->justReturn(['subtitle' => ['show_in_rest' => true, 'single' => true]]);
+        Functions\when('get_post_meta')->justReturn('private value');
+
+        expect(H::run(contentAbility('get-post'), ['id' => 5])['meta'])->toBe([])
+            ->and(H::run(contentAbility('get-post'), ['id' => 5, 'password' => 'hunter2'])['meta'])->toBe(['subtitle' => 'private value']);
+
+        H::actAs(['edit_post:5']);
+        expect(H::run(contentAbility('get-post'), ['id' => 5])['meta'])->toBe(['subtitle' => 'private value']);
+    });
+});

@@ -150,7 +150,7 @@ final class ContentGroup implements AbilityGroup
                 $query = new \WP_Query($args);
 
                 return [
-                    'posts' => array_map(PostFormatter::summary(...), $query->posts),
+                    'posts' => array_map(self::protectedSummary(...), $query->posts),
                     'total' => $query->found_posts,
                     'total_pages' => $query->max_num_pages,
                     'page' => $args['paged'],
@@ -226,7 +226,7 @@ final class ContentGroup implements AbilityGroup
                 $query = new \WP_Query($args);
 
                 return [
-                    'pages' => array_map(PostFormatter::summary(...), $query->posts),
+                    'pages' => array_map(self::protectedSummary(...), $query->posts),
                     'total' => $query->found_posts,
                 ];
             },
@@ -626,9 +626,33 @@ final class ContentGroup implements AbilityGroup
         if ($record['password_protected'] && ! self::mayReadProtected($post, $password)) {
             $record['content'] = '';
             $record['excerpt'] = '';
+            // Declared meta is as much a part of the body as the body is.
+            $record['meta'] = [];
         }
 
         return $record;
+    }
+
+    /**
+     * Summarise a post for a listing, keeping the excerpt of a protected one back.
+     *
+     * A listing has no password to check, so the excerpt of a password-protected
+     * post is left empty unless the caller may edit that post.
+     *
+     * @param \WP_Post $post The post to summarise.
+     *
+     * @return array<string, mixed> The summary, flagged when the post is password-protected.
+     */
+    private static function protectedSummary(\WP_Post $post): array
+    {
+        $summary = PostFormatter::summary($post);
+        $summary['password_protected'] = $post->post_password !== '';
+
+        if ($summary['password_protected'] && ! current_user_can('edit_post', $post->ID)) {
+            $summary['excerpt'] = '';
+        }
+
+        return $summary;
     }
 
     /**
