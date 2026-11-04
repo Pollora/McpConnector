@@ -273,6 +273,10 @@ final class NavigationGroup implements AbilityGroup
                     ));
                 }
 
+                if ($input->id('parent') > 0 && ! self::itemBelongsToMenu($input->id('parent'), $menu)) {
+                    return Failure::invalid(sprintf('The parent %d is not an item of this menu.', $input->id('parent')));
+                }
+
                 $itemData = [
                     'menu-item-title' => $input->string('title'),
                     'menu-item-type' => $type,
@@ -350,6 +354,15 @@ final class NavigationGroup implements AbilityGroup
                     return Failure::notFound('menu item', $itemId);
                 }
 
+                if ($input->has('parent') && $input->id('parent') > 0) {
+                    $parentId = $input->id('parent');
+
+                    // An item cannot be its own parent, nor sit under a parent of another menu.
+                    if ($parentId === $itemId || ! self::itemBelongsToMenu($parentId, $menu)) {
+                        return Failure::invalid(sprintf('The parent %d is not another item of this menu.', $parentId));
+                    }
+                }
+
                 // wp_update_nav_menu_item() rewrites every field it is given and
                 // clears the ones it is not, so the current values have to be
                 // read back and used as the baseline for a partial update.
@@ -399,6 +412,7 @@ final class NavigationGroup implements AbilityGroup
             category: AbilityCategory::Navigation,
             inputSchema: (new SchemaBuilder())
                 ->integer('id', 'ID of the menu item to delete.', required: true, minimum: 1)
+                ->string('menu', 'Menu ID, slug or name the item must belong to. When given, an item of another menu is refused.')
                 ->toArray(),
             execute: static function (Input $input): array|\WP_Error {
                 $itemId = $input->id('id');
@@ -410,6 +424,18 @@ final class NavigationGroup implements AbilityGroup
 
                 if (! is_nav_menu_item($itemId)) {
                     return Failure::notFound('menu item', $itemId);
+                }
+
+                if ($input->filled('menu')) {
+                    $menu = wp_get_nav_menu_object($input->string('menu'));
+
+                    if (! $menu instanceof \WP_Term) {
+                        return Failure::notFound('menu', $input->string('menu'));
+                    }
+
+                    if (! is_object_in_term($itemId, 'nav_menu', $menu->term_id)) {
+                        return Failure::notFound('menu item', $itemId);
+                    }
                 }
 
                 $result = wp_delete_post($itemId, true);
@@ -475,5 +501,22 @@ final class NavigationGroup implements AbilityGroup
             permission: static fn (): bool => current_user_can('edit_theme_options'),
             behaviour: Behaviour::Updates,
         );
+    }
+
+    /**
+     * Whether a post is a menu item belonging to the given menu.
+     *
+     * @param int      $itemId Candidate menu item ID.
+     * @param \WP_Term $menu   The menu.
+     *
+     * @return bool True when it is an item of that menu.
+     */
+    private static function itemBelongsToMenu(int $itemId, \WP_Term $menu): bool
+    {
+        $post = get_post($itemId);
+
+        return $post instanceof \WP_Post
+            && $post->post_type === 'nav_menu_item'
+            && is_object_in_term($itemId, 'nav_menu', $menu->term_id);
     }
 }
