@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -243,6 +243,16 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.5.0 =
+
+* Security: `create-post` and `update-post` refuse the publish, future and private statuses without the `publish_posts` capability.
+* Security: `get-post` empties the content and excerpt of a password-protected post unless the user can edit it or sends the right `password`.
+* Security: creating a term needs `edit_terms` and assigning one needs `assign_terms`; a new tag therefore needs at least the Editor role.
+* Security: uploading media to a post, setting a featured image and updating a menu item now check the post, the attachment and the menu involved.
+* Security: user search by e-mail, non-public post types, taxonomies and terms are limited to users who may see them.
+* Security: the setup assistant's probe link requires a nonce, and an array posted in a settings field is read as empty.
+* Fixed: an unknown category is an error before anything is written, and the default category cannot be deleted.
+
 = 1.4.0 =
 
 * Security: the revocation endpoint now authenticates the client (RFC 7009) and only revokes a token issued to it. A client that revoked by sending only the token now receives a 401.
@@ -278,6 +288,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.5.0 =
+Abilities now check the capabilities of the user behind the token. Publishing needs `publish_posts`, creating a tag needs `edit_terms`, and protected posts need their password. Accounts with the right capabilities are not affected.
 
 = 1.4.0 =
 Hardens the OAuth provider. Revoking a token now requires the client to identify itself, a replayed refresh token revokes its whole authorization, and PKCE values must follow RFC 7636. Clients that follow the specifications are not affected.
