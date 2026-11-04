@@ -57,11 +57,38 @@ describe('bearer authentication', function (): void {
         expect($this->authenticator->authenticate(false))->toBe(7);
     });
 
-    it('leaves a user already resolved by a cookie alone, and does not narrow their scope', function (): void {
+    it('keeps the user a cookie already resolved and applies the scope of a token issued to the same user', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
+
+        expect($this->authenticator->authenticate(7))->toBe(7)
+            ->and(Scope::current())->toBe(['read'])
+            ->and(Scope::currentAllowsWrite())->toBeFalse();
+    });
+
+    it('leaves a cookie user unrestricted when the token belongs to someone else', function (): void {
         $issued = $this->tokens->issue(7, 'client-1', ['read']);
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
 
         expect($this->authenticator->authenticate(3))->toBe(3)
+            ->and(Scope::current())->toBeNull()
+            ->and(Scope::currentAllowsWrite())->toBeTrue();
+    });
+
+    it('leaves a cookie user unrestricted when the bearer token is unknown, expired or revoked', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $this->tokens->revoke($issued['access_token']);
+
+        foreach ([$issued['access_token'], 'unknown'] as $token) {
+            $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
+
+            expect($this->authenticator->authenticate(7))->toBe(7)
+                ->and(Scope::current())->toBeNull();
+        }
+    });
+
+    it('leaves a cookie user without a bearer header unrestricted', function (): void {
+        expect($this->authenticator->authenticate(7))->toBe(7)
             ->and(Scope::current())->toBeNull();
     });
 

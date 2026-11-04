@@ -5,6 +5,27 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.6.1
+
+### Security
+
+- **A read-only token is no longer ignored when the request also carries a
+  login cookie.** The bearer authenticator returned as soon as WordPress had
+  resolved a user from the cookie, so the scopes of the token sent along were
+  never recorded, and a request with no recorded scope is treated as
+  unrestricted: a client holding a read-only token could write through the same
+  user's session. The scope of a valid token issued to the user already
+  resolved is now applied to the request. A token issued to another user, or an
+  unknown, expired or revoked one, changes nothing. This is a hardening: the
+  request was already authenticated as that user, and the cookie, which also
+  needs a REST nonce, gave the same rights without the token.
+
+### Upgrade notes
+
+- A request that sends both a login cookie and a valid bearer token for the
+  same user is now limited to the token's scopes. Clients that send only the
+  token, or only the cookie, are not affected.
+
 ## 1.6.0
 
 The abilities are stricter about what they write and what they reveal, and the
