@@ -156,7 +156,7 @@ final class SiteGroup implements AbilityGroup
 
                 if (! $publicOnly) {
                     // Internal types are only described to users who may edit
-                    // their content, and their protected meta stays unlisted.
+                    // their content.
                     $listed = array_values(array_filter(
                         $listed,
                         static fn (\WP_Post_Type $type): bool => $type->public || current_user_can($type->cap->edit_posts),
@@ -177,7 +177,7 @@ final class SiteGroup implements AbilityGroup
                         // custom fields — only that none are declared to the
                         // REST API; fields owned by a framework such as Meta Box
                         // are described by that plugin's own tools.
-                        'declared_meta' => self::visibleMeta(PostMeta::describe($type->name), $type, $publicOnly),
+                        'declared_meta' => self::visibleMeta(PostMeta::describe($type->name)),
                         // Fields a framework such as Meta Box owns. They are
                         // reported here because nothing else would reveal that
                         // they exist, but they are read and written through
@@ -233,20 +233,19 @@ final class SiteGroup implements AbilityGroup
     }
 
     /**
-     * Drop the protected meta of an internal type from its description.
+     * Drop the protected meta from a post type's description.
      *
-     * @param list<array<string, mixed>> $meta       The declared meta.
-     * @param \WP_Post_Type              $type       The post type described.
-     * @param bool                       $publicOnly Whether only public types were requested.
+     * Protected is what WordPress says it is (`is_protected_meta()`, so a plugin
+     * that unprotects a key through its filter is honoured), and it is withheld
+     * from every type, public or not: the description is a menu of what a model
+     * may send, and a protected key is not on it.
+     *
+     * @param list<array<string, mixed>> $meta The declared meta.
      *
      * @return list<array<string, mixed>> The meta to report.
      */
-    private static function visibleMeta(array $meta, \WP_Post_Type $type, bool $publicOnly): array
+    private static function visibleMeta(array $meta): array
     {
-        if ($publicOnly || $type->public) {
-            return $meta;
-        }
-
         return array_values(array_filter($meta, static fn (array $entry): bool => $entry['protected'] !== true));
     }
 }

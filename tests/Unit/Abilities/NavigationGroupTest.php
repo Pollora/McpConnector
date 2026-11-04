@@ -162,6 +162,29 @@ describe('get-menu-items', function (): void {
         ]]);
     });
 
+    it('refuses a parent that is not an item of the menu and adds nothing', function (): void {
+        knownMenus(menuTerm(2, 'Main'), menuTerm(3, 'Footer'));
+        Functions\when('get_post')->justReturn(menuItem(9));
+        Functions\when('is_object_in_term')->alias(static fn (int $id, string $taxonomy, int $term): bool => $term === 3);
+        Functions\expect('wp_update_nav_menu_item')->never();
+
+        $result = H::run(navAbility('add-menu-item'), ['menu' => 'Main', 'url' => 'https://example.test', 'parent' => 9]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_code())->toBe('mcp_connector_invalid_input')
+            ->and($result->get_error_message())->toContain('parent 9');
+    });
+
+    it('refuses a parent that is not a menu item at all', function (): void {
+        knownMenus(menuTerm(2, 'Main'));
+        Functions\when('get_post')->justReturn(new WP_Post(['ID' => 9, 'post_type' => 'page']));
+        Functions\when('is_object_in_term')->justReturn(true);
+        Functions\expect('wp_update_nav_menu_item')->never();
+
+        expect(H::run(navAbility('add-menu-item'), ['menu' => 'Main', 'url' => 'https://example.test', 'parent' => 9]))
+            ->toBeInstanceOf(WP_Error::class);
+    });
+
     it('answers with a 404 error for a menu that does not exist', function (): void {
         Functions\when('wp_get_nav_menu_items')->justReturn(false);
 
@@ -271,6 +294,8 @@ describe('add-menu-item', function (): void {
 
     it('links to a post or term by object and id, with position, parent and target', function (): void {
         knownMenus(menuTerm(2, 'Main'));
+        Functions\when('get_post')->justReturn(menuItem(9));
+        Functions\when('is_object_in_term')->justReturn(true);
         $captured = [];
         Functions\when('wp_update_nav_menu_item')->alias(function (int $menuId, int $itemId, array $data) use (&$captured): int {
             $captured = $data;
@@ -357,6 +382,34 @@ describe('update-menu-item', function (): void {
         expect($result)->toBeInstanceOf(WP_Error::class)
             ->and($result->get_error_code())->toBe('mcp_connector_not_found')
             ->and($result->get_error_data())->toBe(['status' => 404]);
+    });
+
+    it('refuses a parent of another menu, or the item itself, and rewrites nothing', function (int $parent): void {
+        knownMenus(menuTerm(2, 'Main'), menuTerm(3, 'Footer'));
+        Functions\when('get_post')->alias(static fn (int $id): WP_Post => menuItem($id));
+        Functions\when('is_object_in_term')->alias(static fn (int $id, string $taxonomy, int $term): bool => $id === 30 ? $term === 2 : $term === 3);
+        Functions\expect('wp_update_nav_menu_item')->never();
+
+        $result = H::run(navAbility('update-menu-item'), ['menu' => 'Main', 'id' => 30, 'parent' => $parent]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_code())->toBe('mcp_connector_invalid_input');
+    })->with([[31], [30]]);
+
+    it('accepts a parent of the same menu', function (): void {
+        knownMenus(menuTerm(2, 'Main'));
+        Functions\when('get_post')->alias(static fn (int $id): WP_Post => menuItem($id));
+        Functions\when('wp_setup_nav_menu_item')->returnArg(1);
+        $captured = [];
+        Functions\when('wp_update_nav_menu_item')->alias(function (int $menuId, int $itemId, array $data) use (&$captured): int {
+            $captured = $data;
+
+            return 30;
+        });
+
+        H::run(navAbility('update-menu-item'), ['menu' => 'Main', 'id' => 30, 'parent' => 31]);
+
+        expect($captured['menu-item-parent-id'])->toBe(31);
     });
 
     it('rewrites the item from its current values, changing only what was given', function (): void {
@@ -481,6 +534,48 @@ describe('delete-menu-item', function (): void {
         Functions\expect('wp_delete_post')->once()->with(30, true)->andReturn(menuItem(30));
 
         expect(H::run(navAbility('delete-menu-item'), ['id' => 30]))->toBe(['deleted' => true, 'id' => 30]);
+    });
+
+    it('deletes without a menu argument as before', function (): void {
+        Functions\when('get_post')->justReturn(menuItem(30));
+        Functions\when('is_nav_menu_item')->justReturn(true);
+        Functions\expect('wp_get_nav_menu_object')->never();
+        Functions\when('wp_delete_post')->justReturn(menuItem(30));
+
+        expect(H::run(navAbility('delete-menu-item'), ['id' => 30]))->toBe(['deleted' => true, 'id' => 30]);
+    });
+
+    it('deletes an item of the menu that was named', function (): void {
+        knownMenus(menuTerm(2, 'Main'));
+        Functions\when('get_post')->justReturn(menuItem(30));
+        Functions\when('is_nav_menu_item')->justReturn(true);
+        Functions\when('is_object_in_term')->alias(static fn (int $id, string $taxonomy, int $term): bool => $term === 2);
+        Functions\expect('wp_delete_post')->once()->andReturn(menuItem(30));
+
+        expect(H::run(navAbility('delete-menu-item'), ['id' => 30, 'menu' => 'Main']))->toBe(['deleted' => true, 'id' => 30]);
+    });
+
+    it('answers 404 and deletes nothing when the item is in another menu', function (): void {
+        knownMenus(menuTerm(2, 'Main'), menuTerm(3, 'Footer'));
+        Functions\when('get_post')->justReturn(menuItem(30));
+        Functions\when('is_nav_menu_item')->justReturn(true);
+        Functions\when('is_object_in_term')->alias(static fn (int $id, string $taxonomy, int $term): bool => $term === 3);
+        Functions\expect('wp_delete_post')->never();
+
+        $result = H::run(navAbility('delete-menu-item'), ['id' => 30, 'menu' => 'Main']);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_data())->toBe(['status' => 404]);
+    });
+
+    it('answers 404 for an unknown menu argument', function (): void {
+        knownMenus(menuTerm(2, 'Main'));
+        Functions\when('get_post')->justReturn(menuItem(30));
+        Functions\when('is_nav_menu_item')->justReturn(true);
+        Functions\expect('wp_delete_post')->never();
+
+        $result = H::run(navAbility('delete-menu-item'), ['id' => 30, 'menu' => 'Nope']);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_data())->toBe(['status' => 404]);
     });
 
     it('refuses anything that is not a menu item, so it cannot be used to delete a page', function (): void {

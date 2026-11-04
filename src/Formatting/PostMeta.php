@@ -95,7 +95,7 @@ final class PostMeta
                 'type' => (string) ($args['type'] ?? 'string'),
                 'single' => (bool) ($args['single'] ?? false),
                 'description' => (string) ($args['description'] ?? ''),
-                'protected' => str_starts_with($key, '_'),
+                'protected' => is_protected_meta($key, 'post'),
             ];
         }
 
@@ -103,39 +103,31 @@ final class PostMeta
     }
 
     /**
-     * Write declared meta onto a post.
+     * Check that declared meta could be written, without writing any of it.
      *
-     * Every key is checked twice: that the post type declares it, and that the
-     * current user may edit it. The second check is `edit_post_meta`, which core
-     * maps through to the `auth_callback` given at registration — so a field
-     * whose owner restricted it to administrators stays restricted here, without
-     * this plugin needing to know that.
+     * Undeclared keys are refused, and so are keys the current user may not
+     * edit (`edit_post_meta`, which core maps through to the `auth_callback`
+     * given at registration). That second check needs a post to ask about, so
+     * it is skipped when `$postId` is null — a post about to be created — and
+     * {@see self::write()} repeats it once the post exists.
      *
-     * Refusals are reported rather than skipped. A silently ignored field is how
-     * a model comes to believe it saved something it did not.
+     * @param string               $postType Type of the post the meta is for.
+     * @param array<string, mixed> $values   Meta key to value.
+     * @param int|null             $postId   The post, null when it does not exist yet.
      *
-     * @param int                  $postId Post to write to.
-     * @param array<string, mixed> $values Meta key to value.
-     *
-     * @return true|\WP_Error True on success, or an error naming the keys that were refused.
+     * @return true|\WP_Error True when every key is acceptable, or an error naming the ones that are not.
      */
-    public static function write(int $postId, array $values): true|\WP_Error
+    public static function check(string $postType, array $values, ?int $postId): true|\WP_Error
     {
         if ($values === []) {
             return true;
-        }
-
-        $postType = get_post_type($postId);
-
-        if ($postType === false) {
-            return Failure::notFound('post', $postId);
         }
 
         $declared = self::declaredFor($postType);
         $undeclared = [];
         $refused = [];
 
-        foreach ($values as $key => $value) {
+        foreach (array_keys($values) as $key) {
             $key = (string) $key;
 
             if (! isset($declared[$key])) {
@@ -144,13 +136,9 @@ final class PostMeta
                 continue;
             }
 
-            if (! current_user_can('edit_post_meta', $postId, $key)) {
+            if ($postId !== null && ! current_user_can('edit_post_meta', $postId, $key)) {
                 $refused[] = $key;
-
-                continue;
             }
-
-            update_post_meta($postId, $key, $value);
         }
 
         if ($refused !== []) {
@@ -172,6 +160,45 @@ final class PostMeta
                     ? 'It declares no custom fields at all; fields managed by a framework such as Meta Box are reachable through that plugin\'s own tools.'
                     : 'Declared fields are: ' . implode(', ', $available) . '.',
             ));
+        }
+
+        return true;
+    }
+
+    /**
+     * Write declared meta onto a post.
+     *
+     * Every key is checked first ({@see self::check()}) and nothing is written
+     * unless all of them pass, so a refusal never leaves half the fields saved.
+     *
+     * Refusals are reported rather than skipped. A silently ignored field is how
+     * a model comes to believe it saved something it did not.
+     *
+     * @param int                  $postId Post to write to.
+     * @param array<string, mixed> $values Meta key to value.
+     *
+     * @return true|\WP_Error True on success, or an error naming the keys that were refused.
+     */
+    public static function write(int $postId, array $values): true|\WP_Error
+    {
+        if ($values === []) {
+            return true;
+        }
+
+        $postType = get_post_type($postId);
+
+        if ($postType === false) {
+            return Failure::notFound('post', $postId);
+        }
+
+        $checked = self::check($postType, $values, $postId);
+
+        if ($checked instanceof \WP_Error) {
+            return $checked;
+        }
+
+        foreach ($values as $key => $value) {
+            update_post_meta($postId, (string) $key, $value);
         }
 
         return true;

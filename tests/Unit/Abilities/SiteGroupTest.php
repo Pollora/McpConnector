@@ -140,6 +140,7 @@ describe('get-site-info', function (): void {
 describe('get-post-types', function (): void {
     beforeEach(function (): void {
         $this->queries = [];
+        Functions\when('is_protected_meta')->alias(static fn (string $key): bool => str_starts_with($key, '_'));
         $page = new WP_Post_Type('page', 'Pages');
         $page->hierarchical = true;
         $secret = new WP_Post_Type('internal', 'Internal');
@@ -198,6 +199,23 @@ describe('get-post-types', function (): void {
             ->and(array_column($internal['declared_meta'], 'key'))->toBe(['plain']);
     });
 
+    it('withholds protected meta from a public type too, and asks WordPress what protected means', function (): void {
+        Functions\when('is_protected_meta')->alias(static fn (string $key): bool => $key === 'locked' || ($key !== '_unprotected' && str_starts_with($key, '_')));
+        Functions\when('get_registered_meta_keys')->alias(
+            static fn (string $type, string $subtype = ''): array => $subtype === 'page' ? [
+                '_hidden' => ['type' => 'string', 'show_in_rest' => true],
+                'locked' => ['type' => 'string', 'show_in_rest' => true],
+                '_unprotected' => ['type' => 'string', 'show_in_rest' => true],
+                'plain' => ['type' => 'string', 'show_in_rest' => true],
+            ] : [],
+        );
+
+        $page = (abcoreDefinition(new SiteGroup(), 'get-post-types')->execute)(abcoreInput())['post_types'][0];
+
+        expect(array_column($page['declared_meta'], 'key'))->toBe(['_unprotected', 'plain'])
+            ->and($page['declared_meta'][0]['protected'])->toBeFalse();
+    });
+
     it('describes the type, its supports, taxonomies and only the meta declared to REST', function (): void {
         $result = (abcoreDefinition(new SiteGroup(), 'get-post-types')->execute)(abcoreInput());
         $page = $result['post_types'][0];
@@ -208,12 +226,11 @@ describe('get-post-types', function (): void {
             'hierarchical' => true,
             'supports' => ['title', 'editor'],
             'taxonomies' => ['category'],
-        ])->and(array_column($page['declared_meta'], 'key'))->toBe(['subtitle', '_private'])
+        ])->and(array_column($page['declared_meta'], 'key'))->toBe(['subtitle'])
             ->and($page['declared_meta'][0])->toBe([
                 'key' => 'subtitle', 'type' => 'string', 'single' => true,
                 'description' => 'A subtitle', 'protected' => false,
             ])
-            ->and($page['declared_meta'][1]['protected'])->toBeTrue()
             ->and($page['framework_fields'])->toBe([]);
     });
 });

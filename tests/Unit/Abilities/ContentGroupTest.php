@@ -543,6 +543,7 @@ describe('create-post', function (): void {
         stageInsert($captured);
         Functions\when('get_registered_meta_keys')->justReturn(['subtitle' => ['show_in_rest' => true]]);
         Functions\expect('update_post_meta')->never();
+        Functions\expect('wp_insert_post')->never();
 
         $result = H::run(contentAbility('create-post'), ['title' => 'T', 'meta' => ['_edit_lock' => 'x']]);
 
@@ -550,7 +551,7 @@ describe('create-post', function (): void {
             ->and($result->get_error_message())->toContain('_edit_lock')->toContain('Declared fields are: subtitle');
     });
 
-    it('writes declared meta the user may edit, and reports a forbidden field', function (): void {
+    it('writes no meta at all, and takes the new post back, when one field is forbidden', function (): void {
         $captured = [];
         stageInsert($captured);
         Functions\when('get_registered_meta_keys')->justReturn([
@@ -559,7 +560,8 @@ describe('create-post', function (): void {
         ]);
         H::actAs(['edit_post_meta:31']);
         Functions\when('current_user_can')->alias(static fn (string $cap, mixed ...$args): bool => $cap === 'edit_post_meta' && ($args[1] ?? '') === 'subtitle');
-        Functions\expect('update_post_meta')->once()->with(31, 'subtitle', 'Hi');
+        Functions\expect('update_post_meta')->never();
+        Functions\expect('wp_delete_post')->once()->with(31, true);
 
         $result = H::run(contentAbility('create-post'), ['title' => 'T', 'meta' => ['subtitle' => 'Hi', 'internal' => 'no']]);
 
@@ -659,14 +661,14 @@ describe('update-post', function (): void {
             ->and($result->get_error_message())->toStartWith('Could not update the post:');
     });
 
-    it('does not touch categories, tags or meta when only a title changes', function (): void {
+    it('does not touch categories, tags or meta when only a title changes, and ignores empty tags and meta', function (): void {
         H::posts(H::post(6));
         Functions\when('wp_update_post')->justReturn(6);
         Functions\expect('wp_set_post_categories')->never();
         Functions\expect('wp_set_post_tags')->never();
         Functions\expect('update_post_meta')->never();
 
-        H::run(contentAbility('update-post'), ['id' => 6, 'title' => 'x', 'categories' => [], 'tags' => [], 'meta' => []]);
+        H::run(contentAbility('update-post'), ['id' => 6, 'title' => 'x', 'tags' => [], 'meta' => []]);
     });
 
     describe('permission', function (): void {
@@ -1036,5 +1038,126 @@ describe('unknown categories', function (): void {
         $result = H::run(contentAbility('update-post'), ['id' => 7, 'title' => 'New', 'categories' => ['ghost']]);
 
         expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_message())->toContain('ghost');
+    });
+});
+
+describe('refusals that must come before any write', function (): void {
+    it('refuses undeclared meta on update before the post is touched', function (): void {
+        H::posts(H::post(6));
+        Functions\when('get_registered_meta_keys')->justReturn(['subtitle' => ['show_in_rest' => true]]);
+        Functions\expect('wp_update_post')->never();
+        Functions\expect('update_post_meta')->never();
+
+        $result = H::run(contentAbility('update-post'), ['id' => 6, 'title' => 'New', 'meta' => ['ghost' => 'x']]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_message())->toContain('ghost');
+    });
+
+    it('refuses meta the user may not edit on update before the post is touched', function (): void {
+        H::posts(H::post(6));
+        Functions\when('get_registered_meta_keys')->justReturn(['subtitle' => ['show_in_rest' => true]]);
+        Functions\when('current_user_can')->justReturn(false);
+        Functions\expect('wp_update_post')->never();
+        Functions\expect('update_post_meta')->never();
+
+        $result = H::run(contentAbility('update-post'), ['id' => 6, 'title' => 'New', 'meta' => ['subtitle' => 'x']]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    });
+
+    it('removes every category when an update sends an empty list', function (): void {
+        H::posts(H::post(6));
+        H::actAs(['edit_posts']);
+        Functions\when('wp_update_post')->justReturn(6);
+        Functions\expect('wp_set_object_terms')->once()->with(6, [], 'category');
+        Functions\expect('wp_set_post_categories')->never();
+
+        H::run(contentAbility('update-post'), ['id' => 6, 'categories' => []]);
+    });
+
+    it('needs the term capability to remove categories too', function (): void {
+        H::posts(H::post(6));
+        Functions\expect('wp_update_post')->never();
+        Functions\expect('wp_set_object_terms')->never();
+
+        $result = H::run(contentAbility('update-post'), ['id' => 6, 'categories' => []]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    });
+
+    it('leaves the default category alone when a creation sends an empty list', function (): void {
+        $captured = [];
+        stageInsert($captured);
+        Functions\expect('wp_set_object_terms')->never();
+        Functions\expect('wp_set_post_categories')->never();
+
+        H::run(contentAbility('create-post'), ['title' => 'T', 'categories' => []]);
+    });
+
+    it('creates no term when the batch is refused for lack of the capability', function (): void {
+        H::actAs(['edit_posts']);
+        H::posts(H::post(11));
+        Functions\when('get_term_by')->justReturn(false);
+        Functions\expect('wp_insert_term')->never();
+
+        $result = H::run(contentAbility('set-post-terms'), ['post_id' => 11, 'terms' => ['a', 'b'], 'create_missing' => true]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('mcp_connector_forbidden');
+    });
+
+    it('takes back the terms it created when a later one is refused', function (): void {
+        H::actAs(['edit_posts', 'manage_categories']);
+        H::posts(H::post(11));
+        Functions\when('get_term_by')->justReturn(false);
+        Functions\when('wp_insert_term')->alias(static fn (string $slug): array|WP_Error => $slug === 'bad'
+            ? new WP_Error('term_exists', 'exists')
+            : ['term_id' => 70, 'term_taxonomy_id' => 71]);
+        Functions\expect('wp_delete_term')->once()->with(70, 'category');
+        Functions\expect('wp_set_object_terms')->never();
+
+        $result = H::run(contentAbility('set-post-terms'), ['post_id' => 11, 'terms' => ['good', 'bad'], 'create_missing' => true]);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)->and($result->get_error_code())->toBe('term_exists');
+    });
+});
+
+describe('password-protected posts in listings and meta', function (): void {
+    beforeEach(function (): void {
+        $this->locked = H::post(5, ['post_excerpt' => 'Secret excerpt', 'post_password' => 'hunter2']);
+        $this->open = H::post(6, ['post_excerpt' => 'Public excerpt']);
+        WP_Query::$stagedPosts = [$this->locked, $this->open];
+    });
+
+    it('empties the excerpt of a protected post in get-posts and get-pages, and flags it', function (): void {
+        $posts = H::run(contentAbility('get-posts'))['posts'];
+        $pages = H::run(contentAbility('get-pages'))['pages'];
+
+        foreach ([$posts, $pages] as $list) {
+            expect($list[0]['excerpt'])->toBe('')
+                ->and($list[0]['password_protected'])->toBeTrue()
+                ->and($list[1]['excerpt'])->toBe('Public excerpt')
+                ->and($list[1]['password_protected'])->toBeFalse()
+                ->and(json_encode($list))->not->toContain('hunter2')->not->toContain('Secret');
+        }
+    });
+
+    it('keeps the excerpt for a user who may edit that post', function (): void {
+        H::actAs(['edit_post:5']);
+
+        expect(H::run(contentAbility('get-posts'))['posts'][0]['excerpt'])->toBe('Secret excerpt');
+    });
+
+    it('hides the declared meta of a protected post along with its body', function (): void {
+        H::posts($this->locked);
+        Functions\when('get_registered_meta_keys')->justReturn(['subtitle' => ['show_in_rest' => true, 'single' => true]]);
+        Functions\when('get_post_meta')->justReturn('private value');
+
+        expect(H::run(contentAbility('get-post'), ['id' => 5])['meta'])->toBe([])
+            ->and(H::run(contentAbility('get-post'), ['id' => 5, 'password' => 'hunter2'])['meta'])->toBe(['subtitle' => 'private value']);
+
+        H::actAs(['edit_post:5']);
+        expect(H::run(contentAbility('get-post'), ['id' => 5])['meta'])->toBe(['subtitle' => 'private value']);
     });
 });
