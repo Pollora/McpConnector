@@ -8,27 +8,29 @@
     "packages": [
         {
             "name": "pollora/abilities",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Pollora/abilities.git",
-                "reference": "709f5d8f4fe76d19e7659d39be09e72aaedd1982"
+                "reference": "4a05c6e2b9146ab45b26443af9bcb7601dc7d9c9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Pollora/abilities/zipball/709f5d8f4fe76d19e7659d39be09e72aaedd1982",
-                "reference": "709f5d8f4fe76d19e7659d39be09e72aaedd1982",
+                "url": "https://api.github.com/repos/Pollora/abilities/zipball/4a05c6e2b9146ab45b26443af9bcb7601dc7d9c9",
+                "reference": "4a05c6e2b9146ab45b26443af9bcb7601dc7d9c9",
                 "shasum": ""
             },
             "require": {
                 "php": "^8.3"
             },
             "require-dev": {
+                "antecedent/patchwork": "^2.2",
                 "brain/monkey": "^2.6",
                 "laravel/pint": "^1.22",
                 "mockery/mockery": "^1.6",
                 "pestphp/pest": "^3.8",
-                "phpstan/phpstan": "^2.1"
+                "phpstan/phpstan": "^2.1",
+                "pollora/harness": "^0.1.8"
             },
             "type": "library",
             "autoload": {
@@ -56,9 +58,9 @@
             ],
             "support": {
                 "issues": "https://github.com/Pollora/abilities/issues",
-                "source": "https://github.com/Pollora/abilities/tree/v1.0.0"
+                "source": "https://github.com/Pollora/abilities/tree/v1.0.1"
             },
-            "time": "2026-08-31T13:33:08+00:00"
+            "time": "2026-10-30T11:07:18+00:00"
         }
     ],
     "packages-dev": [
