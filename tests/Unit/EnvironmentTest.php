@@ -61,13 +61,10 @@ describe('the unmet requirements', function (): void {
         expect(Environment::unmetRequirements())->not->toHaveKey('permalinks');
     });
 
-    it('flags the missing MCP Adapter, which is not installable from wordpress.org', function (): void {
+    it('flags the MCP Adapter exactly when it is not loaded', function (): void {
         Functions\when('get_option')->justReturn('/%postname%/');
 
-        if (Environment::hasMcpAdapter()) {
-            $this->markTestSkipped('The MCP Adapter is loaded.');
-        }
-
-        expect(Environment::unmetRequirements())->toHaveKey('mcp-adapter');
+        expect(array_key_exists('mcp-adapter', Environment::unmetRequirements()))
+            ->toBe(! Environment::hasMcpAdapter());
     });
 });
