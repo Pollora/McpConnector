@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "92a2010e016107e14f2873aac448b0d3",
+    "content-hash": "030fecf8a43810067e6f03a6940efd00",
     "packages": [
         {
             "name": "pollora/abilities",
