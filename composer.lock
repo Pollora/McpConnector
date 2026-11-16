@@ -2902,16 +2902,16 @@
         },
         {
             "name": "pollora/harness",
-            "version": "v0.1.23",
+            "version": "v0.1.24",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Pollora/harness.git",
-                "reference": "148f65cd9a10f2934e2af3e3a2457bc7f34e8832"
+                "reference": "8c5c0a5717061a9c71335ae8caeb977bca39fec9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Pollora/harness/zipball/148f65cd9a10f2934e2af3e3a2457bc7f34e8832",
-                "reference": "148f65cd9a10f2934e2af3e3a2457bc7f34e8832",
+                "url": "https://api.github.com/repos/Pollora/harness/zipball/8c5c0a5717061a9c71335ae8caeb977bca39fec9",
+                "reference": "8c5c0a5717061a9c71335ae8caeb977bca39fec9",
                 "shasum": ""
             },
             "require": {
@@ -2966,9 +2966,10 @@
             ],
             "support": {
                 "issues": "https://github.com/Pollora/harness/issues",
-                "source": "https://github.com/Pollora/harness/tree/v0.1.23"
+                "source": "https://github.com/Pollora/harness/tree/v0.1.24"
             },
-            "time": "2026-11-05T17:29:14+00:00"
+            "time": "2026-11-16T13:21:30+00:00",
+            "published-time": "2026-11-16T13:21:45+00:00"
         },
         {
             "name": "psr/container",
@@ -5496,5 +5497,5 @@
     "platform-overrides": {
         "php": "8.3.0"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }
