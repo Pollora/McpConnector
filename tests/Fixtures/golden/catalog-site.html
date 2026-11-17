@@ -1,0 +1,62 @@
+{
+    "key": "site",
+    "label": "Site information",
+    "description": "Read site information, registered post types and the active theme, and update the site title and tagline.",
+    "abilities": [
+        {
+            "slug": "get-site-info",
+            "label": "Read site information",
+            "description": "Describe the site: title, tagline, URL, language, timezone, WordPress version, active theme, and which options this connector is allowed to write. Call this first when you know nothing about the site.",
+            "category": "Site",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false
+            }
+        },
+        {
+            "slug": "get-post-types",
+            "label": "List post types",
+            "description": "List the post types this site registers, with their labels, hierarchy, taxonomies and custom fields. Call this before creating content, so you use a post type that exists here and only send fields it accepts. Fields under declared_meta go in the meta map of create-post and update-post; fields under framework_fields are read and written with the owning plugin's own tools.",
+            "category": "Site",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "public_only": {
+                        "type": "boolean",
+                        "description": "Return only publicly queryable post types.",
+                        "default": true
+                    }
+                }
+            }
+        },
+        {
+            "slug": "update-option",
+            "label": "Update a site option",
+            "description": "Update one of the site options this connector is allowed to write. Call get-site-info for the current list; by default it is the site title and tagline only.",
+            "category": "Site",
+            "behaviour": "Updates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "option_name": {
+                        "type": "string",
+                        "description": "Option to update. Must be one of the writable_options reported by get-site-info."
+                    },
+                    "option_value": {
+                        "type": "string",
+                        "description": "New value."
+                    }
+                },
+                "required": [
+                    "option_name",
+                    "option_value"
+                ]
+            }
+        }
+    ]
+}

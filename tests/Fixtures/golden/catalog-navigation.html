@@ -1,0 +1,246 @@
+{
+    "key": "navigation",
+    "label": "Navigation menus",
+    "description": "Read and edit classic navigation menus, their items and their theme locations.",
+    "abilities": [
+        {
+            "slug": "get-menus",
+            "label": "List menus",
+            "description": "List the site's classic navigation menus with their item counts. Also reports whether the active theme is block-based, in which case navigation may live in wp_navigation posts instead and these abilities will not see it.",
+            "category": "Navigation",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false
+            }
+        },
+        {
+            "slug": "get-menu-items",
+            "label": "Read menu items",
+            "description": "List the items of one menu in display order, with their URLs, parents and the objects they point at. Item IDs from this list are what update-menu-item and delete-menu-item expect.",
+            "category": "Navigation",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "menu": {
+                        "type": "string",
+                        "description": "Menu ID, slug or name."
+                    }
+                },
+                "required": [
+                    "menu"
+                ]
+            }
+        },
+        {
+            "slug": "get-menu-locations",
+            "label": "List menu locations",
+            "description": "List the menu locations the active theme declares, and which menu is currently assigned to each.",
+            "category": "Navigation",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false
+            }
+        },
+        {
+            "slug": "create-menu",
+            "label": "Create a menu",
+            "description": "Create an empty navigation menu. Add items with add-menu-item, then put it on the site with assign-menu-location.",
+            "category": "Navigation",
+            "behaviour": "Creates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Menu name, as shown in the admin."
+                    }
+                },
+                "required": [
+                    "name"
+                ]
+            }
+        },
+        {
+            "slug": "add-menu-item",
+            "label": "Add a menu item",
+            "description": "Add an item to a menu. Pass object_id with type=post_type or type=taxonomy to link to a page or term and keep the link in step with its permalink, or pass url for a custom link.",
+            "category": "Navigation",
+            "behaviour": "Creates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "menu": {
+                        "type": "string",
+                        "description": "Menu ID, slug or name to add the item to."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Link text. Falls back to the linked object's title when omitted."
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "custom",
+                            "post_type",
+                            "taxonomy"
+                        ],
+                        "description": "What the item links to.",
+                        "default": "custom"
+                    },
+                    "object": {
+                        "type": "string",
+                        "description": "Post type or taxonomy slug, required when type is post_type or taxonomy."
+                    },
+                    "object_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the linked post or term, required when type is post_type or taxonomy."
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "Destination URL, required when type is custom."
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Menu item ID to nest this item under."
+                    },
+                    "position": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Sort position within the menu."
+                    },
+                    "target": {
+                        "type": "string",
+                        "enum": [
+                            "",
+                            "_blank"
+                        ],
+                        "description": "Link target. Use _blank to open in a new tab."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Item description, shown by themes that support it."
+                    }
+                },
+                "required": [
+                    "menu"
+                ]
+            }
+        },
+        {
+            "slug": "update-menu-item",
+            "label": "Update a menu item",
+            "description": "Change a menu item's title, URL, parent or position. Read the menu first with get-menu-items: every field is rewritten on save, so anything omitted here is restored from the item's current value.",
+            "category": "Navigation",
+            "behaviour": "Updates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "menu": {
+                        "type": "string",
+                        "description": "Menu ID, slug or name the item belongs to."
+                    },
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the menu item to update."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "New link text."
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "New destination URL, for custom links."
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "New parent menu item ID. Pass 0 to move it to the top level."
+                    },
+                    "position": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "New sort position."
+                    },
+                    "target": {
+                        "type": "string",
+                        "enum": [
+                            "",
+                            "_blank"
+                        ],
+                        "description": "New link target."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New item description."
+                    }
+                },
+                "required": [
+                    "menu",
+                    "id"
+                ]
+            }
+        },
+        {
+            "slug": "delete-menu-item",
+            "label": "Delete a menu item",
+            "description": "Remove an item from a menu. Its children are promoted to the item's own parent rather than deleted.",
+            "category": "Navigation",
+            "behaviour": "Deletes",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the menu item to delete."
+                    },
+                    "menu": {
+                        "type": "string",
+                        "description": "Menu ID, slug or name the item must belong to. When given, an item of another menu is refused."
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        },
+        {
+            "slug": "assign-menu-location",
+            "label": "Assign a menu to a location",
+            "description": "Display a menu in one of the theme's menu locations. Call get-menu-locations first for the location slugs this theme declares.",
+            "category": "Navigation",
+            "behaviour": "Updates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "Theme menu location slug."
+                    },
+                    "menu": {
+                        "type": "string",
+                        "description": "Menu ID, slug or name to display there. Pass an empty string to clear the location."
+                    }
+                },
+                "required": [
+                    "location",
+                    "menu"
+                ]
+            }
+        }
+    ]
+}

@@ -352,3 +352,59 @@ describe('a broken chain', function (): void {
             ->and($answer['payload']['message'])->toBe('Stopped at: Temporary application removed.');
     });
 });
+
+/**
+ * The answer and every request of a run, as text: the order of the steps, the
+ * wording of each detail and the arguments of each request in one reading.
+ *
+ * @param array{kind: string, payload: array<string, mixed>, status: int|null} $answer
+ * @param list<array{verb: string, url: string, args: array<string, mixed>}> $http
+ */
+function connectiontestTranscript(array $answer, array $http): string
+{
+    // The one clock reading in the payload.
+    foreach ($answer['payload']['steps'] ?? [] as $index => $step) {
+        if ($step['state'] !== 'skipped') {
+            expect($step['ms'])->toBeInt()->toBeGreaterThanOrEqual(0);
+            $answer['payload']['steps'][$index]['ms'] = 'measured';
+        }
+    }
+
+    $text = (string) json_encode(['answer' => $answer, 'http' => $http], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
+
+    // The PKCE pair is random; its shape is pinned, its value cannot be.
+    $text = (string) preg_replace('/code_challenge=[A-Za-z0-9_-]{43}&/', 'code_challenge=CHALLENGE&', $text);
+    $text = (string) preg_replace('/"code_challenge": "[A-Za-z0-9_-]{43}"/', '"code_challenge": "CHALLENGE"', $text);
+
+    return (string) preg_replace('/"code_verifier": "[A-Za-z0-9_-]{43,128}"/', '"code_verifier": "VERIFIER"', $text);
+}
+
+describe('the whole transcript', function (): void {
+    it('pins the answer and the requests of a healthy run', function (): void {
+        $_COOKIE = [LOGGED_IN_COOKIE => 'user|123|sig'];
+
+        $answer = connectiontestRun();
+
+        mcpcAssertGolden('connection-healthy', connectiontestTranscript($answer, $this->http));
+    });
+
+    it('pins a run with self-registration closed', function (): void {
+        $this->setSettings(['oauth_enabled' => true, 'dynamic_registration_open' => false]);
+
+        $answer = connectiontestRun();
+
+        mcpcAssertGolden('connection-closed', connectiontestTranscript($answer, $this->http));
+    });
+
+    it('pins the answer of a run that stops half way', function (string $route, array|string $response, string $name): void {
+        $this->routes[$route] = static fn (): array|string => is_array($response) ? connectiontestResponse(...$response) : $response;
+
+        $answer = connectiontestRun();
+
+        mcpcAssertGolden('connection-' . $name, connectiontestTranscript($answer, $this->http));
+    })->with([
+        'discovery-blocked' => ['discovery', [403], 'discovery-blocked'],
+        'token-refused' => ['token', [400, ['error' => 'invalid_grant', 'error_description' => 'bad verifier']], 'token-refused'],
+        'tools-empty' => ['tools', [200, ['result' => ['tools' => []]]], 'tools-empty'],
+    ]);
+});

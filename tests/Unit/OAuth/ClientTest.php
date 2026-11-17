@@ -94,3 +94,53 @@ describe('storage', function (): void {
             ->and($client->selfRegistered)->toBeFalse();
     });
 });
+
+describe('rebuilding from storage', function (): void {
+    it('reads every stored field, with the types the class declares', function (): void {
+        $client = Client::fromArray([
+            'id' => 'c1',
+            'secret_hash' => 'h',
+            'name' => 'App',
+            'redirect_uris' => [3 => 'https://a.test/cb', 8 => 'https://b.test/cb'],
+            'auth_method' => 'none',
+            'created_at' => '1700000000',
+            'self_registered' => 1,
+        ]);
+
+        expect($client->id)->toBe('c1')
+            ->and($client->secretHash)->toBe('h')
+            ->and($client->name)->toBe('App')
+            ->and($client->redirectUris)->toBe(['https://a.test/cb', 'https://b.test/cb'])
+            ->and($client->authMethod)->toBe('none')
+            ->and($client->createdAt)->toBe(1700000000)
+            ->and($client->selfRegistered)->toBeTrue();
+    });
+
+    it('falls back to empty values and a secret-posting client for an empty record', function (): void {
+        $client = Client::fromArray([]);
+
+        expect($client->id)->toBe('')
+            ->and($client->secretHash)->toBe('')
+            ->and($client->name)->toBe('')
+            ->and($client->redirectUris)->toBe([])
+            ->and($client->authMethod)->toBe('client_secret_post')
+            ->and($client->createdAt)->toBe(0)
+            ->and($client->selfRegistered)->toBeFalse();
+    });
+
+    it('coerces loosely typed stored values', function (): void {
+        $client = Client::fromArray(['id' => 12, 'secret_hash' => 34, 'name' => 56, 'redirect_uris' => [7], 'auth_method' => 8, 'created_at' => '9', 'self_registered' => '0']);
+
+        expect($client->id)->toBe('12')
+            ->and($client->secretHash)->toBe('34')
+            ->and($client->name)->toBe('56')
+            ->and($client->redirectUris)->toBe(['7'])
+            ->and($client->authMethod)->toBe('8')
+            ->and($client->createdAt)->toBe(9)
+            ->and($client->selfRegistered)->toBeFalse();
+    });
+
+    it('reads a single redirect URI stored as a string as a list of one', function (): void {
+        expect(Client::fromArray(['redirect_uris' => 'https://a.test/cb'])->redirectUris)->toBe(['https://a.test/cb']);
+    });
+});

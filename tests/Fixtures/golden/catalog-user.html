@@ -1,0 +1,56 @@
+{
+    "key": "users",
+    "label": "Users",
+    "description": "Read the user list and individual profiles. Never writes: no account creation, role change or password reset.",
+    "abilities": [
+        {
+            "slug": "get-users",
+            "label": "List users",
+            "description": "List user accounts with their display names and roles. Useful for finding the author ID to filter posts by, or to assign as a post author.",
+            "category": "Users",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "role": {
+                        "type": "string",
+                        "description": "Filter by role slug, such as editor or author."
+                    },
+                    "search": {
+                        "type": "string",
+                        "description": "Match users whose login, display name or email contains this text. Email is only searched for callers allowed to see it."
+                    },
+                    "number": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "description": "How many users to return, at most 100.",
+                        "default": 20
+                    }
+                }
+            }
+        },
+        {
+            "slug": "get-user",
+            "label": "Read a user",
+            "description": "Retrieve one user account by ID.",
+            "category": "Users",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the user to read."
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        }
+    ]
+}
