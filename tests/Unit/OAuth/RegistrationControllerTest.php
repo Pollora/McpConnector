@@ -195,3 +195,82 @@ describe('dynamic client registration', function (): void {
         expect((new ClientRepository())->find('client-1')?->selfRegistered)->toBeTrue();
     });
 });
+
+describe('the exact shape of the answers', function (): void {
+    it('answers a registration with every documented field and no cache headers missing', function (): void {
+        $response = ($this->register)(['client_name' => 'Claude', 'redirect_uris' => ['https://claude.example/callback']]);
+        $body = $response->get_data();
+
+        expect(array_keys($body))->toBe([
+            'client_id', 'client_id_issued_at', 'client_name', 'redirect_uris', 'grant_types', 'response_types',
+            'token_endpoint_auth_method', 'client_secret', 'client_secret_expires_at',
+        ])->and($body['grant_types'])->toBe(['authorization_code', 'refresh_token'])
+            ->and($body['response_types'])->toBe(['code'])
+            ->and($body['client_id_issued_at'])->toBeInt()
+            ->and($response->get_headers())->toBe(['Cache-Control' => 'no-store', 'Pragma' => 'no-cache']);
+    });
+
+    it('leaves the secret out of a public client\'s answer', function (): void {
+        $body = ($this->register)(['redirect_uris' => ['https://claude.example/cb'], 'token_endpoint_auth_method' => 'none'])->get_data();
+
+        expect(array_keys($body))->toBe([
+            'client_id', 'client_id_issued_at', 'client_name', 'redirect_uris', 'grant_types', 'response_types', 'token_endpoint_auth_method',
+        ])->and($body['token_endpoint_auth_method'])->toBe('none');
+    });
+
+    it('accepts each supported authentication method', function (string $method): void {
+        $body = ($this->register)(['redirect_uris' => ['https://claude.example/cb'], 'token_endpoint_auth_method' => $method])->get_data();
+
+        expect($body['token_endpoint_auth_method'])->toBe($method);
+    })->with(['client_secret_post', 'client_secret_basic', 'none']);
+
+    it('words both refusals as OAuth errors that nothing caches', function (): void {
+        $closed = ($this->register)(['redirect_uris' => ['https://claude.example/cb']], false);
+        $invalid = ($this->register)(['redirect_uris' => ['ftp://nope']]);
+
+        expect($closed->get_data())->toBe(['error' => 'access_denied', 'error_description' => 'This site does not accept self-registration. An administrator must create the client.'])
+            ->and($closed->get_headers())->toBe(['Cache-Control' => 'no-store', 'Pragma' => 'no-cache'])
+            ->and($invalid->get_status())->toBe(400)
+            ->and($invalid->get_data())->toBe(['error' => 'invalid_redirect_uri', 'error_description' => 'At least one valid https redirect URI is required.'])
+            ->and($invalid->get_headers())->toBe(['Cache-Control' => 'no-store', 'Pragma' => 'no-cache']);
+    });
+
+    it('returns the accepted URIs as a list, whatever keys the request used or gaps it left', function (): void {
+        $body = ($this->register)(['redirect_uris' => [4 => 'ftp://bad', 'x' => 'https://a.test/cb', 9 => 'https://a.test/cb#frag', 12 => 'https://b.test/cb', 13 => 'https://a.test/cb']])->get_data();
+
+        expect($body['redirect_uris'])->toBe(['https://a.test/cb', 'https://b.test/cb']);
+    });
+
+    it('keeps looking past a URI it has to skip', function (): void {
+        $body = ($this->register)(['redirect_uris' => ['not a url', 'https://a.test/cb#frag', 'http://example.com/cb', 'https://ok.test/cb']])->get_data();
+
+        expect($body['redirect_uris'])->toBe(['https://ok.test/cb']);
+    });
+
+    it('accepts the loopback in its IPv6 forms and refuses what only looks like it', function (string $uri, bool $accepted): void {
+        $status = ($this->register)(['redirect_uris' => [$uri]])->get_status();
+
+        expect($status)->toBe($accepted ? 201 : 400);
+    })->with([
+        'short form' => ['http://[::1]:8080/cb', true],
+        'long form' => ['http://[0:0:0:0:0:0:0:1]/cb', true],
+        'another address' => ['http://[2001:db8::1]/cb', false],
+        'a bracketed name' => ['http://[localhost]/cb', false],
+        'open bracket only' => ['http://[::1/cb', false],
+        'a name that ends with a bracket' => ['http://evil]/cb', false],
+    ]);
+
+    it('trims the name after cutting it', function (): void {
+        $body = ($this->register)(['client_name' => str_repeat('a', 99) . ' bbb', 'redirect_uris' => ['https://a.test/cb']])->get_data();
+
+        expect($body['client_name'])->toBe(str_repeat('a', 99));
+    });
+
+    it('names an unnamed client with the default, and reads a numeric name as text', function (): void {
+        $unnamed = ($this->register)(['redirect_uris' => ['https://a.test/cb']])->get_data();
+        $numeric = ($this->register)(['client_name' => 42, 'redirect_uris' => ['https://a.test/cb']])->get_data();
+
+        expect($unnamed['client_name'])->toBe('Unnamed MCP client')
+            ->and($numeric['client_name'])->toBe('42');
+    });
+});
