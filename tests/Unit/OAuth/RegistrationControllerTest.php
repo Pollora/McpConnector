@@ -218,11 +218,13 @@ describe('the exact shape of the answers', function (): void {
         ])->and($body['token_endpoint_auth_method'])->toBe('none');
     });
 
-    it('accepts each supported authentication method', function (string $method): void {
-        $body = ($this->register)(['redirect_uris' => ['https://claude.example/cb'], 'token_endpoint_auth_method' => $method])->get_data();
+    it('accepts each supported authentication method', function (): void {
+        foreach (['client_secret_post', 'client_secret_basic', 'none'] as $method) {
+            $body = ($this->register)(['redirect_uris' => ['https://claude.example/cb'], 'token_endpoint_auth_method' => $method])->get_data();
 
-        expect($body['token_endpoint_auth_method'])->toBe($method);
-    })->with(['client_secret_post', 'client_secret_basic', 'none']);
+            expect($body['token_endpoint_auth_method'])->toBe($method);
+        }
+    });
 
     it('words both refusals as OAuth errors that nothing caches', function (): void {
         $closed = ($this->register)(['redirect_uris' => ['https://claude.example/cb']], false);
@@ -247,18 +249,20 @@ describe('the exact shape of the answers', function (): void {
         expect($body['redirect_uris'])->toBe(['https://ok.test/cb']);
     });
 
-    it('accepts the loopback in its IPv6 forms and refuses what only looks like it', function (string $uri, bool $accepted): void {
-        $status = ($this->register)(['redirect_uris' => [$uri]])->get_status();
+    it('accepts the loopback in its IPv6 forms and refuses what only looks like it', function (): void {
+        $cases = [
+            'short form' => ['http://[::1]:8080/cb', true],
+            'long form' => ['http://[0:0:0:0:0:0:0:1]/cb', true],
+            'another address' => ['http://[2001:db8::1]/cb', false],
+            'a bracketed name' => ['http://[localhost]/cb', false],
+            'open bracket only' => ['http://[::1/cb', false],
+            'a name that ends with a bracket' => ['http://evil]/cb', false],
+        ];
 
-        expect($status)->toBe($accepted ? 201 : 400);
-    })->with([
-        'short form' => ['http://[::1]:8080/cb', true],
-        'long form' => ['http://[0:0:0:0:0:0:0:1]/cb', true],
-        'another address' => ['http://[2001:db8::1]/cb', false],
-        'a bracketed name' => ['http://[localhost]/cb', false],
-        'open bracket only' => ['http://[::1/cb', false],
-        'a name that ends with a bracket' => ['http://evil]/cb', false],
-    ]);
+        foreach ($cases as $label => [$uri, $accepted]) {
+            expect(($this->register)(['redirect_uris' => [$uri]])->get_status())->toBe($accepted ? 201 : 400, $label);
+        }
+    });
 
     it('trims the name after cutting it', function (): void {
         $body = ($this->register)(['client_name' => str_repeat('a', 99) . ' bbb', 'redirect_uris' => ['https://a.test/cb']])->get_data();

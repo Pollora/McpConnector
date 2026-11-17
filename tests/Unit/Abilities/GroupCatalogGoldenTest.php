@@ -54,14 +54,18 @@ function groupcatalogDescribe(AbilityGroup $group): string
 }
 
 describe('what each group tells a client', function (): void {
-    it('pins the name, the wording, the schema and the behaviour of every ability', function (string $name, AbilityGroup $group): void {
-        mcpcAssertGolden('catalog-' . $name, groupcatalogDescribe($group));
-    })->with([
-        'content' => ['content', fn () => new ContentGroup()],
-        'media' => ['media', fn () => new MediaGroup()],
-        'navigation' => ['navigation', fn () => new NavigationGroup()],
-        'site' => ['site', fn () => new SiteGroup()],
-        'taxonomy' => ['taxonomy', fn () => new TaxonomyGroup()],
-        'user' => ['user', fn () => new UserGroup()],
-    ]);
+    it('pins the name, the wording, the schema and the behaviour of every ability', function (): void {
+        $groups = [
+            'content' => new ContentGroup(),
+            'media' => new MediaGroup(),
+            'navigation' => new NavigationGroup(),
+            'site' => new SiteGroup(),
+            'taxonomy' => new TaxonomyGroup(),
+            'user' => new UserGroup(),
+        ];
+
+        foreach ($groups as $name => $group) {
+            mcpcAssertGolden('catalog-' . $name, groupcatalogDescribe($group));
+        }
+    });
 });

@@ -128,17 +128,25 @@ describe('the refusal', function (): void {
 });
 
 describe('the never-addressable types', function (): void {
-    it('are refused even when stored and even when they exist', function (string $type): void {
+    $never = ['revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_global_styles'];
+
+    it('are refused even when stored and even when they exist', function () use ($never): void {
         Functions\when('post_type_exists')->justReturn(true);
-        $this->setSettings(['post_types_reviewed' => true, 'addressable_post_types' => ['post', $type]]);
 
-        expect(PostTypes::addressable())->toBe(['post'])
-            ->and(PostTypes::isAddressable($type))->toBeFalse();
-    })->with(['revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_global_styles']);
+        foreach ($never as $type) {
+            Settings::forget();
+            $this->setSettings(['post_types_reviewed' => true, 'addressable_post_types' => ['post', $type]]);
 
-    it('are not offered on the settings screen', function (string $type): void {
-        Functions\when('get_post_types')->justReturn([$type => new WP_Post_Type($type, $type), 'post' => new WP_Post_Type('post', 'Post')]);
+            expect(PostTypes::addressable())->toBe(['post'], $type)
+                ->and(PostTypes::isAddressable($type))->toBeFalse();
+        }
+    });
 
-        expect(array_map(static fn (WP_Post_Type $t): string => $t->name, PostTypes::offerable()))->toBe(['post']);
-    })->with(['revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_global_styles']);
+    it('are not offered on the settings screen', function () use ($never): void {
+        foreach ($never as $type) {
+            Functions\when('get_post_types')->justReturn([$type => new WP_Post_Type($type, $type), 'post' => new WP_Post_Type('post', 'Post')]);
+
+            expect(array_map(static fn (WP_Post_Type $t): string => $t->name, PostTypes::offerable()))->toBe(['post'], $type);
+        }
+    });
 });

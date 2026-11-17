@@ -45,11 +45,14 @@ describe('reading the stored configuration', function (): void {
         expect($reads)->toBe(2);
     });
 
-    it('falls back to the defaults for an option that is not an array', function (mixed $stored): void {
-        Functions\when('get_option')->justReturn($stored);
+    it('falls back to the defaults for an option that is not an array', function (): void {
+        foreach (['', false, null] as $stored) {
+            Settings::forget();
+            Functions\when('get_option')->justReturn($stored);
 
-        expect(Settings::current()->toArray())->toBe(Settings::fromArray([])->toArray());
-    })->with(['an empty string' => [''], 'false' => [false], 'null' => [null]]);
+            expect(Settings::current()->toArray())->toBe(Settings::fromArray([])->toArray());
+        }
+    });
 });
 
 describe('saving the configuration', function (): void {
