@@ -1,0 +1,38 @@
+[
+    {
+        "id": "mcp-adapter",
+        "status": "pass",
+        "label": "MCP Adapter",
+        "detail": "Active. It turns the registered abilities into MCP tools and serves the transport."
+    },
+    {
+        "id": "permalinks",
+        "status": "fail",
+        "label": "Pretty permalinks",
+        "detail": "Disabled. The REST API still answers through its ?rest_route= form, which no client will guess, and the discovery documents would advertise URLs that 404. Set any structure but \"Plain\" under https://example.test/wp-admin/options-permalink.php."
+    },
+    {
+        "id": "https",
+        "status": "warn",
+        "label": "HTTPS",
+        "detail": "The site is served over plain HTTP. A remote client will refuse the endpoint outright; this is only workable for local development."
+    },
+    {
+        "id": "capability",
+        "status": "fail",
+        "label": "Required capability",
+        "detail": "No role on this site grants do_nothing, so nobody can approve a client or reach the endpoint. Either the capability is misspelt, or it is granted per-user by a plugin this check cannot see."
+    },
+    {
+        "id": "discovery",
+        "status": "pass",
+        "label": "Discovery documents",
+        "detail": "Both documents answer with JSON at their well-known paths, which is where RFC 8414 and RFC 9728 pin them."
+    },
+    {
+        "id": "tools",
+        "status": "warn",
+        "label": "Published tools",
+        "detail": "No ability group is enabled and no third-party ability is selected, so a client would connect successfully and find nothing to call."
+    }
+]

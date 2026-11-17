@@ -135,3 +135,74 @@ describe('bearer authentication', function (): void {
             ->and(Scope::current())->toBeNull();
     });
 });
+
+describe('reading the header', function (): void {
+    it('falls back to the server-provided header list, whatever the case of the name', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        Functions\when('apache_request_headers')->justReturn(['Accept' => 'x', 'authorization' => 'Bearer ' . $issued['access_token']]);
+
+        expect($this->authenticator->authenticate(false))->toBe(7)
+            ->and(Scope::current())->toBe(['read']);
+    });
+
+    it('stops at the first Authorization header of that list', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        Functions\when('apache_request_headers')->justReturn([
+            'AUTHORIZATION' => 'Bearer ' . $issued['access_token'],
+            'Authorization' => 'Bearer unknown',
+        ]);
+
+        expect($this->authenticator->authenticate(false))->toBe(7);
+    });
+
+    it('prefers the plain server variable over that list, and the first variable over the second', function (): void {
+        $first = $this->tokens->issue(7, 'client-1', ['read']);
+        $second = $this->tokens->issue(8, 'client-1', ['read']);
+        $third = $this->tokens->issue(9, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $first['access_token'];
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] = 'Bearer ' . $second['access_token'];
+        Functions\when('apache_request_headers')->justReturn(['Authorization' => 'Bearer ' . $third['access_token']]);
+
+        expect($this->authenticator->authenticate(false))->toBe(7);
+
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        expect($this->authenticator->authenticate(false))->toBe(8);
+    });
+
+    it('skips an empty first variable for the second', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = '';
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
+
+        expect($this->authenticator->authenticate(false))->toBe(7);
+    });
+
+    it('does not consult the header list when a variable already answered', function (): void {
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Basic abc';
+        $calls = 0;
+        Functions\when('apache_request_headers')->alias(static function () use (&$calls): array {
+            $calls++;
+
+            return [];
+        });
+
+        $this->authenticator->authenticate(false);
+
+        expect($calls)->toBe(0);
+    });
+
+    it('ignores spaces around the token', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer   ' . $issued['access_token'];
+
+        expect($this->authenticator->authenticate(false))->toBe(7);
+    });
+
+    it('accepts user 1, the lowest real identifier', function (): void {
+        $issued = $this->tokens->issue(1, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
+
+        expect($this->authenticator->authenticate(false))->toBe(1);
+    });
+});

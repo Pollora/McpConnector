@@ -1,0 +1,154 @@
+{
+    "answer": {
+        "kind": "error",
+        "payload": {
+            "steps": [
+                {
+                    "label": "Discovery documents answer",
+                    "state": "pass",
+                    "detail": "Both are served at their well-known paths.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Application registers",
+                    "state": "pass",
+                    "detail": "Registered as throwaway-client. It is deleted at the end of this run.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Consent screen renders",
+                    "state": "pass",
+                    "detail": "The form rendered, and the forwarded session was recognised.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Approval issues a code",
+                    "state": "pass",
+                    "detail": "A single-use code was issued and returned on the redirect.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Code exchanges for a token",
+                    "state": "fail",
+                    "detail": "400 — bad verifier",
+                    "ms": "measured"
+                },
+                {
+                    "label": "MCP transport accepts the token",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "Tool list comes back",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "Temporary application removed",
+                    "state": "pass",
+                    "detail": "The client and every token issued to it during this run are gone.",
+                    "ms": "measured"
+                }
+            ],
+            "message": "Stopped at: Code exchanges for a token."
+        },
+        "status": null
+    },
+    "http": [
+        {
+            "verb": "GET",
+            "url": "https://example.test/.well-known/oauth-protected-resource",
+            "args": {
+                "timeout": 5,
+                "redirection": 0,
+                "sslverify": false,
+                "headers": {
+                    "Accept": "application/json"
+                }
+            }
+        },
+        {
+            "verb": "GET",
+            "url": "https://example.test/.well-known/oauth-authorization-server",
+            "args": {
+                "timeout": 5,
+                "redirection": 0,
+                "sslverify": false,
+                "headers": {
+                    "Accept": "application/json"
+                }
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/wp-json/mcp-connector/v1/register",
+            "args": {
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                "body": "{\"client_name\":\"Connection test (temporary)\",\"redirect_uris\":[\"http:\\/\\/127.0.0.1\\/mcp-connector\\/self-test\"],\"token_endpoint_auth_method\":\"client_secret_post\"}",
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "GET",
+            "url": "https://example.test/oauth/authorize?client_id=throwaway-client&redirect_uri=http%253A%252F%252F127.0.0.1%252Fmcp-connector%252Fself-test&response_type=code&code_challenge=CHALLENGE&code_challenge_method=S256&scope=mcp&state=a1b2c3d4a1b2c3d4",
+            "args": {
+                "headers": {
+                    "Cookie": ""
+                },
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/oauth/authorize",
+            "args": {
+                "headers": {
+                    "Cookie": ""
+                },
+                "body": {
+                    "client_id": "throwaway-client",
+                    "redirect_uri": "http://127.0.0.1/mcp-connector/self-test",
+                    "response_type": "code",
+                    "code_challenge": "CHALLENGE",
+                    "code_challenge_method": "S256",
+                    "scope": "mcp",
+                    "state": "a1b2c3d4a1b2c3d4",
+                    "_wpnonce": "abc123",
+                    "mcpc_decision": "approve"
+                },
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/wp-json/mcp-connector/v1/token",
+            "args": {
+                "headers": {
+                    "Accept": "application/json"
+                },
+                "body": {
+                    "grant_type": "authorization_code",
+                    "code": "the-code",
+                    "redirect_uri": "http://127.0.0.1/mcp-connector/self-test",
+                    "code_verifier": "VERIFIER",
+                    "client_id": "throwaway-client",
+                    "client_secret": "a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4"
+                },
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        }
+    ]
+}

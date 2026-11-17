@@ -1,0 +1,190 @@
+{
+    "answer": {
+        "kind": "success",
+        "payload": {
+            "steps": [
+                {
+                    "label": "Discovery documents answer",
+                    "state": "pass",
+                    "detail": "Both are served at their well-known paths.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Application registers",
+                    "state": "pass",
+                    "detail": "Self-registration is closed, so the test created the client directly — which is what you would do by hand for a client that cannot register itself.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Consent screen renders",
+                    "state": "pass",
+                    "detail": "The form rendered, and the forwarded session was recognised.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Approval issues a code",
+                    "state": "pass",
+                    "detail": "A single-use code was issued and returned on the redirect.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Code exchanges for a token",
+                    "state": "pass",
+                    "detail": "A bearer token was issued, valid for 3600 seconds.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "MCP transport accepts the token",
+                    "state": "pass",
+                    "detail": "Handshake completed with Example MCP.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Tool list comes back",
+                    "state": "pass",
+                    "detail": "2 tools published.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Temporary application removed",
+                    "state": "pass",
+                    "detail": "The client and every token issued to it during this run are gone.",
+                    "ms": "measured"
+                }
+            ],
+            "message": "The whole chain works. A client given the URL will connect."
+        },
+        "status": null
+    },
+    "http": [
+        {
+            "verb": "GET",
+            "url": "https://example.test/.well-known/oauth-protected-resource",
+            "args": {
+                "timeout": 5,
+                "redirection": 0,
+                "sslverify": false,
+                "headers": {
+                    "Accept": "application/json"
+                }
+            }
+        },
+        {
+            "verb": "GET",
+            "url": "https://example.test/.well-known/oauth-authorization-server",
+            "args": {
+                "timeout": 5,
+                "redirection": 0,
+                "sslverify": false,
+                "headers": {
+                    "Accept": "application/json"
+                }
+            }
+        },
+        {
+            "verb": "GET",
+            "url": "https://example.test/oauth/authorize?client_id=throwaway-client&redirect_uri=http%253A%252F%252F127.0.0.1%252Fmcp-connector%252Fself-test&response_type=code&code_challenge=CHALLENGE&code_challenge_method=S256&scope=mcp&state=a1b2c3d4a1b2c3d4",
+            "args": {
+                "headers": {
+                    "Cookie": ""
+                },
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/oauth/authorize",
+            "args": {
+                "headers": {
+                    "Cookie": ""
+                },
+                "body": {
+                    "client_id": "throwaway-client",
+                    "redirect_uri": "http://127.0.0.1/mcp-connector/self-test",
+                    "response_type": "code",
+                    "code_challenge": "CHALLENGE",
+                    "code_challenge_method": "S256",
+                    "scope": "mcp",
+                    "state": "a1b2c3d4a1b2c3d4",
+                    "_wpnonce": "abc123",
+                    "mcpc_decision": "approve"
+                },
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/wp-json/mcp-connector/v1/token",
+            "args": {
+                "headers": {
+                    "Accept": "application/json"
+                },
+                "body": {
+                    "grant_type": "authorization_code",
+                    "code": "the-code",
+                    "redirect_uri": "http://127.0.0.1/mcp-connector/self-test",
+                    "code_verifier": "VERIFIER",
+                    "client_id": "throwaway-client",
+                    "client_secret": "a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4"
+                },
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/wp-json/mcp/connector",
+            "args": {
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "Authorization": "Bearer tok",
+                    "MCP-Protocol-Version": "2025-06-18"
+                },
+                "body": "{\"jsonrpc\":\"2.0\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-06-18\",\"capabilities\":{},\"clientInfo\":{\"name\":\"mcp-connector-self-test\",\"version\":\"1.0\"}},\"id\":1}",
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/wp-json/mcp/connector",
+            "args": {
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "Authorization": "Bearer tok",
+                    "MCP-Protocol-Version": "2025-06-18",
+                    "Mcp-Session-Id": "session-1"
+                },
+                "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notifications\\/initialized\",\"params\":[]}",
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        },
+        {
+            "verb": "POST",
+            "url": "https://example.test/wp-json/mcp/connector",
+            "args": {
+                "headers": {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "Authorization": "Bearer tok",
+                    "MCP-Protocol-Version": "2025-06-18",
+                    "Mcp-Session-Id": "session-1"
+                },
+                "body": "{\"jsonrpc\":\"2.0\",\"method\":\"tools\\/list\",\"params\":{},\"id\":1}",
+                "timeout": 15,
+                "redirection": 0,
+                "sslverify": false
+            }
+        }
+    ]
+}

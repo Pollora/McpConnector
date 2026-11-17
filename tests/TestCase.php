@@ -48,6 +48,9 @@ abstract class TestCase extends BaseTestCase
         $GLOBALS['wpdb'] = new \wpdb();
         $this->stubTransients();
         $this->stubSiteInfo();
+        // Probed for, never required: declared here, empty, so that the answer does not depend on
+        // whether an earlier test happened to define it.
+        Functions\when('apache_request_headers')->justReturn([]);
     }
 
     protected function tearDown(): void

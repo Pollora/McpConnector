@@ -1,0 +1,385 @@
+{
+    "key": "content",
+    "label": "Posts and pages",
+    "description": "List, read, create, update and delete posts, pages and custom post types, and assign their terms.",
+    "abilities": [
+        {
+            "slug": "get-posts",
+            "label": "List posts",
+            "description": "Search and list posts of any post type. Returns summaries without post content; call get-post for the body of a single item. Supports filtering by status, taxonomy term, author and free-text search, and is paginated.",
+            "category": "Content",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "post_type": {
+                        "type": "string",
+                        "description": "Post type slug, such as post, page, or a custom type. Call get-post-types to discover what exists.",
+                        "default": "post"
+                    },
+                    "post_status": {
+                        "type": "string",
+                        "description": "Post status: publish, draft, pending, private, future, or any.",
+                        "default": "publish"
+                    },
+                    "posts_per_page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "description": "How many posts to return, at most 100.",
+                        "default": 10
+                    },
+                    "paged": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "1-based page number, used with posts_per_page.",
+                        "default": 1
+                    },
+                    "orderby": {
+                        "type": "string",
+                        "enum": [
+                            "date",
+                            "modified",
+                            "title",
+                            "menu_order",
+                            "ID",
+                            "rand"
+                        ],
+                        "description": "Sort field.",
+                        "default": "date"
+                    },
+                    "order": {
+                        "type": "string",
+                        "enum": [
+                            "ASC",
+                            "DESC"
+                        ],
+                        "description": "Sort direction.",
+                        "default": "DESC"
+                    },
+                    "search": {
+                        "type": "string",
+                        "description": "Free-text search across title and content."
+                    },
+                    "terms": {
+                        "type": "object",
+                        "description": "Filter by taxonomy terms, as a map of taxonomy slug to a list of term slugs, e.g. {\"annuaire_categorie\": [\"sante\"]}. Call get-taxonomies for the taxonomies a post type has."
+                    },
+                    "terms_match_all": {
+                        "type": "boolean",
+                        "description": "Require every listed term rather than any of them.",
+                        "default": false
+                    },
+                    "author": {
+                        "type": "integer",
+                        "description": "User ID of the author to filter by."
+                    }
+                }
+            }
+        },
+        {
+            "slug": "get-post",
+            "label": "Read a post",
+            "description": "Retrieve a single post by ID, including its full content, featured image, page template and taxonomy terms.",
+            "category": "Content",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the post, page or custom post type item to read."
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Password of a password-protected post. Without the right one, the content and excerpt of such a post are left empty unless you may edit it."
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        },
+        {
+            "slug": "get-pages",
+            "label": "List pages",
+            "description": "List pages in menu order, optionally restricted to the children of one parent. Use this rather than get-posts when you need the page hierarchy.",
+            "category": "Content",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "post_status": {
+                        "type": "string",
+                        "description": "Page status: publish, draft, pending, private, or any.",
+                        "default": "publish"
+                    },
+                    "posts_per_page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "description": "How many pages to return, at most 100.",
+                        "default": 20
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Return only the direct children of this page ID. Pass 0 for top-level pages only."
+                    }
+                }
+            }
+        },
+        {
+            "slug": "create-post",
+            "label": "Create a post",
+            "description": "Create a post, page or custom post type item. Content should be Gutenberg block markup, for example <!-- wp:paragraph --><p>Text</p><!-- /wp:paragraph -->. Defaults to a draft: pass post_status explicitly to publish.",
+            "category": "Content",
+            "behaviour": "Creates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Post title."
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Post body, as Gutenberg block markup."
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "description": "Short summary used in listings and meta descriptions."
+                    },
+                    "post_type": {
+                        "type": "string",
+                        "description": "Post type slug to create.",
+                        "default": "post"
+                    },
+                    "post_status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "publish",
+                            "pending",
+                            "private",
+                            "future"
+                        ],
+                        "description": "Status to create the post in.",
+                        "default": "draft"
+                    },
+                    "date": {
+                        "type": "string",
+                        "description": "Publication date in site time, as YYYY-MM-DD HH:MM:SS. Required when post_status is future."
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "URL slug. Derived from the title when omitted."
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Parent ID, for hierarchical post types."
+                    },
+                    "menu_order": {
+                        "type": "integer",
+                        "description": "Sort position, for hierarchical post types."
+                    },
+                    "page_template": {
+                        "type": "string",
+                        "description": "Page template file name, such as template-full-width.php."
+                    },
+                    "featured_image": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Attachment ID to set as the featured image. Pass 0 to remove it."
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "Category slug."
+                        },
+                        "description": "Category slugs to assign."
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "Tag name."
+                        },
+                        "description": "Tag names to assign. Tags that do not exist are created."
+                    },
+                    "meta": {
+                        "type": "object",
+                        "description": "Custom fields to set, as a name/value map. Only fields the post type declares are accepted — get-post-types lists them. Fields managed by Meta Box are set with its own tools instead."
+                    }
+                },
+                "required": [
+                    "title"
+                ]
+            }
+        },
+        {
+            "slug": "update-post",
+            "label": "Update a post",
+            "description": "Update an existing post. Only the fields you pass are changed; everything else is left alone. Read the post first with get-post if you intend to edit its content, so you do not overwrite blocks you did not mean to touch.",
+            "category": "Content",
+            "behaviour": "Updates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the post to update."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "New title."
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "New body, as Gutenberg block markup. Replaces the existing content entirely."
+                    },
+                    "excerpt": {
+                        "type": "string",
+                        "description": "New excerpt."
+                    },
+                    "post_status": {
+                        "type": "string",
+                        "enum": [
+                            "draft",
+                            "publish",
+                            "pending",
+                            "private",
+                            "future"
+                        ],
+                        "description": "New status."
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "New URL slug."
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "New parent ID, for hierarchical post types."
+                    },
+                    "menu_order": {
+                        "type": "integer",
+                        "description": "New sort position."
+                    },
+                    "page_template": {
+                        "type": "string",
+                        "description": "New page template file name."
+                    },
+                    "featured_image": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Attachment ID to set as the featured image. Pass 0 to remove it."
+                    },
+                    "categories": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "Category slug."
+                        },
+                        "description": "Category slugs, replacing the current ones."
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "Tag name."
+                        },
+                        "description": "Tag names, replacing the current ones."
+                    },
+                    "meta": {
+                        "type": "object",
+                        "description": "Custom fields to set, as a name/value map. Only fields the post type declares are accepted."
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        },
+        {
+            "slug": "delete-post",
+            "label": "Delete a post",
+            "description": "Move a post to the bin, or delete it permanently. Deleting to the bin is reversible and is the default; permanent deletion cannot be undone.",
+            "category": "Content",
+            "behaviour": "Deletes",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the post to delete."
+                    },
+                    "force": {
+                        "type": "boolean",
+                        "description": "Delete permanently instead of moving to the bin.",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        },
+        {
+            "slug": "set-post-terms",
+            "label": "Set post terms",
+            "description": "Assign taxonomy terms to a post by slug. Adds to the existing terms by default; pass append=false to replace them. Terms that do not exist are refused unless create_missing is set.",
+            "category": "Content",
+            "behaviour": "Updates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "post_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the post to assign terms to."
+                    },
+                    "taxonomy": {
+                        "type": "string",
+                        "description": "Taxonomy slug, such as category or post_tag.",
+                        "default": "category"
+                    },
+                    "terms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "Term slug."
+                        },
+                        "description": "Term slugs to assign."
+                    },
+                    "append": {
+                        "type": "boolean",
+                        "description": "Add to the existing terms rather than replacing them.",
+                        "default": true
+                    },
+                    "create_missing": {
+                        "type": "boolean",
+                        "description": "Create terms that do not exist yet instead of failing.",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "post_id",
+                    "terms"
+                ]
+            }
+        }
+    ]
+}

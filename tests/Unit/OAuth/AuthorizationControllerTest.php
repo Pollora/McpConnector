@@ -276,3 +276,77 @@ describe('approval', function (): void {
             ->and($this->transientValues)->toBe([]);
     });
 });
+
+describe('reading the request exactly', function (): void {
+    beforeEach(function (): void {
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $this->post = fn (array $overrides = []): array => ($this->request)($overrides) + ['mcpc_decision' => 'approve', '_wpnonce' => 'n'];
+    });
+
+    it('reads a lower-case POST as a POST', function (): void {
+        $_SERVER['REQUEST_METHOD'] = 'post';
+        $_POST = ($this->post)();
+
+        expect(mcpcQueryOf($this->controller->handle()))->toHaveKey('code');
+    });
+
+    it('reads a missing method as a GET, which only renders the form', function (): void {
+        unset($_SERVER['REQUEST_METHOD']);
+        $_GET = ($this->request)();
+
+        $response = $this->controller->handle();
+
+        expect($response->status)->toBe(200)
+            ->and($response->body)->toContain('mcpc_decision');
+    });
+
+    it('trims every carried parameter, and reads a non-scalar one as empty', function (): void {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_GET = ($this->request)(['client_id' => '  client-1  ', 'state' => ['a'], 'scope' => " read\t"]);
+
+        $response = $this->controller->handle();
+
+        expect($response->status)->toBe(200)
+            ->and($response->body)->toContain('name="state" value=""');
+    });
+
+    it('refuses a nonce that was not posted at all, without trusting an absent one', function (): void {
+        $seen = null;
+        Functions\when('wp_verify_nonce')->alias(static function (string $nonce) use (&$seen): bool {
+            $seen = $nonce;
+
+            return false;
+        });
+        $_POST = ($this->post)();
+        unset($_POST['_wpnonce']);
+
+        $response = $this->controller->handle();
+
+        expect($response->status)->toBe(403)->and($seen)->toBe('');
+    });
+
+    it('trims nothing off the nonce it was given but strips markup', function (): void {
+        $seen = null;
+        Functions\when('wp_verify_nonce')->alias(static function (string $nonce) use (&$seen): bool {
+            $seen = $nonce;
+
+            return true;
+        });
+        $_POST = ($this->post)(['_wpnonce' => '<b>abc</b>']);
+
+        $this->controller->handle();
+
+        expect($seen)->toBe('abc');
+    });
+
+    it('words the refusals the way a client logs them', function (): void {
+        $_POST = ($this->post)(['code_challenge_method' => 'plain']);
+        $plain = mcpcQueryOf($this->controller->handle());
+
+        $_POST = ($this->post)(['response_type' => 'token']);
+        $token = mcpcQueryOf($this->controller->handle());
+
+        expect($plain)->toBe(['error' => 'invalid_request', 'error_description' => 'A PKCE code_challenge with code_challenge_method=S256 is required.', 'state' => 'xyz'])
+            ->and($token)->toBe(['error' => 'unsupported_response_type', 'error_description' => 'Only the authorization code flow is supported.', 'state' => 'xyz']);
+    });
+});

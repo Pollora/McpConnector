@@ -1,0 +1,31 @@
+<!-- toggle on -->
+<div class="mcpc-toggle"><input type="checkbox" class="mcpc-toggle__input" id="mcpc-read_only_mode" name="read_only_mode" value="1" checked='checked'><label class="mcpc-toggle__label" for="mcpc-read_only_mode"><span class="mcpc-toggle__track" aria-hidden="true"><span class="mcpc-toggle__knob"></span></span><span class="mcpc-toggle__text"><span class="mcpc-toggle__title">Read &lt;only&gt;</span><span class="mcpc-toggle__help">Safe &amp; sound</span></span></label></div>
+<!-- toggle off with form -->
+<div class="mcpc-toggle"><input type="checkbox" class="mcpc-toggle__input" id="mcpc-oauth_enabled" name="oauth_enabled" value="1" form="other-form"><label class="mcpc-toggle__label" for="mcpc-oauth_enabled"><span class="mcpc-toggle__track" aria-hidden="true"><span class="mcpc-toggle__knob"></span></span><span class="mcpc-toggle__text"><span class="mcpc-toggle__title">OAuth</span><span class="mcpc-toggle__help">Sign in</span></span></label></div>
+<!-- choice on -->
+<div class="mcpc-toggle"><input type="checkbox" class="mcpc-toggle__input" id="mcpc-enabled_groups-content" name="enabled_groups[]" value="content" checked='checked'><label class="mcpc-toggle__label" for="mcpc-enabled_groups-content"><span class="mcpc-toggle__track" aria-hidden="true"><span class="mcpc-toggle__knob"></span></span><span class="mcpc-toggle__text"><span class="mcpc-toggle__title">Content</span><span class="mcpc-toggle__help">Posts and pages</span></span></label></div>
+<!-- choice off -->
+<div class="mcpc-toggle"><input type="checkbox" class="mcpc-toggle__input" id="mcpc-enabled_groups-media" name="enabled_groups[]" value="media"><label class="mcpc-toggle__label" for="mcpc-enabled_groups-media"><span class="mcpc-toggle__track" aria-hidden="true"><span class="mcpc-toggle__knob"></span></span><span class="mcpc-toggle__text"><span class="mcpc-toggle__title">Media</span><span class="mcpc-toggle__help">Files</span></span></label></div>
+<!-- input plain -->
+<div class="mcpc-field"><label class="mcpc-field__label" for="mcpc-ability_namespace">Namespace</label><input type="text" class="mcpc-field__control" id="mcpc-ability_namespace" name="ability_namespace" value="my-site" aria-describedby="mcpc-ability_namespace-help" spellcheck="false"><p class="mcpc-field__help" id="mcpc-ability_namespace-help">Prefix</p></div>
+<!-- input mono with form -->
+<div class="mcpc-field"><label class="mcpc-field__label" for="mcpc-server_route">Route</label><input type="text" class="mcpc-field__control mcpc-field__control--mono" id="mcpc-server_route" name="server_route" value="a&quot;b" aria-describedby="mcpc-server_route-help" spellcheck="false" form="other-form"><p class="mcpc-field__help" id="mcpc-server_route-help">Path</p></div>
+<!-- textarea default -->
+<div class="mcpc-field"><label class="mcpc-field__label" for="mcpc-redirect_uris">URIs</label><textarea class="mcpc-field__control mcpc-field__control--area" id="mcpc-redirect_uris" name="redirect_uris" rows="4" placeholder="" aria-describedby="mcpc-redirect_uris-help" spellcheck="false">a
+b</textarea><p class="mcpc-field__help" id="mcpc-redirect_uris-help">One per line</p></div>
+<!-- textarea custom -->
+<div class="mcpc-field"><label class="mcpc-field__label" for="mcpc-notes">Notes</label><textarea class="mcpc-field__control mcpc-field__control--area" id="mcpc-notes" name="notes" rows="9" placeholder="https://…" aria-describedby="mcpc-notes-help" spellcheck="false" form="other-form">x</textarea><p class="mcpc-field__help" id="mcpc-notes-help">Free</p></div>
+<!-- address -->
+<div class="mcpc-address"><label class="mcpc-address__label" for="mcpc-url">MCP URL</label><div class="mcpc-address__row"><input type="text" class="mcpc-address__value" id="mcpc-url" value="https://example.test/mcp?a=1&amp;b=2" readonly spellcheck="false" aria-describedby="mcpc-url-help"><button type="button" class="mcpc-button mcpc-button--primary mcpc-copy" data-copy-from="mcpc-url">Copy</button></div><p class="mcpc-address__help" id="mcpc-url-help">Paste it</p></div>
+<!-- type card plain checked -->
+<div class="mcpc-card-check"><input type="checkbox" class="mcpc-card-check__input" id="mcpc-post_types-post" name="post_types[]" value="post" checked='checked'><label class="mcpc-card-check__label" for="mcpc-post_types-post"><span class="mcpc-card-check__name">Post</span><code class="mcpc-card-check__slug">post</code><span class="mcpc-card-check__note">3 published</span></label></div>
+<!-- type card warn unchecked -->
+<div class="mcpc-card-check"><input type="checkbox" class="mcpc-card-check__input" id="mcpc-post_types-book" name="post_types[]" value="book"><label class="mcpc-card-check__label" for="mcpc-post_types-book"><span class="mcpc-card-check__name">Book</span><code class="mcpc-card-check__slug">book</code><span class="mcpc-card-check__note mcpc-card-check__note--warn">Private</span></label></div>
+<!-- ability recommended checked -->
+<div class="mcpc-ability"><input type="checkbox" class="mcpc-ability__input" id="mcpc-ability-c605f5a9ff0c547382110ec029bec821" name="external_abilities[]" value="acme/read" checked='checked'><label class="mcpc-ability__label" for="mcpc-ability-c605f5a9ff0c547382110ec029bec821"><span class="mcpc-ability__box" aria-hidden="true"></span><span class="mcpc-ability__name">Read it<span class="mcpc-badge mcpc-badge--recommended">recommended</span></span><code class="mcpc-ability__slug">acme/read</code><span class="mcpc-ability__desc">Reads &lt;b&gt;</span></label></div>
+<!-- ability unlabelled -->
+<div class="mcpc-ability"><input type="checkbox" class="mcpc-ability__input" id="mcpc-ability-9ff2cebd444e1d295e35da73705bfc74" name="external_abilities[]" value="acme/raw"><label class="mcpc-ability__label" for="mcpc-ability-9ff2cebd444e1d295e35da73705bfc74"><span class="mcpc-ability__box" aria-hidden="true"></span><span class="mcpc-ability__name">acme/raw</span><code class="mcpc-ability__slug">acme/raw</code><span class="mcpc-ability__desc">No label</span></label></div>
+<!-- hidden -->
+<input type="hidden" name="mcpc_tab" value="security">
+<!-- hidden with form -->
+<input type="hidden" name="mcpc_tab" value="a&quot;b" form="other-form">

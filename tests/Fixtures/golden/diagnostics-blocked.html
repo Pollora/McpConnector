@@ -1,0 +1,51 @@
+[
+    {
+        "id": "mcp-adapter",
+        "status": "pass",
+        "label": "MCP Adapter",
+        "detail": "Active. It turns the registered abilities into MCP tools and serves the transport."
+    },
+    {
+        "id": "permalinks",
+        "status": "pass",
+        "label": "Pretty permalinks",
+        "detail": "A permalink structure is set, so the advertised URLs resolve."
+    },
+    {
+        "id": "https",
+        "status": "pass",
+        "label": "HTTPS",
+        "detail": "The site is served over TLS."
+    },
+    {
+        "id": "capability",
+        "status": "warn",
+        "label": "Required capability",
+        "detail": "You do not hold edit_posts, so you can configure the connector but not authorise a client against your own account. Granted by: Administrator, ."
+    },
+    {
+        "id": "discovery",
+        "status": "fail",
+        "label": "Discovery documents",
+        "detail": "403 from https://example.test/.well-known/oauth-authorization-server, where a client expects JSON. The web server is almost certainly blocking /.well-known/: the near-universal rule against hidden files catches it too, and refuses the request before PHP is reached — which is why nothing appears in any WordPress log. On Apache, look for a RedirectMatch or a Files rule on names beginning with a dot.",
+        "fix": {
+            "title": "In the nginx site configuration",
+            "lines": [
+                {
+                    "text": "location ~ /\\. { deny all; }",
+                    "kind": "wrong"
+                },
+                {
+                    "text": "location ~* /\\.(?!well-known\\/) { deny all; }",
+                    "kind": "right"
+                }
+            ]
+        }
+    },
+    {
+        "id": "tools",
+        "status": "pass",
+        "label": "Published tools",
+        "detail": "1 ability registered in this request."
+    }
+]

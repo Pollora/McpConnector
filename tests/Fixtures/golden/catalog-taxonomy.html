@@ -1,0 +1,123 @@
+{
+    "key": "taxonomy",
+    "label": "Taxonomies and terms",
+    "description": "List taxonomies, read their terms, and create or delete terms.",
+    "abilities": [
+        {
+            "slug": "get-taxonomies",
+            "label": "List taxonomies",
+            "description": "List the taxonomies this site registers, with the post types each applies to. Call this before assigning terms, so you use a taxonomy that exists here.",
+            "category": "Taxonomy",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "public_only": {
+                        "type": "boolean",
+                        "description": "Return only publicly queryable taxonomies.",
+                        "default": true
+                    }
+                }
+            }
+        },
+        {
+            "slug": "get-terms",
+            "label": "List terms",
+            "description": "List the terms of a taxonomy, with their slugs, post counts and parents. Slugs from this list are what the content abilities expect.",
+            "category": "Taxonomy",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "taxonomy": {
+                        "type": "string",
+                        "description": "Taxonomy slug, such as category or post_tag.",
+                        "default": "category"
+                    },
+                    "search": {
+                        "type": "string",
+                        "description": "Match terms whose name contains this text."
+                    },
+                    "hide_empty": {
+                        "type": "boolean",
+                        "description": "Skip terms that are not assigned to any post.",
+                        "default": false
+                    },
+                    "number": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 200,
+                        "description": "How many terms to return, at most 200.",
+                        "default": 50
+                    }
+                }
+            }
+        },
+        {
+            "slug": "create-term",
+            "label": "Create a term",
+            "description": "Create a term in a taxonomy. Fails if a term with the same name already exists under the same parent.",
+            "category": "Taxonomy",
+            "behaviour": "Creates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "taxonomy": {
+                        "type": "string",
+                        "description": "Taxonomy to create the term in.",
+                        "default": "category"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Term name, as it should be displayed."
+                    },
+                    "slug": {
+                        "type": "string",
+                        "description": "URL slug. Derived from the name when omitted."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Term description."
+                    },
+                    "parent": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Parent term ID, for hierarchical taxonomies."
+                    }
+                },
+                "required": [
+                    "name"
+                ]
+            }
+        },
+        {
+            "slug": "delete-term",
+            "label": "Delete a term",
+            "description": "Delete a term. The posts assigned to it are not deleted; they simply lose the term. This cannot be undone.",
+            "category": "Taxonomy",
+            "behaviour": "Deletes",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the term to delete."
+                    },
+                    "taxonomy": {
+                        "type": "string",
+                        "description": "Taxonomy the term belongs to.",
+                        "default": "category"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        }
+    ]
+}

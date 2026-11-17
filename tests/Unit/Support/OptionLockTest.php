@@ -84,3 +84,50 @@ describe('releasing a lock', function (): void {
         expect(mcpcImpatientLock()->acquire('tokens'))->toBeFalse();
     });
 });
+
+describe('the details of a lock', function (): void {
+    it('is taken over when it is exactly as old as the timeout', function (): void {
+        $GLOBALS['wpdb']->rows['mcp_connector_lock_tokens'] = (time() - 10) . ':edge';
+
+        expect(mcpcImpatientLock(10)->acquire('tokens'))->toBeTrue();
+    });
+
+    it('is left alone one second short of the timeout', function (): void {
+        $GLOBALS['wpdb']->rows['mcp_connector_lock_tokens'] = (time() - 9) . ':edge';
+
+        expect(mcpcImpatientLock(10)->acquire('tokens'))->toBeFalse();
+    });
+
+    it('stores the time and 16 random hex characters under a prefixed name', function (): void {
+        mcpcImpatientLock()->acquire('tokens');
+
+        expect(array_keys($GLOBALS['wpdb']->rows))->toBe(['mcp_connector_lock_tokens'])
+            ->and($GLOBALS['wpdb']->rows['mcp_connector_lock_tokens'])->toMatch('/^\d{10}:[0-9a-f]{16}$/');
+    });
+
+    it('is taken over by writing a fresh token of its own', function (): void {
+        $GLOBALS['wpdb']->rows['mcp_connector_lock_tokens'] = (time() - 60) . ':dead';
+
+        mcpcImpatientLock(10)->acquire('tokens');
+
+        expect($GLOBALS['wpdb']->rows['mcp_connector_lock_tokens'])->not->toContain('dead')
+            ->and((int) $GLOBALS['wpdb']->rows['mcp_connector_lock_tokens'])->toBeGreaterThan(time() - 5);
+    });
+
+    it('waits for a lock that is released while it waits, and gives up after about its patience', function (): void {
+        $holder = mcpcImpatientLock();
+        $holder->acquire('tokens');
+
+        $start = microtime(true);
+        $refused = (new OptionLock(10, 300))->acquire('tokens');
+        $waited = microtime(true) - $start;
+
+        expect($refused)->toBeFalse()
+            ->and($waited)->toBeGreaterThan(0.25)
+            ->and($waited)->toBeLessThan(2.0);
+    });
+
+    it('tries at least once even with no patience at all', function (): void {
+        expect((new OptionLock(10, 0))->acquire('tokens'))->toBeTrue();
+    });
+});

@@ -433,3 +433,151 @@ describe('a parameter that is not a scalar', function (): void {
     });
 
 });
+
+/**
+ * A request whose body parameters and merged parameters differ, as they do when
+ * a client puts something in the query string as well.
+ *
+ * @param array<string, mixed> $body
+ * @param array<string, mixed> $merged
+ * @param array<string, string> $headers
+ */
+function tokencontrollerSplitRequest(array $body, array $merged, array $headers = []): WP_REST_Request
+{
+    return new class ($body, $merged, $headers) extends WP_REST_Request {
+        /**
+         * @param array<string, mixed> $body
+         * @param array<string, mixed> $merged
+         * @param array<string, string> $headers
+         */
+        public function __construct(private array $body, array $merged, array $headers)
+        {
+            parent::__construct($merged, $headers);
+        }
+
+        public function get_json_params(): ?array
+        {
+            return null;
+        }
+
+        public function get_body_params(): array
+        {
+            return $this->body;
+        }
+    };
+}
+
+describe('reading the request', function (): void {
+    it('prefers the form body, and falls back to all parameters when the body has none', function (): void {
+        $good = [
+            'grant_type' => 'authorization_code',
+            'client_id' => 'client-1',
+            'client_secret' => $this->secret,
+            'code' => ($this->issueCode)(),
+            'redirect_uri' => MCPC_REDIRECT,
+            'code_verifier' => MCPC_VERIFIER,
+        ];
+
+        $fromBody = $this->controller->handle(tokencontrollerSplitRequest($good, ['grant_type' => 'nonsense']));
+        $fromQuery = $this->controller->handle(tokencontrollerSplitRequest([], ['grant_type' => 'nonsense', 'client_id' => 'client-1', 'client_secret' => $this->secret]));
+
+        expect($fromBody->get_status())->toBe(200)
+            ->and($fromQuery->get_data()['error'])->toBe('unsupported_grant_type');
+    });
+
+    it('splits Basic credentials at the first colon only, so a secret may contain one', function (): void {
+        Functions\when('wp_generate_uuid4')->justReturn('client-2');
+        Functions\when('wp_generate_password')->alias(static fn (int $length = 12): string => substr(str_pad('sec:ret', $length, 'x'), 0, $length));
+        $created = $this->clients->create('Colon', [MCPC_REDIRECT]);
+        $header = 'Basic ' . base64_encode('client-2:' . $created['secret']);
+
+        $response = $this->controller->handle(mcpcTokenRequest([
+            'grant_type' => 'authorization_code',
+            'code' => ($this->issueCode)('client-2'),
+            'redirect_uri' => MCPC_REDIRECT,
+            'code_verifier' => MCPC_VERIFIER,
+        ], ['authorization' => $header]));
+
+        expect($created['secret'])->toContain(':')
+            ->and($response->get_status())->toBe(200);
+    });
+
+    it('refuses Basic credentials that are only loosely base64', function (): void {
+        $encoded = base64_encode('client-1:' . $this->secret);
+        $header = 'Basic ' . substr($encoded, 0, 6) . '!' . substr($encoded, 6);
+
+        $response = $this->controller->handle(mcpcTokenRequest(['grant_type' => 'authorization_code'], ['authorization' => $header]));
+
+        expect($response->get_status())->toBe(401);
+    });
+
+    it('takes the scheme in any case and reads from the seventh character on', function (): void {
+        $header = 'bAsIc ' . base64_encode('client-1:' . $this->secret);
+
+        $response = $this->controller->handle(mcpcTokenRequest([
+            'grant_type' => 'authorization_code',
+            'code' => ($this->issueCode)(),
+            'redirect_uri' => MCPC_REDIRECT,
+            'code_verifier' => MCPC_VERIFIER,
+        ], ['authorization' => $header]));
+
+        expect($response->get_status())->toBe(200);
+    });
+
+    it('lets a client identifier in the body win over Basic credentials', function (): void {
+        $header = 'Basic ' . base64_encode('someone-else:wrong');
+
+        $response = $this->controller->handle(mcpcTokenRequest([
+            'grant_type' => 'authorization_code',
+            'client_id' => 'client-1',
+            'client_secret' => $this->secret,
+            'code' => ($this->issueCode)(),
+            'redirect_uri' => MCPC_REDIRECT,
+            'code_verifier' => MCPC_VERIFIER,
+        ], ['authorization' => $header]));
+
+        expect($response->get_status())->toBe(200);
+    });
+
+    it('treats a client identifier sent as a list as absent, so Basic credentials apply', function (): void {
+        $header = 'Basic ' . base64_encode('client-1:' . $this->secret);
+
+        $response = $this->controller->handle(mcpcTokenRequest([
+            'grant_type' => 'authorization_code',
+            'client_id' => ['client-1'],
+            'code' => ($this->issueCode)(),
+            'redirect_uri' => MCPC_REDIRECT,
+            'code_verifier' => MCPC_VERIFIER,
+        ], ['authorization' => $header]));
+
+        expect($response->get_status())->toBe(200);
+    });
+
+    it('reads a numeric client identifier as the string it names', function (): void {
+        Functions\when('wp_generate_uuid4')->justReturn('12');
+        $created = $this->clients->create('Numeric', [MCPC_REDIRECT]);
+
+        $response = $this->controller->handle(mcpcTokenRequest([], [], [
+            'grant_type' => 'authorization_code',
+            'client_id' => 12,
+            'client_secret' => $created['secret'],
+            'code' => ($this->issueCode)('12'),
+            'redirect_uri' => MCPC_REDIRECT,
+            'code_verifier' => MCPC_VERIFIER,
+        ]));
+
+        expect($response->get_status())->toBe(200);
+    });
+
+    it('challenges a failed client authentication with the Basic realm', function (): void {
+        $response = ($this->exchange)(['client_secret' => 'wrong']);
+
+        expect($response->get_status())->toBe(401)
+            ->and($response->get_headers())->toBe([
+                'Cache-Control' => 'no-store',
+                'Pragma' => 'no-cache',
+                'WWW-Authenticate' => 'Basic realm="OAuth"',
+            ])
+            ->and($response->get_data())->toBe(['error' => 'invalid_client', 'error_description' => 'Client authentication failed.']);
+    });
+});

@@ -1,0 +1,85 @@
+{
+    "answer": {
+        "kind": "error",
+        "payload": {
+            "steps": [
+                {
+                    "label": "Discovery documents answer",
+                    "state": "fail",
+                    "detail": "403 from https://example.test/.well-known/oauth-protected-resource. The web server is blocking /.well-known/; see the fix on the dashboard.",
+                    "ms": "measured"
+                },
+                {
+                    "label": "Application registers",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "Consent screen renders",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "Approval issues a code",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "Code exchanges for a token",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "MCP transport accepts the token",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "Tool list comes back",
+                    "state": "skipped",
+                    "detail": "Not reached.",
+                    "ms": 0
+                },
+                {
+                    "label": "Temporary application removed",
+                    "state": "pass",
+                    "detail": "Nothing was created, so there is nothing to remove.",
+                    "ms": "measured"
+                }
+            ],
+            "message": "Stopped at: Discovery documents answer."
+        },
+        "status": null
+    },
+    "http": [
+        {
+            "verb": "GET",
+            "url": "https://example.test/.well-known/oauth-protected-resource",
+            "args": {
+                "timeout": 5,
+                "redirection": 0,
+                "sslverify": false,
+                "headers": {
+                    "Accept": "application/json"
+                }
+            }
+        },
+        {
+            "verb": "GET",
+            "url": "https://example.test/.well-known/oauth-authorization-server",
+            "args": {
+                "timeout": 5,
+                "redirection": 0,
+                "sslverify": false,
+                "headers": {
+                    "Accept": "application/json"
+                }
+            }
+        }
+    ]
+}

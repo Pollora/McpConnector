@@ -1,0 +1,167 @@
+{
+    "key": "media",
+    "label": "Media library",
+    "description": "List attachments, import files from a URL, edit attachment metadata, and delete attachments.",
+    "abilities": [
+        {
+            "slug": "get-media",
+            "label": "List media",
+            "description": "List media library attachments, with their URLs, dimensions and alt text. Use the returned IDs to set a featured image or to reference an image in post content.",
+            "category": "Media",
+            "behaviour": "Reads",
+            "readOnly": true,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "search": {
+                        "type": "string",
+                        "description": "Match attachments whose title or file name contains this text."
+                    },
+                    "mime_type": {
+                        "type": "string",
+                        "description": "Filter by MIME type or prefix, such as image/jpeg or image."
+                    },
+                    "posts_per_page": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 100,
+                        "description": "How many attachments to return, at most 100.",
+                        "default": 20
+                    },
+                    "paged": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "1-based page number.",
+                        "default": 1
+                    }
+                }
+            }
+        },
+        {
+            "slug": "upload-media-from-url",
+            "label": "Import media from a URL",
+            "description": "Download a file from a public URL and add it to the media library, optionally attaching it to a post. Returns the new attachment ID, which you can pass to create-post or update-post as featured_image.",
+            "category": "Media",
+            "behaviour": "Creates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "Publicly reachable http or https URL of the file to import."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Attachment title. Derived from the file name when omitted."
+                    },
+                    "alt_text": {
+                        "type": "string",
+                        "description": "Alternative text, describing the image for screen readers."
+                    },
+                    "caption": {
+                        "type": "string",
+                        "description": "Caption displayed under the image."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Long description stored on the attachment."
+                    },
+                    "post_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Post to attach the file to."
+                    }
+                },
+                "required": [
+                    "url"
+                ]
+            }
+        },
+        {
+            "slug": "update-media",
+            "label": "Update media metadata",
+            "description": "Change an attachment's title, alt text, caption or description. The file itself is not touched. Only the fields you pass are changed.",
+            "category": "Media",
+            "behaviour": "Updates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the attachment to update."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "New attachment title."
+                    },
+                    "alt_text": {
+                        "type": "string",
+                        "description": "New alternative text."
+                    },
+                    "caption": {
+                        "type": "string",
+                        "description": "New caption."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New description."
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        },
+        {
+            "slug": "set-featured-image",
+            "label": "Set a featured image",
+            "description": "Set the featured image of a post from an existing attachment, or pass attachment_id=0 to remove it.",
+            "category": "Media",
+            "behaviour": "Updates",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "post_id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the post to set the featured image on."
+                    },
+                    "attachment_id": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Attachment ID of the image, or 0 to remove the current one."
+                    }
+                },
+                "required": [
+                    "post_id",
+                    "attachment_id"
+                ]
+            }
+        },
+        {
+            "slug": "delete-media",
+            "label": "Delete media",
+            "description": "Delete an attachment and its generated image sizes. Posts that embed the file keep their markup and will show a broken image. This cannot be undone.",
+            "category": "Media",
+            "behaviour": "Deletes",
+            "readOnly": false,
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "ID of the attachment to delete."
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        }
+    ]
+}

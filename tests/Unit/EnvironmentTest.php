@@ -68,3 +68,46 @@ describe('the unmet requirements', function (): void {
             ->toBe(! Environment::hasMcpAdapter());
     });
 });
+
+describe('the exact probe', function (): void {
+    it('asks for JSON without following redirects or verifying the certificate, within five seconds', function (): void {
+        $calls = [];
+        $ttl = null;
+        Functions\when('is_wp_error')->justReturn(false);
+        Functions\when('wp_remote_get')->alias(static function (string $url, array $args) use (&$calls): array {
+            $calls[$url] = $args;
+
+            return ['code' => '200'];
+        });
+        Functions\when('wp_remote_retrieve_response_code')->alias(static fn (array $response): string => $response['code']);
+        Functions\when('set_transient')->alias(static function (string $key, array $value, int $expiration) use (&$ttl): bool {
+            $ttl = $expiration;
+
+            return true;
+        });
+
+        $statuses = Environment::discoveryDocumentStatuses(true);
+
+        expect(array_values($calls))->toBe([
+            ['timeout' => 5, 'redirection' => 0, 'sslverify' => false, 'headers' => ['Accept' => 'application/json']],
+            ['timeout' => 5, 'redirection' => 0, 'sslverify' => false, 'headers' => ['Accept' => 'application/json']],
+        ])->and($statuses)->each->toBe(200)
+            ->and($ttl)->toBe(300);
+    });
+});
+
+describe('the plain readings', function (): void {
+    it('reads an unset permalink structure as plain permalinks', function (): void {
+        Functions\when('get_option')->justReturn(false);
+
+        expect(Environment::hasPrettyPermalinks())->toBeFalse();
+    });
+
+    it('reads https only at the start of the home URL', function (): void {
+        Functions\when('home_url')->justReturn('http://example.test/?next=https://');
+        expect(Environment::isHttps())->toBeFalse();
+
+        Functions\when('home_url')->justReturn('https://example.test');
+        expect(Environment::isHttps())->toBeTrue();
+    });
+});
