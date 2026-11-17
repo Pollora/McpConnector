@@ -262,3 +262,93 @@ describe('the front-end router', function (): void {
         expect(true)->toBeTrue();
     });
 });
+
+describe('the exact wiring', function (): void {
+    it('hooks the router on parse_request, the routes on rest_api_init and the decorator with three arguments', function (): void {
+        $hooks = [];
+        Functions\when('add_action')->alias(static function (string $hook, callable $callback, int $priority = 10, int $args = 1) use (&$hooks): bool {
+            $hooks[$hook] = [$priority, $args];
+
+            return true;
+        });
+        Functions\when('add_filter')->alias(static function (string $hook, callable $callback, int $priority = 10, int $args = 1) use (&$hooks): bool {
+            $hooks[$hook] = [$priority, $args];
+
+            return true;
+        });
+
+        $this->server->register();
+
+        expect($hooks)->toBe([
+            'determine_current_user' => [20, 1],
+            'parse_request' => [10, 1],
+            'rest_api_init' => [10, 1],
+            'rest_post_dispatch' => [10, 3],
+        ]);
+    });
+
+    it('registers each route once with exactly a method set, a callback and a public permission callback', function (): void {
+        $routes = [];
+        Functions\when('register_rest_route')->alias(
+            function (string $namespace, string $route, array $args) use (&$routes): void {
+                $routes[] = [$namespace, $route, array_keys($args), $args['methods'], $args['permission_callback']];
+            },
+        );
+
+        $this->server->registerRestRoutes();
+
+        expect($routes)->toBe([
+            ['mcp-connector/v1', '/token', ['methods', 'callback', 'permission_callback'], 'POST', '__return_true'],
+            ['mcp-connector/v1', '/revoke', ['methods', 'callback', 'permission_callback'], 'POST', '__return_true'],
+            ['mcp-connector/v1', '/register', ['methods', 'callback', 'permission_callback'], 'POST', '__return_true'],
+            ['mcp-connector/v1', '/protected-resource', ['methods', 'callback', 'permission_callback'], 'GET', '__return_true'],
+            ['mcp-connector/v1', '/server-metadata', ['methods', 'callback', 'permission_callback'], 'GET', '__return_true'],
+        ]);
+    });
+
+    it('does not treat a namespace that merely shares the MCP prefix as the MCP server', function (): void {
+        $response = new WP_REST_Response([], 401);
+
+        $this->server->decorateResponse($response, $this->restServer, mcpcRoutedRequest('/mcpx/connector'));
+
+        expect($response->get_headers())->not->toHaveKey('WWW-Authenticate');
+    });
+
+    it('turns a REST response into a front-end one with its body, status and headers', function (): void {
+        $response = new WP_REST_Response(['a' => 1], 200);
+        $response->header('X-Thing', 'yes');
+
+        $http = (new ReflectionMethod(OAuthServer::class, 'asHttpResponse'))->invoke(null, $response);
+
+        expect($http->body)->toBe('{"a":1}')
+            ->and($http->status)->toBe(200)
+            ->and($http->headers)->toHaveKey('X-Thing', 'yes')
+            ->and($http->headers['Content-Type'])->toStartWith('application/json');
+    });
+});
+
+describe('the requested path', function (): void {
+    $path = static function (string $uri, string $home = 'https://example.test/'): string {
+        $_SERVER['REQUEST_URI'] = $uri;
+        Functions\when('home_url')->justReturn($home);
+
+        return (new ReflectionMethod(OAuthServer::class, 'requestPath'))->invoke(null);
+    };
+
+    it('reduces a URI to its decoded path without slashes at either end', function () use ($path): void {
+        expect($path('/a%2Fb/c//?x=1#f'))->toBe('a/b/c')
+            ->and($path(''))->toBe('')
+            ->and($path('/plain'))->toBe('plain');
+    });
+
+    it('strips the home directory only as a whole path segment', function () use ($path): void {
+        expect($path('/blog/page', 'https://example.test/blog'))->toBe('page')
+            ->and($path('/blogger/page', 'https://example.test/blog'))->toBe('blogger/page')
+            ->and($path('/blog', 'https://example.test/blog'))->toBe('blog')
+            ->and($path('/a/page', 'https://example.test/blog/'))->toBe('a/page');
+    });
+
+    it('reads an unslashed URI', function () use ($path): void {
+        expect($path('/it\\\'s'))->toBe('it\'s');
+    });
+});
