@@ -21,6 +21,20 @@ defined('ABSPATH') || exit;
 final class BearerAuthenticator
 {
     /**
+     * REST namespaces a request authenticated by a bearer token alone may reach.
+     *
+     * The MCP endpoint, and the core abilities endpoints, whose abilities all
+     * pass through the scope gate. Anything else on the REST API is refused.
+     */
+    private const array TOKEN_NAMESPACES = ['mcp', 'wp-abilities'];
+
+    /**
+     * Whether the user of this request was resolved from a bearer token alone,
+     * with no login cookie behind it.
+     */
+    private bool $byTokenAlone = false;
+
+    /**
      * @param TokenRepository $tokens Token store.
      */
     public function __construct(private readonly TokenRepository $tokens)
@@ -36,6 +50,44 @@ final class BearerAuthenticator
         // already has a signed-in user keeps that user, and only has the
         // scope of a token issued to the same user applied to it.
         add_filter('determine_current_user', $this->authenticate(...), 20);
+
+        // The scope of a token is only enforced by the abilities. Without this,
+        // the same token would also open the rest of the REST API as that user,
+        // wherever no scope is looked at: a read-only grant could create posts
+        // or install plugins through `wp/v2`.
+        add_filter('rest_pre_dispatch', $this->restrictRoute(...), 10, 3);
+    }
+
+    /**
+     * Refuse a REST route outside the MCP endpoint to a request that only a bearer token authenticates.
+     *
+     * @param mixed            $result  The short-circuit value, null to carry on.
+     * @param \WP_REST_Server  $server  The REST server.
+     * @param \WP_REST_Request $request The request about to be dispatched.
+     *
+     * @return mixed The value passed in, or a 403 error.
+     */
+    public function restrictRoute(mixed $result, \WP_REST_Server $server, \WP_REST_Request $request): mixed
+    {
+        unset($server);
+
+        if (! $this->byTokenAlone || $result !== null) {
+            return $result;
+        }
+
+        $route = ltrim($request->get_route(), '/');
+
+        foreach (self::TOKEN_NAMESPACES as $namespace) {
+            if ($route === $namespace || str_starts_with($route, $namespace . '/')) {
+                return $result;
+            }
+        }
+
+        return new \WP_Error(
+            'rest_forbidden',
+            __('An access token issued by the MCP connector only works with the MCP endpoint.', 'amphibee-mcp-connector'),
+            ['status' => 403],
+        );
     }
 
     /**
@@ -78,6 +130,7 @@ final class BearerAuthenticator
         // the read abilities check `edit_posts` too, so removing write
         // capabilities would break reading as well.
         Scope::setCurrent($record['scopes']);
+        $this->byTokenAlone = true;
 
         return $record['user_id'];
     }

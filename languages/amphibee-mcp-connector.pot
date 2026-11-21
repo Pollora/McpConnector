@@ -1293,6 +1293,10 @@ msgstr ""
 msgid "Finish"
 msgstr ""
 
+#: src/OAuth/BearerAuthenticator.php:88
+msgid "An access token issued by the MCP connector only works with the MCP endpoint."
+msgstr ""
+
 #: src/OAuth/ConsentScreen.php:80
 #: src/OAuth/ConsentScreen.php:106
 msgid "Authorise access"
