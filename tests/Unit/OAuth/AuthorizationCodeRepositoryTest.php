@@ -121,3 +121,22 @@ describe('authorization codes', function (): void {
         expect($repo->consume($code))->toBe(['user_id' => 12, 'client_id' => '3', 'redirect_uri' => '4', 'code_challenge' => '5', 'scopes' => ['6', 'read']]);
     });
 });
+
+describe('redeeming for a named client', function (): void {
+    it('leaves a code issued to another client in place', function (): void {
+        $repo = new AuthorizationCodeRepository();
+        $code = $repo->issue(7, 'client-1', 'https://a.example/cb', 'challenge', ['read']);
+
+        expect($repo->consume($code, 'client-2'))->toBeNull()
+            ->and($repo->consume($code, 'client-1'))->toMatchArray(['client_id' => 'client-1'])
+            ->and($repo->consume($code, 'client-1'))->toBeNull();
+    });
+
+    it('gives nothing to a request that lost the race for the same code', function (): void {
+        $repo = new AuthorizationCodeRepository();
+        $code = $repo->issue(7, 'client-1', 'https://a.example/cb', 'challenge', ['read']);
+        Functions\when('delete_transient')->justReturn(false);
+
+        expect($repo->consume($code, 'client-1'))->toBeNull();
+    });
+});

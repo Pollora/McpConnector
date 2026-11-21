@@ -72,12 +72,18 @@ final class AuthorizationCodeRepository
      * verification is still spent. An attacker who intercepts a code gets one
      * attempt at guessing the verifier, not unlimited ones.
      *
-     * @param string $code The plaintext authorization code.
+     * When `$clientId` is given, the code is read first and left in place if it was issued to
+     * another client: someone else's code is refused, not burned. Once the client matches, the
+     * deletion decides the winner: a request whose deletion removed nothing lost a race for
+     * the same code and gets nothing.
+     *
+     * @param string      $code     The plaintext authorization code.
+     * @param string|null $clientId The authenticated client presenting the code, if known.
      *
      * @return array{user_id: int, client_id: string, redirect_uri: string, code_challenge: string, scopes: list<string>}|null
-     *         The code record, or null when the code is unknown or expired.
+     *         The code record, or null when the code is unknown, expired or another client's.
      */
-    public function consume(string $code): ?array
+    public function consume(string $code, ?string $clientId = null): ?array
     {
         if ($code === '') {
             return null;
@@ -86,7 +92,13 @@ final class AuthorizationCodeRepository
         $key = self::key($code);
         $record = get_transient($key);
 
-        delete_transient($key);
+        if ($clientId !== null && is_array($record) && ! hash_equals((string) ($record['client_id'] ?? ''), $clientId)) {
+            return null;
+        }
+
+        if (! delete_transient($key) && $clientId !== null) {
+            return null;
+        }
 
         if (! is_array($record)) {
             return null;
