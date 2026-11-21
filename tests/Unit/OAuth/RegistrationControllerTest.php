@@ -278,3 +278,76 @@ describe('the exact shape of the answers', function (): void {
             ->and($numeric['client_name'])->toBe('42');
     });
 });
+
+describe('the limits of an open registration', function (): void {
+    afterEach(function (): void {
+        unset($_SERVER['REMOTE_ADDR']);
+    });
+
+    it('limits the attempts of one address, and tells it when to come back', function (): void {
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.9';
+        $ids = 0;
+        Functions\when('wp_generate_uuid4')->alias(static function () use (&$ids): string {
+            return 'client-' . ++$ids;
+        });
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $hook === RegistrationController::RATE_LIMIT_FILTER ? ['limit' => 2, 'window' => 600] : $value);
+        $body = ['redirect_uris' => ['https://claude.example/cb']];
+
+        $statuses = [($this->register)($body)->get_status(), ($this->register)($body)->get_status()];
+        $third = ($this->register)($body);
+
+        expect($statuses)->toBe([201, 201])
+            ->and($third->get_status())->toBe(429)
+            ->and($third->get_data()['error'])->toBe('temporarily_unavailable')
+            ->and((int) $third->get_headers()['Retry-After'])->toBeBetween(1, 600)
+            ->and($this->optionValues[ClientRepository::OPTION])->toHaveCount(2);
+
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.10';
+
+        expect(($this->register)($body)->get_status())->toBe(201);
+    });
+
+    it('counts a rejected attempt too, since the work is done either way', function (): void {
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.9';
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $hook === RegistrationController::RATE_LIMIT_FILTER ? ['limit' => 1, 'window' => 600] : $value);
+
+        ($this->register)(['redirect_uris' => ['ftp://nope']]);
+
+        expect(($this->register)(['redirect_uris' => ['https://claude.example/cb']])->get_status())->toBe(429);
+    });
+
+    it('lets the site switch the limit off', function (): void {
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.9';
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $hook === RegistrationController::RATE_LIMIT_FILTER ? ['limit' => 0] : $value);
+
+        $statuses = array_map(fn (): int => ($this->register)(['redirect_uris' => ['https://claude.example/cb']])->get_status(), range(1, 25));
+
+        expect(array_unique($statuses))->toBe([201]);
+    });
+
+    it('answers 503 once the ceiling is reached and every registered client is connected', function (): void {
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $hook === ClientRepository::MAX_FILTER ? 1 : $value);
+        Functions\when('wp_generate_password')->justReturn(str_repeat('p', 48));
+        $first = ($this->register)(['redirect_uris' => ['https://claude.example/cb']]);
+        (new Pollora\McpConnector\OAuth\TokenRepository())->issue(7, $first->get_data()['client_id'], ['read']);
+
+        $second = ($this->register)(['redirect_uris' => ['https://other.example/cb']]);
+
+        expect($second->get_status())->toBe(503)
+            ->and($second->get_data()['error'])->toBe('temporarily_unavailable');
+    });
+
+    it('keeps the registered clients under the ceiling however many register', function (): void {
+        Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $hook === ClientRepository::MAX_FILTER ? 3 : ($hook === RegistrationController::RATE_LIMIT_FILTER ? ['limit' => 0] : $value));
+        $ids = 0;
+        Functions\when('wp_generate_uuid4')->alias(static function () use (&$ids): string {
+            return 'client-' . ++$ids;
+        });
+
+        foreach (range(1, 10) as $_) {
+            ($this->register)(['redirect_uris' => ['https://claude.example/cb']]);
+        }
+
+        expect(array_keys($this->optionValues[ClientRepository::OPTION]))->toBe(['client-8', 'client-9', 'client-10']);
+    });
+});

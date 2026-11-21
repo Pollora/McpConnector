@@ -301,6 +301,31 @@ final class TokenRepository
     }
 
     /**
+     * The clients that hold at least one live token, access or refresh.
+     *
+     * A spent-refresh marker is not a token: it authenticates nothing.
+     *
+     * @return array<string, true> Client identifier to true.
+     */
+    public function clientsWithLiveTokens(): array
+    {
+        $now = time();
+        $clients = [];
+
+        foreach ([self::ACCESS_OPTION, self::REFRESH_OPTION] as $option) {
+            foreach ($this->allRaw($option) as $record) {
+                if (! is_array($record) || ($record['spent'] ?? false) === true || (int) ($record['expires_at'] ?? 0) <= $now) {
+                    continue;
+                }
+
+                $clients[(string) ($record['client_id'] ?? '')] = true;
+            }
+        }
+
+        return $clients;
+    }
+
+    /**
      * Count the live tokens issued to each client.
      *
      * @return array<string, int> Client identifier to number of unexpired access tokens.

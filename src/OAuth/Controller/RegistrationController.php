@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pollora\McpConnector\OAuth\Controller;
 
 use Pollora\McpConnector\OAuth\Client;
+use Pollora\McpConnector\OAuth\ClientLimitReachedException;
 use Pollora\McpConnector\OAuth\ClientRepository;
 use Pollora\McpConnector\Settings;
 
@@ -22,6 +23,10 @@ defined('ABSPATH') || exit;
  * PKCE are what actually decide whether anything happens. Sites that would still
  * rather not leave it open can turn it off and create clients by hand from the
  * settings screen.
+ *
+ * Being open, it is also bounded: a rate limit per address, and a ceiling on the
+ * clients that register themselves (see ClientRepository), so that a loop of
+ * requests cannot grow the option every OAuth request reads.
  */
 final class RegistrationController
 {
@@ -38,6 +43,27 @@ final class RegistrationController
      * Most redirect URIs accepted for one client.
      */
     private const int MAX_REDIRECT_URIS = 10;
+
+    /**
+     * Filter on the registration rate limit, per IP address: `['limit' => 20, 'window' => 3600]`.
+     * A limit of zero switches it off.
+     */
+    public const string RATE_LIMIT_FILTER = 'mcp_connector_registration_rate_limit';
+
+    /**
+     * Registrations one address may attempt per window, by default.
+     */
+    private const int DEFAULT_RATE_LIMIT = 20;
+
+    /**
+     * Length of the rate limit window in seconds, by default.
+     */
+    private const int DEFAULT_RATE_WINDOW = HOUR_IN_SECONDS;
+
+    /**
+     * Transient key prefix of the per-address counters.
+     */
+    private const string RATE_PREFIX = 'mcp_connector_reg_rate_';
 
     /**
      * @param Settings         $settings Resolved plugin configuration.
@@ -66,6 +92,19 @@ final class RegistrationController
             );
         }
 
+        $retryAfter = $this->rateLimited();
+
+        if ($retryAfter > 0) {
+            $response = self::error(
+                'temporarily_unavailable',
+                __('Too many registrations from this address. Try again later.', 'amphibee-mcp-connector'),
+                429,
+            );
+            $response->header('Retry-After', (string) $retryAfter);
+
+            return $response;
+        }
+
         /** @var array<string, mixed> $body */
         $body = $request->get_json_params() ?? [];
 
@@ -80,12 +119,20 @@ final class RegistrationController
 
         $authMethod = $this->readAuthMethod($body);
 
-        $created = $this->clients->create(
-            name: $this->readName($body),
-            redirectUris: $redirectUris,
-            authMethod: $authMethod,
-            selfRegistered: true,
-        );
+        try {
+            $created = $this->clients->create(
+                name: $this->readName($body),
+                redirectUris: $redirectUris,
+                authMethod: $authMethod,
+                selfRegistered: true,
+            );
+        } catch (ClientLimitReachedException) {
+            return self::error(
+                'temporarily_unavailable',
+                __('This site cannot register more clients right now. Try again later, or ask an administrator to create one.', 'amphibee-mcp-connector'),
+                503,
+            );
+        }
 
         $client = $created['client'];
 
@@ -107,6 +154,49 @@ final class RegistrationController
         }
 
         return self::json($response, 201);
+    }
+
+    /**
+     * Count this attempt against the caller's address.
+     *
+     * The address is `REMOTE_ADDR`, the only one a client cannot choose: behind a
+     * proxy, the site must restore the real one (as WordPress hosts do) for the
+     * limit to tell visitors apart. The counter is a transient, so the limit is
+     * approximate under concurrency, and an object-cache flush resets it.
+     *
+     * @return int Seconds to wait when the limit is exceeded, zero when the attempt may go on.
+     */
+    private function rateLimited(): int
+    {
+        $config = apply_filters(self::RATE_LIMIT_FILTER, ['limit' => self::DEFAULT_RATE_LIMIT, 'window' => self::DEFAULT_RATE_WINDOW]);
+        $limit = is_array($config) && is_numeric($config['limit'] ?? null) ? (int) $config['limit'] : self::DEFAULT_RATE_LIMIT;
+        $window = is_array($config) && is_numeric($config['window'] ?? null) ? max(1, (int) $config['window']) : self::DEFAULT_RATE_WINDOW;
+
+        if ($limit <= 0) {
+            return 0;
+        }
+
+        // The address only feeds a hash, it is never output or stored as is.
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $address = isset($_SERVER['REMOTE_ADDR']) && is_string($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+        $key = self::RATE_PREFIX . hash('sha256', $address);
+        $now = time();
+        $stored = get_transient($key);
+        $count = is_array($stored) ? (int) ($stored['count'] ?? 0) : 0;
+        $resetAt = is_array($stored) ? (int) ($stored['reset_at'] ?? 0) : 0;
+
+        if ($resetAt <= $now) {
+            $count = 0;
+            $resetAt = $now + $window;
+        }
+
+        if ($count >= $limit) {
+            return max(1, $resetAt - $now);
+        }
+
+        set_transient($key, ['count' => $count + 1, 'reset_at' => $resetAt], max(1, $resetAt - $now));
+
+        return 0;
     }
 
     /**

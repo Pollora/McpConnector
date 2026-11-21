@@ -11,6 +11,21 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Security
 
+- **Open dynamic client registration is bounded** (#63). `POST .../register` is
+  unauthenticated, hashed a secret and rewrote the whole `mcp_connector_oauth_clients`
+  option, read on every OAuth request, with no lock and no limit: a loop of
+  requests grew it without end. Now:
+  the clients that register themselves are capped (100 by default, filter
+  `mcp_connector_max_registered_clients`), the oldest ones holding no live token
+  being purged to make room, and a registration finds `503 temporarily_unavailable`
+  when every one of them is connected; the daily sweep drops the self-registered
+  clients that never connected within 7 days; the endpoint answers
+  `429` with `Retry-After` past 20 attempts per hour and per `REMOTE_ADDR`
+  (filter `mcp_connector_registration_rate_limit`, `['limit' => 20, 'window' => 3600]`,
+  a limit of 0 switches it off); and every change to the client option is made
+  under `OptionLock`, as tokens are. Clients created by an administrator are never
+  counted nor purged. Registration stays open by default.
+
 - **A client is checked before a code or refresh token is consumed** (#64).
   A client presenting another client's authorization code or refresh token used
   to spend it, or to revoke its lineage as a replay, before being refused. The
@@ -33,6 +48,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Upgrade notes
 
+- Self-registered clients (RFC 7591) are now limited: at most 100 at a time (the oldest
+  without a live token are purged), 20 attempts per hour per address, and one that never
+  connected is removed after 7 days. A client that registered but waited longer than a week
+  to ask for consent must register again. Raise or lower the limits with the filters
+  `mcp_connector_max_registered_clients` and `mcp_connector_registration_rate_limit`.
+  Open registration itself is not disabled by default; turning it off by default would be a
+  breaking change, proposed for the next major version.
 - A client that used its access token against REST routes other than the MCP
   endpoint must use the MCP endpoint, or a login session, instead.
 - A read-only token can no longer call a third-party ability that does not
