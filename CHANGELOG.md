@@ -5,6 +5,30 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **A bearer token opens the MCP endpoint only, not the whole REST API.** The
+  scope of a token was enforced by the abilities alone, while the token
+  authenticated the user on every REST route: a client granted only `read`
+  could write through `wp/v2` (create posts, change users, install plugins) as
+  the user who approved it. A request that a bearer token alone authenticates
+  is now refused (403) outside the `mcp` and `wp-abilities` namespaces.
+- **The `read` scope now applies to the abilities of other plugins.** An
+  ability published by another plugin and selected for the MCP server used its
+  own permission callback, which ignores scopes, so a read-only token could call
+  one that writes. Every ability that does not claim `readonly` in its
+  annotations is wrapped, as it is registered (`wp_register_ability_args`), with
+  the same scope check as the plugin's own.
+
+### Upgrade notes
+
+- A client that used its access token against REST routes other than the MCP
+  endpoint must use the MCP endpoint, or a login session, instead.
+- A read-only token can no longer call a third-party ability that does not
+  declare `readonly: true`.
+
 ## 1.6.1
 
 ### Security
