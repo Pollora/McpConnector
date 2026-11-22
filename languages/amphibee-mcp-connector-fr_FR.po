@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: AmphiBee MCP Connector 1.2.0\n"
 "Report-Msgid-Bugs-To: https://amphibee.fr\n"
-"POT-Creation-Date: 2026-09-03T09:55:33+02:00\n"
+"POT-Creation-Date: 2026-09-03T10:03:26+02:00\n"
 "PO-Revision-Date: 2026-08-27 12:00+0000\n"
 "Last-Translator: AmphiBee\n"
 "Language-Team: AmphiBee\n"
@@ -1268,6 +1268,10 @@ msgstr "Rien ne détient encore de jeton vivant. Soit l'approbation n'a pas ét�
 #: src/Admin/Wizard.php:453
 msgid "Finish"
 msgstr "Terminer"
+
+#: src/OAuth/BearerAuthenticator.php:88
+msgid "An access token issued by the MCP connector only works with the MCP endpoint."
+msgstr "Un jeton d'accès émis par le connecteur MCP ne fonctionne qu'avec le point d'entrée MCP."
 
 #: src/OAuth/ConsentScreen.php:80 src/OAuth/ConsentScreen.php:106
 msgid "Authorise access"
