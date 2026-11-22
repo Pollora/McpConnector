@@ -38,7 +38,7 @@ describe('bearer authentication', function (): void {
 
         $this->authenticator->register();
 
-        expect($registered)->toBe([['determine_current_user', 20]]);
+        expect($registered)->toBe([['determine_current_user', 20], ['rest_pre_dispatch', 10]]);
     });
 
     it('resolves a valid token to its user and records the token scope', function (string $key): void {
@@ -204,5 +204,55 @@ describe('reading the header', function (): void {
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
 
         expect($this->authenticator->authenticate(false))->toBe(1);
+    });
+});
+
+describe('route restriction', function (): void {
+    function dispatchTo(BearerAuthenticator $authenticator, string $route): mixed
+    {
+        $request = new class ($route) extends WP_REST_Request {
+            public function __construct(private readonly string $route)
+            {
+                parent::__construct();
+            }
+
+            public function get_route(): string
+            {
+                return $this->route;
+            }
+        };
+
+        return $authenticator->restrictRoute(null, new WP_REST_Server(), $request);
+    }
+
+    it('refuses a route outside the MCP endpoint to a request a bearer token alone authenticated', function (string $route): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
+        $this->authenticator->authenticate(false);
+
+        $result = dispatchTo($this->authenticator, $route);
+
+        expect($result)->toBeInstanceOf(WP_Error::class)
+            ->and($result->get_error_data())->toBe(['status' => 403]);
+    })->with(['/wp/v2/posts', '/wp/v2/plugins', '/mcp-evil/x', '/']);
+
+    it('lets a token reach the MCP and abilities endpoints', function (string $route): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
+        $this->authenticator->authenticate(false);
+
+        expect(dispatchTo($this->authenticator, $route))->toBeNull();
+    })->with(['/mcp/mcp-adapter-default-server', '/mcp', '/wp-abilities/v1/abilities']);
+
+    it('does not restrict a request a login cookie authenticated', function (): void {
+        $issued = $this->tokens->issue(7, 'client-1', ['read']);
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $issued['access_token'];
+        $this->authenticator->authenticate(7);
+
+        expect(dispatchTo($this->authenticator, '/wp/v2/posts'))->toBeNull();
+    });
+
+    it('does not restrict a request without a token', function (): void {
+        expect(dispatchTo($this->authenticator, '/wp/v2/posts'))->toBeNull();
     });
 });

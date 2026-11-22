@@ -281,6 +281,7 @@ describe('the exact wiring', function (): void {
 
         expect($hooks)->toBe([
             'determine_current_user' => [20, 1],
+            'rest_pre_dispatch' => [10, 3],
             'parse_request' => [10, 1],
             'rest_api_init' => [10, 1],
             'rest_post_dispatch' => [10, 3],

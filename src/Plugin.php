@@ -8,6 +8,7 @@ use Pollora\McpConnector\Abilities\AbilityRegistry;
 use Pollora\McpConnector\Admin\SettingsPage;
 use Pollora\McpConnector\OAuth\ExpiredGrantCollector;
 use Pollora\McpConnector\OAuth\OAuthServer;
+use Pollora\McpConnector\Server\ExternalScopeGate;
 use Pollora\McpConnector\Server\ServerRegistry;
 use Pollora\McpConnector\Support\Environment;
 
@@ -67,6 +68,7 @@ final class Plugin
         $settings = Settings::current();
 
         if (Environment::hasAbilitiesApi()) {
+            (new ExternalScopeGate($settings))->register();
             (new AbilityRegistry($settings))->register();
 
             if (Environment::hasMcpAdapter()) {
