@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4b2da371d119724cd9c8e830159ed03b",
+    "content-hash": "a96d3a7ab29920c904d1afadd195dd24",
     "packages": [
         {
             "name": "pollora/abilities",
@@ -2902,16 +2902,16 @@
         },
         {
             "name": "pollora/harness",
-            "version": "v0.1.34",
+            "version": "v0.1.35",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Pollora/harness.git",
-                "reference": "74ad4f16a35f0a0588b8f611e8dd98e2c38c6bbb"
+                "reference": "02107572c763b85671703be3172ad114c6037cb4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Pollora/harness/zipball/74ad4f16a35f0a0588b8f611e8dd98e2c38c6bbb",
-                "reference": "74ad4f16a35f0a0588b8f611e8dd98e2c38c6bbb",
+                "url": "https://api.github.com/repos/Pollora/harness/zipball/02107572c763b85671703be3172ad114c6037cb4",
+                "reference": "02107572c763b85671703be3172ad114c6037cb4",
                 "shasum": ""
             },
             "require": {
@@ -2929,6 +2929,8 @@
                 "szepeviktor/phpstan-wordpress": "^2.0"
             },
             "require-dev": {
+                "ext-libxml": "*",
+                "ext-simplexml": "*",
                 "pestphp/pest": "^3.8 || ^4.0"
             },
             "suggest": {
@@ -2967,9 +2969,9 @@
             ],
             "support": {
                 "issues": "https://github.com/Pollora/harness/issues",
-                "source": "https://github.com/Pollora/harness/tree/v0.1.34"
+                "source": "https://github.com/Pollora/harness/tree/v0.1.35"
             },
-            "time": "2026-11-21T12:04:27+00:00"
+            "time": "2026-11-23T11:41:15+00:00"
         },
         {
             "name": "psr/container",
