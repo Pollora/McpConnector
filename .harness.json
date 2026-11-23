@@ -2,6 +2,7 @@
     "profile": "wp-plugin",
     "mode": "enforce",
     "ratchet": {
+        "type_coverage": 100,
         "phpstan_level": 6,
         "phpstan_baseline": 0,
         "coverage": 96
