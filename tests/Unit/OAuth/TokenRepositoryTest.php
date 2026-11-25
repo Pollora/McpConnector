@@ -546,3 +546,19 @@ describe('an entry that is not a record', function (): void {
             ->and(array_keys($this->optionValues[TokenRepository::ACCESS_OPTION]))->toBe(['mine', 'theirs']);
     });
 });
+
+describe('consuming for a named client', function (): void {
+    it('leaves a refresh token of another client unspent, and its lineage alone when it is presented again', function (): void {
+        $repo = new TokenRepository();
+        $issued = $repo->issue(7, 'client-1', ['read']);
+
+        expect($repo->consumeRefreshToken($issued['refresh_token'], 'client-2'))->toBeNull();
+
+        $spent = $repo->consumeRefreshToken($issued['refresh_token'], 'client-1');
+
+        expect($spent)->toMatchArray(['client_id' => 'client-1'])
+            // Someone else presenting the spent token must not revoke what replaced it.
+            ->and($repo->consumeRefreshToken($issued['refresh_token'], 'client-2'))->toBeNull()
+            ->and($repo->findAccessToken($issued['access_token']))->not->toBeNull();
+    });
+});

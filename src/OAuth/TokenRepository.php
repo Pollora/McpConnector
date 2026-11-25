@@ -143,12 +143,17 @@ final class TokenRepository
      * A token that was already spent is refused, and revokes every token of its
      * lineage, the pair that replaced it and whatever came after.
      *
-     * @param string $token The plaintext refresh token.
+     * When `$clientId` is given, a token issued to another client is left untouched and refused:
+     * presenting someone else's token neither spends it nor revokes its lineage. The check is made
+     * under the lock, in the same step as the consumption.
+     *
+     * @param string      $token    The plaintext refresh token.
+     * @param string|null $clientId The authenticated client presenting the token, if known.
      *
      * @return array{user_id: int, client_id: string, scopes: list<string>, expires_at: int, family: string|null}|null
-     *         The token record, or null when the token is unknown, expired or already spent.
+     *         The token record, or null when the token is unknown, expired, already spent or another client's.
      */
-    public function consumeRefreshToken(string $token): ?array
+    public function consumeRefreshToken(string $token, ?string $clientId = null): ?array
     {
         $key = self::hash($token);
 
@@ -164,8 +169,13 @@ final class TokenRepository
 
         $locked = $this->mutate(
             self::REFRESH_OPTION,
-            static function (array $tokens) use ($key, $now, &$record, &$replayedFamily): array {
+            static function (array $tokens) use ($key, $now, $clientId, &$record, &$replayedFamily): array {
                 $stored = $tokens[$key] ?? null;
+
+                // Another client's token, live or spent, is none of this client's business.
+                if ($clientId !== null && is_array($stored) && ! hash_equals((string) ($stored['client_id'] ?? ''), $clientId)) {
+                    return $tokens;
+                }
 
                 if (self::isSpent($stored)) {
                     $replayedFamily = $stored['family'] ?? null;

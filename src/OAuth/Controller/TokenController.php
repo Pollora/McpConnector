@@ -107,12 +107,12 @@ final class TokenController
      */
     private function exchangeCode(array $params, Client $client): \WP_REST_Response
     {
-        $record = $this->codes->consume(self::param($params, 'code'));
+        $record = $this->codes->consume(self::param($params, 'code'), $client->id);
 
         if ($record === null) {
             return self::error(
                 'invalid_grant',
-                __('The authorization code is unknown, expired, or has already been used.', 'amphibee-mcp-connector'),
+                __('The authorization code is unknown, expired, already used, or was issued to a different client.', 'amphibee-mcp-connector'),
             );
         }
 
@@ -152,12 +152,12 @@ final class TokenController
      */
     private function refresh(array $params, Client $client): \WP_REST_Response
     {
-        $record = $this->tokens->consumeRefreshToken(self::param($params, 'refresh_token'));
+        $record = $this->tokens->consumeRefreshToken(self::param($params, 'refresh_token'), $client->id);
 
         if ($record === null) {
             return self::error(
                 'invalid_grant',
-                __('The refresh token is unknown, expired, or has already been used.', 'amphibee-mcp-connector'),
+                __('The refresh token is unknown, expired, already used, or was issued to a different client.', 'amphibee-mcp-connector'),
             );
         }
 

@@ -11,6 +11,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Security
 
+- **A client is checked before a code or refresh token is consumed** (#64).
+  A client presenting another client's authorization code or refresh token used
+  to spend it, or to revoke its lineage as a replay, before being refused. The
+  `client_id` is now compared first (under the token lock for a refresh token) and
+  the other client's grant is left untouched. The code's deletion decides the
+  winner of two concurrent redemptions.
+
 - **A bearer token opens the MCP endpoint only, not the whole REST API.** The
   scope of a token was enforced by the abilities alone, while the token
   authenticated the user on every REST route: a client granted only `read`

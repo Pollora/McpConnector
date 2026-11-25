@@ -95,6 +95,16 @@ describe('the authorization code grant', function (): void {
             ->and($response->get_data()['error'])->toBe('invalid_grant');
     });
 
+    it('does not burn a code issued to another client, which its owner can still redeem', function (): void {
+        $other = new AuthorizationCodeRepository();
+        $code = $other->issue(7, 'client-2', MCPC_REDIRECT, Pkce::challengeFor(MCPC_VERIFIER), ['read']);
+
+        $attack = ($this->exchange)(['code' => $code]);
+
+        expect($attack->get_data()['error'])->toBe('invalid_grant')
+            ->and($other->consume($code, 'client-2'))->toMatchArray(['user_id' => 7, 'client_id' => 'client-2']);
+    });
+
     it('refuses a redirect URI that differs from the one used to obtain the code', function (string $redirect): void {
         $response = ($this->exchange)(['redirect_uri' => $redirect]);
 
@@ -293,6 +303,18 @@ describe('the refresh token grant', function (): void {
 
         expect($response->get_status())->toBe(400)
             ->and($response->get_data()['error'])->toBe('invalid_grant');
+    });
+
+    it('does not spend a refresh token of another client, nor revoke its lineage', function (): void {
+        $victim = $this->tokens->issue(7, 'someone-else', ['read']);
+
+        ($this->refresh)($victim['refresh_token']);
+        $spent = $this->tokens->consumeRefreshToken($victim['refresh_token'], 'someone-else');
+        // Presenting the now spent token under another client's name is no replay of it.
+        ($this->refresh)($victim['refresh_token']);
+
+        expect($spent)->toMatchArray(['user_id' => 7, 'client_id' => 'someone-else'])
+            ->and($this->tokens->findAccessToken($victim['access_token']))->not->toBeNull();
     });
 
     it('re-checks the capability, so a demoted user cannot keep refreshing', function (): void {
