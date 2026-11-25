@@ -1333,15 +1333,23 @@ msgstr "Verlopen verzoek"
 msgid "This authorisation request has expired or was not started here. Return to the application and try connecting again."
 msgstr "Dit autorisatieverzoek is verlopen of is hier niet begonnen. Ga terug naar de toepassing en probeer opnieuw verbinding te maken."
 
-#: src/OAuth/Controller/RegistrationController.php:68
+#: src/OAuth/Controller/RegistrationController.php:90
 msgid "This site does not accept self-registration. An administrator must create the client."
 msgstr "Deze site accepteert geen zelfregistratie. Een beheerder moet de client aanmaken."
 
-#: src/OAuth/Controller/RegistrationController.php:81
+#: src/OAuth/Controller/RegistrationController.php:100
+msgid "Too many registrations from this address. Try again later."
+msgstr "Te veel registraties vanaf dit adres. Probeer het later opnieuw."
+
+#: src/OAuth/Controller/RegistrationController.php:116
 msgid "At least one valid https redirect URI is required."
 msgstr "Er is minstens één geldige https-redirect-URI vereist."
 
-#: src/OAuth/Controller/RegistrationController.php:172
+#: src/OAuth/Controller/RegistrationController.php:132
+msgid "This site cannot register more clients right now. Try again later, or ask an administrator to create one."
+msgstr "Deze site kan op dit moment geen extra clients registreren. Probeer het later opnieuw, of vraag een beheerder er een aan te maken."
+
+#: src/OAuth/Controller/RegistrationController.php:291
 msgid "Unnamed MCP client"
 msgstr "Naamloze MCP-client"
 
