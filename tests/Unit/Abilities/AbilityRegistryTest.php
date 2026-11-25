@@ -183,11 +183,14 @@ describe('publishing abilities', function (): void {
         $log = [];
         $api = abcoreRegister([abcoreSpyGroup($log)], ['enabled_groups' => ['spy']]);
 
+        // The schema is asserted by what this plugin publishes (type and properties). `pollora/abilities` 1.0.3 also
+        // adds `'default' => []` to an input schema; that key belongs to the dependency, which the plugin allows from
+        // 1.0.0 (a lowest-version run has no such key), so it is not pinned here.
         expect($api['wp-mcp/poke'])->toMatchArray([
             'label' => 'Poke',
             'description' => 'Changes something.',
-            'input_schema' => ['type' => 'object', 'properties' => []],
-        ])->and($api['wp-mcp/poke']['meta']['annotations'])->toBeArray();
+        ])->and($api['wp-mcp/poke']['input_schema'])->toMatchArray(['type' => 'object', 'properties' => []])
+            ->and($api['wp-mcp/poke']['meta']['annotations'])->toBeArray();
     });
 
     it('skips groups the site has not enabled', function (): void {
