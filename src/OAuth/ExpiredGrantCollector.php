@@ -54,11 +54,14 @@ final class ExpiredGrantCollector
     }
 
     /**
-     * Remove every expired token record.
+     * Remove every expired token record, then the self-registered clients that
+     * never connected within a week (their tokens, if any, are the live ones the
+     * purge spares).
      */
     public function sweep(): void
     {
         (new TokenRepository())->purgeExpired();
+        (new ClientRepository())->purgeStale();
     }
 
     /**

@@ -561,4 +561,14 @@ describe('consuming for a named client', function (): void {
             ->and($repo->consumeRefreshToken($issued['refresh_token'], 'client-2'))->toBeNull()
             ->and($repo->findAccessToken($issued['access_token']))->not->toBeNull();
     });
+
+    it('lists the clients that hold a live token, not those with only a spent one', function (): void {
+        $repo = new TokenRepository();
+        $repo->issue(7, 'client-1', ['read']);
+        $gone = $repo->issue(7, 'client-2', ['read']);
+        $repo->consumeRefreshToken($gone['refresh_token'], 'client-2');
+        $repo->revoke($gone['access_token']);
+
+        expect($repo->clientsWithLiveTokens())->toBe(['client-1' => true]);
+    });
 });

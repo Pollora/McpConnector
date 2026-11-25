@@ -1333,15 +1333,23 @@ msgstr "Solicitud caducada"
 msgid "This authorisation request has expired or was not started here. Return to the application and try connecting again."
 msgstr "Esta solicitud de autorización ha caducado o no se inició aquí. Vuelva a la aplicación e intente conectarse de nuevo."
 
-#: src/OAuth/Controller/RegistrationController.php:68
+#: src/OAuth/Controller/RegistrationController.php:90
 msgid "This site does not accept self-registration. An administrator must create the client."
 msgstr "Este sitio no acepta el autorregistro. Un administrador debe crear el cliente."
 
-#: src/OAuth/Controller/RegistrationController.php:81
+#: src/OAuth/Controller/RegistrationController.php:100
+msgid "Too many registrations from this address. Try again later."
+msgstr "Demasiados registros desde esta dirección. Inténtelo de nuevo más tarde."
+
+#: src/OAuth/Controller/RegistrationController.php:116
 msgid "At least one valid https redirect URI is required."
 msgstr "Se requiere al menos una URI de redirección https válida."
 
-#: src/OAuth/Controller/RegistrationController.php:172
+#: src/OAuth/Controller/RegistrationController.php:132
+msgid "This site cannot register more clients right now. Try again later, or ask an administrator to create one."
+msgstr "Este sitio no puede registrar más clientes en este momento. Inténtelo de nuevo más tarde o pida a un administrador que cree uno."
+
+#: src/OAuth/Controller/RegistrationController.php:291
 msgid "Unnamed MCP client"
 msgstr "Cliente MCP sin nombre"
 

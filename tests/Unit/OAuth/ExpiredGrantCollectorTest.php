@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Brain\Monkey\Functions;
+use Pollora\McpConnector\OAuth\Client;
+use Pollora\McpConnector\OAuth\ClientRepository;
 use Pollora\McpConnector\OAuth\ExpiredGrantCollector;
 use Pollora\McpConnector\OAuth\TokenRepository;
 
@@ -16,6 +18,19 @@ beforeEach(function (): void {
 });
 
 describe('the grant collector', function (): void {
+    it('sweeps the self-registered clients that never connected, with the expired tokens', function (): void {
+        $old = time() - 8 * 86400;
+        $this->setOption(ClientRepository::OPTION, [
+            'idle' => (new Client('idle', '', 'Idle', [], 'none', $old, true))->toArray(),
+            'used' => (new Client('used', '', 'Used', [], 'none', $old, true))->toArray(),
+        ]);
+        (new TokenRepository())->issue(7, 'used', ['read']);
+
+        (new ExpiredGrantCollector())->sweep();
+
+        expect(array_keys($this->optionValues[ClientRepository::OPTION]))->toBe(['used']);
+    });
+
     it('registers its hooks, including both user-deletion hooks', function (): void {
         $hooks = [];
         Functions\when('add_action')->alias(function (string $hook) use (&$hooks): bool {

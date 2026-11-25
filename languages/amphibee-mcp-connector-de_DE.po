@@ -1333,15 +1333,23 @@ msgstr "Abgelaufene Anfrage"
 msgid "This authorisation request has expired or was not started here. Return to the application and try connecting again."
 msgstr "Diese Autorisierungsanfrage ist abgelaufen oder wurde nicht hier begonnen. Kehren Sie zur Anwendung zurück und versuchen Sie die Verbindung erneut."
 
-#: src/OAuth/Controller/RegistrationController.php:68
+#: src/OAuth/Controller/RegistrationController.php:90
 msgid "This site does not accept self-registration. An administrator must create the client."
 msgstr "Diese Website akzeptiert keine Selbstregistrierung. Ein Administrator muss den Client anlegen."
 
-#: src/OAuth/Controller/RegistrationController.php:81
+#: src/OAuth/Controller/RegistrationController.php:100
+msgid "Too many registrations from this address. Try again later."
+msgstr "Zu viele Registrierungen von dieser Adresse. Versuchen Sie es später erneut."
+
+#: src/OAuth/Controller/RegistrationController.php:116
 msgid "At least one valid https redirect URI is required."
 msgstr "Mindestens eine gültige https-Redirect-URI ist erforderlich."
 
-#: src/OAuth/Controller/RegistrationController.php:172
+#: src/OAuth/Controller/RegistrationController.php:132
+msgid "This site cannot register more clients right now. Try again later, or ask an administrator to create one."
+msgstr "Diese Website kann derzeit keine weiteren Clients registrieren. Versuchen Sie es später erneut oder bitten Sie einen Administrator, einen anzulegen."
+
+#: src/OAuth/Controller/RegistrationController.php:291
 msgid "Unnamed MCP client"
 msgstr "Unbenannter MCP-Client"
 
