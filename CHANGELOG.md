@@ -7,6 +7,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## 1.7.0
+
 ### Security
 
 - **A bearer token opens the MCP endpoint only, not the whole REST API.** The

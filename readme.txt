@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.6.1
+Stable tag: 1.7.0
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -243,6 +243,11 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.7.0 =
+
+* Security: an OAuth access token now opens the MCP endpoint only. A request that a bearer token alone authenticates is refused (403) on every REST route outside the `mcp` and `wp-abilities` namespaces. Before, a client granted only `read` could write through `wp/v2` as the user who approved it.
+* Security: the `read` scope now applies to the abilities of other plugins. A read-only token can no longer call an ability that does not declare `readonly: true`.
+
 = 1.6.1 =
 
 * Security: a read-only OAuth token is no longer ignored when the request also carries a login cookie. The scope of a valid token issued to the signed-in user now applies to the request. Hardening only: the cookie already gave the same user the same rights.
@@ -301,6 +306,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.7.0 =
+Security fix, update now. An OAuth token no longer works against REST routes other than the MCP endpoint, and a read-only token can no longer call a third-party ability that does not declare itself read-only. Revoke the clients you do not recognise.
 
 = 1.6.1 =
 A request that sends both a login cookie and a valid OAuth token for the same user is now limited to the token's scopes. Nothing to do after updating.
