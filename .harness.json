@@ -2,9 +2,10 @@
     "profile": "wp-plugin",
     "mode": "enforce",
     "ratchet": {
-        "type_coverage": 100,
         "phpstan_level": 6,
         "phpstan_baseline": 0,
-        "coverage": 96
+        "coverage": 96,
+        "type_coverage": 100,
+        "msi": 87
     }
 }
