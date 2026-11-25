@@ -1375,7 +1375,7 @@ msgid "Supported grant types are authorization_code and refresh_token."
 msgstr ""
 
 #: src/OAuth/Controller/TokenController.php:106
-msgid "The authorization code is unknown, expired, or has already been used."
+msgid "The authorization code is unknown, expired, already used, or was issued to a different client."
 msgstr ""
 
 #: src/OAuth/Controller/TokenController.php:113
@@ -1391,7 +1391,7 @@ msgid "The PKCE code verifier does not match the challenge."
 msgstr ""
 
 #: src/OAuth/Controller/TokenController.php:151
-msgid "The refresh token is unknown, expired, or has already been used."
+msgid "The refresh token is unknown, expired, already used, or was issued to a different client."
 msgstr ""
 
 #: src/OAuth/Controller/TokenController.php:158
