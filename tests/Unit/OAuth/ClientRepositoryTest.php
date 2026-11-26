@@ -84,7 +84,8 @@ describe('deleting a client', function (): void {
 });
 
 /**
- * Seed the client option with self-registered clients created at the given times.
+ * Seed the client option with clients created at the given times; self-registered
+ * ones are stored as a new registration is, awaiting its first token.
  *
  * @param array<string, int> $createdAt Client identifier to creation time.
  */
@@ -93,7 +94,8 @@ function mcpcSeedClients(array $createdAt, bool $selfRegistered = true): void
     $clients = [];
 
     foreach ($createdAt as $id => $time) {
-        $clients[$id] = (new Client($id, '', 'App ' . $id, ['https://a.example/cb'], 'none', $time, $selfRegistered))->toArray();
+        $clients[$id] = (new Client($id, '', 'App ' . $id, ['https://a.example/cb'], 'none', $time, $selfRegistered))->toArray()
+            + ($selfRegistered ? ['awaiting_first_token' => true] : []);
     }
 
     update_option(ClientRepository::OPTION, $clients);
@@ -118,7 +120,7 @@ describe('the ceiling on self-registered clients', function (): void {
         expect(array_keys($this->optionValues[ClientRepository::OPTION]))->toBe(['oldest', 'newest', $created['client']->id]);
     });
 
-    it('refuses the registration when every client is connected', function (): void {
+    it('refuses the registration when every client holds a live token', function (): void {
         Functions\when('apply_filters')->alias(static fn (string $hook, mixed $value): mixed => $hook === ClientRepository::MAX_FILTER ? 2 : $value);
         mcpcSeedClients(['a' => 100, 'b' => 200]);
         $tokens = new TokenRepository();

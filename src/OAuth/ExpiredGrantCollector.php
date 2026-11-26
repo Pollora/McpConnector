@@ -55,8 +55,8 @@ final class ExpiredGrantCollector
 
     /**
      * Remove every expired token record, then the self-registered clients that
-     * never connected within a week (their tokens, if any, are the live ones the
-     * purge spares).
+     * never connected within a week. A client that has connected once is kept,
+     * whatever became of its tokens.
      */
     public function sweep(): void
     {

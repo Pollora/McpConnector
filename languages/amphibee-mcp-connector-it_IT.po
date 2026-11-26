@@ -1385,6 +1385,10 @@ msgstr "Il token di refresh è stato rilasciato a un altro client."
 msgid "The user this grant belongs to no longer has permission to use this connector."
 msgstr "L'utente a cui appartiene questa concessione non ha più il diritto di usare questo connettore."
 
+#: src/OAuth/Controller/TokenController.php:202
+msgid "The authorization could not be completed. Authorize the application again."
+msgstr "Non è stato possibile completare l'autorizzazione. Autorizza di nuovo l'applicazione."
+
 #: src/OAuth/Controller/TokenController.php:256
 msgid "Client authentication failed."
 msgstr "L'autenticazione del client è fallita."

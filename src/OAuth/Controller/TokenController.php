@@ -194,6 +194,15 @@ final class TokenController
             );
         }
 
+        // Before the tokens exist, so that a client holding one can never be
+        // purged as unconnected. Every grant comes through here.
+        if (! $this->clients->markConnected($clientId)) {
+            return self::error(
+                'invalid_grant',
+                __('The authorization could not be completed. Authorize the application again.', 'amphibee-mcp-connector'),
+            );
+        }
+
         $issued = $this->tokens->issue($userId, $clientId, $scopes, $family);
 
         return self::json([

@@ -1410,6 +1410,10 @@ msgstr ""
 msgid "The user this grant belongs to no longer has permission to use this connector."
 msgstr ""
 
+#: src/OAuth/Controller/TokenController.php:202
+msgid "The authorization could not be completed. Authorize the application again."
+msgstr ""
+
 #: src/OAuth/Controller/TokenController.php:256
 msgid "Client authentication failed."
 msgstr ""

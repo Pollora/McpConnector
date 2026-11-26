@@ -84,6 +84,12 @@ Out of scope:
   unauthenticated POST — without a consent step, any
   `<img src="…/oauth/authorize?…">` on a page a signed-in administrator visited
   would become a grant.
+- **Open registration is bounded.** The endpoint is rate limited per address and
+  self-registered clients are capped. Only a registration that never connected is
+  removed automatically (after a week, or to make room at the cap). A client that
+  has been issued a token, and any registration stored before this was recorded,
+  stays until an administrator removes it; when those fill the cap, registration
+  answers 503.
 - **Redirect URIs match exactly.** Prefix matching is what turns an open redirect
   elsewhere on the site into a stolen authorization code.
 - **Query arguments in redirects are encoded explicitly**, not by

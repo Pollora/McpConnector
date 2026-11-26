@@ -1385,6 +1385,10 @@ msgstr "Le jeton de rafraîchissement a été délivré à un autre client."
 msgid "The user this grant belongs to no longer has permission to use this connector."
 msgstr "Le compte auquel appartient cette autorisation n'a plus le droit d'utiliser ce connecteur."
 
+#: src/OAuth/Controller/TokenController.php:202
+msgid "The authorization could not be completed. Authorize the application again."
+msgstr "L'autorisation n'a pas pu aboutir. Autorisez de nouveau l'application."
+
 #: src/OAuth/Controller/TokenController.php:256
 msgid "Client authentication failed."
 msgstr "L'authentification du client a échoué."
