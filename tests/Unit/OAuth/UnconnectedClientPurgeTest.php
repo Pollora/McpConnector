@@ -189,6 +189,38 @@ describe('the client store being busy or changed', function (): void {
             ->and($this->optionValues[ClientRepository::OPTION])->toBe([]);
     });
 
+    it('does not bring back a client removed while the connection was being recorded', function (): void {
+        $client = mcpcRegisterPublicClient();
+        // Runs once the lock is held, before the map is read again: the client was just deleted.
+        Functions\when('wp_cache_delete')->alias(function (string $key): bool {
+            if ($key === ClientRepository::OPTION) {
+                update_option(ClientRepository::OPTION, []);
+            }
+
+            return true;
+        });
+
+        expect((new ClientRepository())->markConnected($client->id))->toBeFalse()
+            ->and(get_option(ClientRepository::OPTION))->toBe([]);
+    });
+
+    it('keeps a client that connects while the sweep is waiting for the lock', function (): void {
+        $client = mcpcRegisterPublicClient();
+        ($this->age)();
+        Functions\when('wp_cache_delete')->alias(function (string $key) use ($client): bool {
+            if ($key === ClientRepository::OPTION) {
+                $stored = get_option(ClientRepository::OPTION);
+                unset($stored[$client->id]['awaiting_first_token']);
+                update_option(ClientRepository::OPTION, $stored);
+            }
+
+            return true;
+        });
+
+        expect((new ClientRepository())->purgeStale())->toBe(0)
+            ->and(get_option(ClientRepository::OPTION))->toHaveKey($client->id);
+    });
+
     it('records a connection without writing again once it is known', function (): void {
         $client = mcpcRegisterPublicClient();
         $repo = new ClientRepository();
