@@ -7,31 +7,54 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-## 1.7.0
-
 ### Security
 
 - **Open dynamic client registration is bounded** (#63). `POST .../register` is
   unauthenticated, hashed a secret and rewrote the whole `mcp_connector_oauth_clients`
   option, read on every OAuth request, with no lock and no limit: a loop of
-  requests grew it without end. Now:
-  the clients that register themselves are capped (100 by default, filter
-  `mcp_connector_max_registered_clients`), the oldest ones holding no live token
-  being purged to make room, and a registration finds `503 temporarily_unavailable`
-  when every one of them is connected; the daily sweep drops the self-registered
-  clients that never connected within 7 days; the endpoint answers
-  `429` with `Retry-After` past 20 attempts per hour and per `REMOTE_ADDR`
-  (filter `mcp_connector_registration_rate_limit`, `['limit' => 20, 'window' => 3600]`,
-  a limit of 0 switches it off); and every change to the client option is made
-  under `OptionLock`, as tokens are. Clients created by an administrator are never
-  counted nor purged. Registration stays open by default.
-
+  requests grew it without end. Now the clients that register themselves are
+  capped (100 by default, filter `mcp_connector_max_registered_clients`); the
+  endpoint answers `429` with `Retry-After` past 20 attempts per hour and per
+  `REMOTE_ADDR` (filter `mcp_connector_registration_rate_limit`,
+  `['limit' => 20, 'window' => 3600]`, a limit of 0 switches it off); and changes
+  to the client option are made under `OptionLock`, as tokens are. Only a client
+  that never connected is removed automatically: by the daily sweep once it is
+  older than 7 days, or, oldest first, to make room at the cap. Clients created by
+  an administrator are never counted nor purged. Registration stays open by default.
 - **A client is checked before a code or refresh token is consumed** (#64).
   A client presenting another client's authorization code or refresh token used
-  to spend it, or to revoke its lineage as a replay, before being refused. The
-  `client_id` is now compared first (under the token lock for a refresh token) and
-  the other client's grant is left untouched. The code's deletion decides the
-  winner of two concurrent redemptions.
+  to spend it before being refused; a refresh token spent that way was then
+  taken for a replay when its owner next presented it, which revoked the whole
+  authorization. The `client_id` is now compared first (under the token lock for
+  a refresh token) and the other client's grant is left untouched. The code's
+  deletion decides the winner of two concurrent redemptions.
+
+### Upgrade notes
+
+- **No existing client is removed by the update.** Whether a client registered
+  before this release ever connected was not recorded, so none of them is purged,
+  by age or at the cap. They still count towards the cap of 100: a site that
+  already holds that many self-registered clients answers new registrations with
+  `503 temporarily_unavailable` until an administrator removes some (Settings,
+  MCP Connector, Applications; removing a client revokes its tokens) or raises
+  the cap with `mcp_connector_max_registered_clients`.
+- A client that has been issued a token is likewise never removed automatically,
+  even after its tokens expire or are revoked. A client that registered after the
+  update and waited more than a week to ask for consent must register again.
+- `POST .../register` can now answer `429` (20 attempts per hour per address,
+  refused attempts with an invalid body included) or `503`. Behind a reverse proxy
+  that does not restore `REMOTE_ADDR`, every caller shares one allowance. The
+  connection test registers through this endpoint when self-registration is open,
+  so it counts too. Open registration itself is not disabled by default; turning
+  it off by default would be a breaking change, proposed for the next major version.
+- A code or refresh token presented by another client is still answered
+  `invalid_grant`, but one message now covers unknown, expired, used and foreign
+  grants. A spent refresh token presented by another client no longer revokes its
+  lineage; presented by its own client it still does.
+
+## 1.7.0
+
+### Security
 
 - **A bearer token opens the MCP endpoint only, not the whole REST API.** The
   scope of a token was enforced by the abilities alone, while the token
@@ -48,13 +71,6 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Upgrade notes
 
-- Self-registered clients (RFC 7591) are now limited: at most 100 at a time (the oldest
-  without a live token are purged), 20 attempts per hour per address, and one that never
-  connected is removed after 7 days. A client that registered but waited longer than a week
-  to ask for consent must register again. Raise or lower the limits with the filters
-  `mcp_connector_max_registered_clients` and `mcp_connector_registration_rate_limit`.
-  Open registration itself is not disabled by default; turning it off by default would be a
-  breaking change, proposed for the next major version.
 - A client that used its access token against REST routes other than the MCP
   endpoint must use the MCP endpoint, or a login session, instead.
 - A read-only token can no longer call a third-party ability that does not

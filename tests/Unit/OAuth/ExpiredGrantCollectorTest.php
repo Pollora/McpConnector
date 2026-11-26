@@ -21,7 +21,7 @@ describe('the grant collector', function (): void {
     it('sweeps the self-registered clients that never connected, with the expired tokens', function (): void {
         $old = time() - 8 * 86400;
         $this->setOption(ClientRepository::OPTION, [
-            'idle' => (new Client('idle', '', 'Idle', [], 'none', $old, true))->toArray(),
+            'idle' => (new Client('idle', '', 'Idle', [], 'none', $old, true))->toArray() + ['awaiting_first_token' => true],
             'used' => (new Client('used', '', 'Used', [], 'none', $old, true))->toArray(),
         ]);
         (new TokenRepository())->issue(7, 'used', ['read']);

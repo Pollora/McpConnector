@@ -82,6 +82,9 @@ final class TokenRepository
     /**
      * Issue a fresh access and refresh token pair.
      *
+     * The caller records the connection first, with
+     * ClientRepository::markConnected(), or the client may later be purged.
+     *
      * @param int          $userId   User the tokens act on behalf of.
      * @param string       $clientId Client the tokens were issued to.
      * @param list<string> $scopes   Granted scopes.
