@@ -1385,6 +1385,10 @@ msgstr "Het refreshtoken is aan een andere client uitgegeven."
 msgid "The user this grant belongs to no longer has permission to use this connector."
 msgstr "De gebruiker aan wie deze toekenning toebehoort mag deze connector niet meer gebruiken."
 
+#: src/OAuth/Controller/TokenController.php:202
+msgid "The authorization could not be completed. Authorize the application again."
+msgstr "De autorisatie kon niet worden voltooid. Autoriseer de applicatie opnieuw."
+
 #: src/OAuth/Controller/TokenController.php:256
 msgid "Client authentication failed."
 msgstr "De authenticatie van de client is mislukt."
