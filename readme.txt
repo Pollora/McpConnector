@@ -4,7 +4,7 @@ Tags: mcp, model-context-protocol, ai, oauth, abilities-api
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.3
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: MIT
 License URI: https://opensource.org/license/mit
 
@@ -243,6 +243,11 @@ The Abilities API, which the tools are registered through, arrived in core in
 
 == Changelog ==
 
+= 1.8.0 =
+
+* Security: open client registration is bounded. Self-registered clients are capped at 100, the endpoint answers 429 past 20 attempts per hour per address and 503 when it cannot register, and a daily sweep removes self-registered clients that never connected within 7 days. Existing clients are kept.
+* Security: an authorization code or refresh token presented by another client is refused without being consumed.
+
 = 1.7.0 =
 
 * Security: an OAuth access token now opens the MCP endpoint only. A request that a bearer token alone authenticates is refused (403) on every REST route outside the `mcp` and `wp-abilities` namespaces. Before, a client granted only `read` could write through `wp/v2` as the user who approved it.
@@ -306,6 +311,9 @@ First public release.
 * German, Spanish, French, Italian, Dutch and Brazilian Portuguese translations of every user-facing string.
 
 == Upgrade Notice ==
+
+= 1.8.0 =
+Security fix. Registration is rate limited and capped at 100. Existing clients are kept and count towards the cap: if registration answers 503, remove unused applications.
 
 = 1.7.0 =
 Security fix, update now. An OAuth token no longer works against REST routes other than the MCP endpoint, and a read-only token can no longer call a third-party ability that does not declare itself read-only. Revoke the clients you do not recognise.

@@ -7,6 +7,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## 1.8.0
+
+Released 2026-11-26.
+
 ### Security
 
 - **Open dynamic client registration is bounded** (#63). `POST .../register` is
