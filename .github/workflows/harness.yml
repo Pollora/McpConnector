@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   harness:
-    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.39
+    uses: Pollora/harness/.github/workflows/php-package.yml@v0.1.40
     with:
       # The whole mutation pass (the msi floor of the ratchet, run on main and every night) lasted 75 minutes on the runner with
       # a 90 minute limit; after the OAuth registration fixes it no longer finishes in 90 (both runs on main were cancelled at

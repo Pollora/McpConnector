@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "531a3f2dec9a6067aeed43eacbed8fdf",
+    "content-hash": "e98359d3d156021825bb02acc8519484",
     "packages": [
         {
             "name": "pollora/abilities",
@@ -2902,16 +2902,16 @@
         },
         {
             "name": "pollora/harness",
-            "version": "v0.1.39",
+            "version": "v0.1.40",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Pollora/harness.git",
-                "reference": "f26b214415a82d0b33d2746cd5965a61286b82b1"
+                "reference": "692a473c5a35eea871f8074599967ab2982cda09"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Pollora/harness/zipball/f26b214415a82d0b33d2746cd5965a61286b82b1",
-                "reference": "f26b214415a82d0b33d2746cd5965a61286b82b1",
+                "url": "https://api.github.com/repos/Pollora/harness/zipball/692a473c5a35eea871f8074599967ab2982cda09",
+                "reference": "692a473c5a35eea871f8074599967ab2982cda09",
                 "shasum": ""
             },
             "require": {
@@ -2969,10 +2969,9 @@
             ],
             "support": {
                 "issues": "https://github.com/Pollora/harness/issues",
-                "source": "https://github.com/Pollora/harness/tree/v0.1.39"
+                "source": "https://github.com/Pollora/harness/tree/v0.1.40"
             },
-            "time": "2026-11-26T16:23:40+00:00",
-            "published-time": "2026-11-26T16:31:38+00:00"
+            "time": "2026-11-27T08:37:09+00:00"
         },
         {
             "name": "psr/container",
@@ -5500,5 +5499,5 @@
     "platform-overrides": {
         "php": "8.3.0"
     },
-    "plugin-api-version": "2.11.0"
+    "plugin-api-version": "2.9.0"
 }
