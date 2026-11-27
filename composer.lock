@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e98359d3d156021825bb02acc8519484",
+    "content-hash": "7711af92e55b314b78cbc84276747167",
     "packages": [
         {
             "name": "pollora/abilities",
@@ -66,16 +66,16 @@
     "packages-dev": [
         {
             "name": "antecedent/patchwork",
-            "version": "2.2.5",
+            "version": "dev-master",
             "source": {
                 "type": "git",
                 "url": "https://github.com/antecedent/patchwork.git",
-                "reference": "1ea49951bdf0d2d7c0bd436ffd95215e08ed30ed"
+                "reference": "d588654e5c1304810b038db2b5c98d39b6f76c61"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/antecedent/patchwork/zipball/1ea49951bdf0d2d7c0bd436ffd95215e08ed30ed",
-                "reference": "1ea49951bdf0d2d7c0bd436ffd95215e08ed30ed",
+                "url": "https://api.github.com/repos/antecedent/patchwork/zipball/d588654e5c1304810b038db2b5c98d39b6f76c61",
+                "reference": "d588654e5c1304810b038db2b5c98d39b6f76c61",
                 "shasum": ""
             },
             "require": {
@@ -86,6 +86,7 @@
                 "phpunit/phpunit": ">=4",
                 "squizlabs/php_codesniffer": "^3.13.5 || ^4.0"
             },
+            "default-branch": true,
             "type": "library",
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -110,9 +111,10 @@
             ],
             "support": {
                 "issues": "https://github.com/antecedent/patchwork/issues",
-                "source": "https://github.com/antecedent/patchwork/tree/2.2.5"
+                "source": "https://github.com/antecedent/patchwork/tree/master"
             },
-            "time": "2026-11-10T09:08:20+00:00"
+            "time": "2026-11-25T15:28:12+00:00",
+            "published-time": "2026-11-25T15:28:18+00:00"
         },
         {
             "name": "brain/monkey",
@@ -5487,9 +5489,18 @@
             "time": "2026-07-27T11:53:23+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "antecedent/patchwork",
+            "version": "9999999-dev",
+            "alias": "2.2.6",
+            "alias_normalized": "2.2.6.0"
+        }
+    ],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "antecedent/patchwork": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
@@ -5499,5 +5510,5 @@
     "platform-overrides": {
         "php": "8.3.0"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }
