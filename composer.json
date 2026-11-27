@@ -28,7 +28,7 @@
         "pollora/abilities": "^1.0"
     },
     "require-dev": {
-        "antecedent/patchwork": "^2.2",
+        "antecedent/patchwork": "dev-master as 2.2.6",
         "brain/monkey": "^2.6",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
         "laravel/pint": "^1.18",
